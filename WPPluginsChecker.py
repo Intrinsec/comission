@@ -15,6 +15,7 @@ import xlsxwriter
 import urllib.request
 
 from checksumdir import dirhash
+from distutils.version import LooseVersion
 
 debug = True
 quiet = False
@@ -140,13 +141,21 @@ def check_wpvulndb(plugin_details):
     try:
         url = "https://wpvulndb.com/api/v2/plugins/" + plugin_details["name"]
         response = urllib.request.urlopen(url)
+
         if response.status == 200:
             page = response.read().decode('utf-8')
             page_json = json.loads(page)
             plugin_details["cve"] = "YES"
-            for vuln in page_json[plugin_details["name"]]["vulnerabilities"]:
-                print("\t\033[91m" + vuln["title"] + "\033[0m")
-                plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
+
+            vulns = page_json[plugin_details["name"]]["vulnerabilities"]
+
+            for vuln in vulns:
+                fixed_version = vuln["fixed_in"]
+
+                if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
+                    print("\t\033[91m" + vuln["title"] + "\033[0m")
+                    plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
+
     except urllib.error.HTTPError as e:
         msg = "No entry on wpvulndb."
         print("\t\033[34m[+] " + msg + "\033[0m")
@@ -313,7 +322,7 @@ class WPPluginXLSX:
         worksheet.set_column('E:E', 14)
         worksheet.set_column('F:F', 20)
         worksheet.set_column('G:G', 8)
-        worksheet.set_column('H:H', 4)
+        worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
 
 
