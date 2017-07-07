@@ -3,6 +3,7 @@
 import re
 import os
 import sys
+import json
 import random
 import shutil
 import string
@@ -49,9 +50,10 @@ def create_temp_directory():
             break
     return temp_directory
 
-def get_version(plugin_details, plugins_dir_path, plugin_name, version_file_regexp):
+def get_version(plugin_details, plugins_dir_path, plugin_name):
+    version_file_regexp = re.compile("(?i)Version: (.*)")
     try:
-        with open(os.path.join(plugins_dir_path, plugin_name, "readme.txt")) as plugin_info:
+        with open(os.path.join(plugins_dir_path, plugin_name, plugin_name +".php")) as plugin_info:
             version = ''
             for line in plugin_info:
                 version = version_file_regexp.search(line)
@@ -61,13 +63,13 @@ def get_version(plugin_details, plugins_dir_path, plugin_name, version_file_rege
                     break
 
     except FileNotFoundError as e:
-        msg = "No readme file. Search manually !"
+        msg = "No standard extension file. Search manually !"
         print("\t\033[91m[-] " + msg + "\033[0m")
         plugin_details["notes"] = msg
         return "", e
     return version, None
 
-def get_last_version_info(plugin_details, version):
+def get_last_version_info(plugin_details):
     version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
     date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
     releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
@@ -85,7 +87,7 @@ def get_last_version_info(plugin_details, version):
                 plugin_details["date_last_release"] = date_last_release_result.group(1).split("T")[0]
                 plugin_details["link"] = releases_url
 
-                if plugin_details["last_version"] == version:
+                if plugin_details["last_version"] == plugin_details["version"]:
                     print("\t\033[92mUp to date !\033[0m")
                 else:
                     print("\t\033[91mOutdated, last version: " + plugin_details["last_version"] + \
@@ -133,10 +135,29 @@ def check_alteration(plugin_details, plugins_dir_path, temp_directory):
         return msg, e
     return altered, None
 
+def check_wpvulndb(plugin_details):
+    cve = ""
+    try:
+        url = "https://wpvulndb.com/api/v2/plugins/" + plugin_details["name"]
+        response = urllib.request.urlopen(url)
+        if response.status == 200:
+            page = response.read().decode('utf-8')
+            page_json = json.loads(page)
+            plugin_details["cve"] = "YES"
+            for vuln in page_json[plugin_details["name"]]["vulnerabilities"]:
+                print("\t\033[91m" + vuln["title"] + "\033[0m")
+                plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
+    except urllib.error.HTTPError as e:
+        msg = "No entry on wpvulndb."
+        print("\t\033[34m[+] " + msg + "\033[0m")
+        plugin_details["cve"] = "NO"
+        return "", e
+    return cve, None
 
 def get_plugins_details(args):
 
     plugins_details = []
+    temp_directory = create_temp_directory()
 
     if args.output:
         output_file = open(args.output, 'w')
@@ -149,12 +170,8 @@ def get_plugins_details(args):
 
     plugins_dir_path = args.DIR
 
+    # Get the list of plugin to work with
     plugins_name = fetch_plugins(plugins_dir_path)
-
-    temp_directory = create_temp_directory()
-
-    version_file_regexp = re.compile("(?i)Stable tag: (.*)")
-
 
     for plugin_name in plugins_name:
         plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
@@ -165,13 +182,19 @@ def get_plugins_details(args):
         plugin_details["name"] = plugin_name
 
         # Get plugin version
-        _ , err = get_version(plugin_details, plugins_dir_path, plugin_name, version_file_regexp)
+        _ , err = get_version(plugin_details, plugins_dir_path, plugin_name)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
 
         # Check plugin last version
-        _ , err = get_last_version_info(plugin_details, plugin_details["version"])
+        _ , err = get_last_version_info(plugin_details)
+        if err is not None:
+            plugins_details.append(plugin_details)
+            continue
+
+        # Check if there are known CVE in wpvulndb
+        _ , err = check_wpvulndb(plugin_details)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -181,7 +204,7 @@ def get_plugins_details(args):
         if err is not None:
             plugins_details.append(plugin_details)
             continue
-            
+
         plugins_details.append(plugin_details)
     shutil.rmtree(temp_directory, ignore_errors=True)
 
