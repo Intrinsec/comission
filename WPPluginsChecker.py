@@ -84,14 +84,14 @@ def get_last_version_info(plugin_details):
 
             if last_version_result and date_last_release_result:
                 plugin_details["last_version"] = last_version_result.group(1)
-                plugin_details["date_last_release"] = date_last_release_result.group(1).split("T")[0]
+                plugin_details["last_release_date"] = date_last_release_result.group(1).split("T")[0]
                 plugin_details["link"] = releases_url
 
                 if plugin_details["last_version"] == plugin_details["version"]:
                     print("\t\033[92mUp to date !\033[0m")
                 else:
                     print("\t\033[91mOutdated, last version: " + plugin_details["last_version"] + \
-                    "\033[0m ( " + plugin_details["date_last_release"] +" )\n\tCheck : " + releases_url)
+                    "\033[0m ( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url)
 
     except urllib.error.HTTPError as e:
         #log_debug(e)
@@ -175,7 +175,7 @@ def get_plugins_details(args):
 
     for plugin_name in plugins_name:
         plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
-                        "last_release_date":"", "release_date":"", "link":"", "edited":"", \
+                        "last_release_date":"", "link":"", "edited":"", \
                         "cve":"", "cve_details":"", "notes":"" \
                         }
         print("[+] " + plugin_name)
@@ -230,7 +230,7 @@ class WPPluginXLSX:
         x = 0
         y = 0
 
-        headings = ["Status", "Plugin", "Version", "Release date", \
+        headings = ["Status", "Plugin", "Version", \
                     "Last version", "Last release date", "Link", "Code altered", \
                     "CVE", "Vulnerabilities", "Notes"
                     ]
@@ -255,7 +255,8 @@ class WPPluginXLSX:
                                 'font_size': '13',
                                 'bottom': 2,
                                 'border_color': '#44546A',
-                                'font_color': '#44546A'})
+                                'font_color': '#44546A',
+                                'text_wrap': True})
 
 
         # Write conditionnal formats
@@ -275,7 +276,7 @@ class WPPluginXLSX:
                                          'format': bad})
 
         # Red if no info have been found by the script
-        worksheet.conditional_format('K1:K300', {'type': 'text',
+        worksheet.conditional_format('J1:J300', {'type': 'text',
                                          'criteria': 'containing',
                                          'value': 'Search',
                                          'format': bad})
@@ -305,7 +306,17 @@ class WPPluginXLSX:
                                          'format': na})
 
         worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:H', 20)
+        worksheet.set_column('A:A', 7)
+        worksheet.set_column('B:B', 25)
+        worksheet.set_column('C:C', 10)
+        worksheet.set_column('D:D', 12)
+        worksheet.set_column('E:E', 14)
+        worksheet.set_column('F:F', 20)
+        worksheet.set_column('G:G', 8)
+        worksheet.set_column('H:H', 4)
+        worksheet.set_column('I:J', 70)
+
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -317,7 +328,7 @@ if __name__ == "__main__":
         position = 2
         for plugin_details in plugins_details:
             plugin_details_list = [plugin_details["status"], plugin_details["name"], \
-                                plugin_details["version"], plugin_details["release_date"], \
+                                plugin_details["version"], \
                                 plugin_details["last_version"], plugin_details["last_release_date"], \
                                 plugin_details["link"], plugin_details["edited"], plugin_details["cve"], \
                                 plugin_details["cve_details"], plugin_details["notes"] \
