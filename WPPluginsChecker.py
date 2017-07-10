@@ -151,10 +151,14 @@ def check_wpvulndb(plugin_details):
 
             for vuln in vulns:
                 fixed_version = vuln["fixed_in"]
+                try:
+                    if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
+                        print("\t\033[91m" + vuln["title"] + "\033[0m")
+                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
 
-                if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
-                    print("\t\033[91m" + vuln["title"] + "\033[0m")
-                    plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
+                except TypeError as e:
+                    print("\t\033[91m Unable to compare version. Please check this vulnerability :" + vuln["title"] + "\033[0m")
+                    plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], " To check : ", vuln["title"]])
 
     except urllib.error.HTTPError as e:
         msg = "No entry on wpvulndb."
@@ -324,8 +328,6 @@ class WPPluginXLSX:
         worksheet.set_column('G:G', 8)
         worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
-
-
 
 if __name__ == "__main__":
     args = parse_args()
