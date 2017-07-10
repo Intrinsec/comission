@@ -146,7 +146,6 @@ def check_wpvulndb_plugin(plugin_details):
         if response.status == 200:
             page = response.read().decode('utf-8')
             page_json = json.loads(page)
-            plugin_details["cve"] = "YES"
 
             vulns = page_json[plugin_details["name"]]["vulnerabilities"]
 
@@ -160,6 +159,11 @@ def check_wpvulndb_plugin(plugin_details):
                 except TypeError as e:
                     print("\t\033[91m Unable to compare version. Please check this vulnerability :" + vuln["title"] + "\033[0m")
                     plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], " To check : ", vuln["title"]])
+
+            if plugin_details["cve_details"]:
+                plugin_details["cve"] = "YES"
+            else:
+                plugin_details["cve"] = "NO"
 
     except urllib.error.HTTPError as e:
         msg = "No entry on wpvulndb."
@@ -188,7 +192,7 @@ def check_core_version(dir_path):
     return version_core, None
 
 def get_core_last_version():
-    https://api.wordpress.org/core/version-check/1.7/
+    url = "https://api.wordpress.org/core/version-check/1.7/"
 
 def check_wpvulndb_core(version_core):
     vulns_details = []
