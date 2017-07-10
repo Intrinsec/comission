@@ -29,17 +29,18 @@ def log_debug(msg):
 def parse_args():
     parser = argparse.ArgumentParser(description='WP Plugins Checker checks \
     plugins in a directory.')
-    parser.add_argument('-d', '--dir', dest='DIR', help='Plugins directory')
+    parser.add_argument('-d', '--dir', dest='DIR', help='WordPress root directory')
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
     args = parser.parse_args()
     return args
 
 def fetch_plugins(input):
-    if not os.path.exists(input):
+    plugin_dir = input + "wp-content/plugins/"
+    if not os.path.exists(plugin_dir):
         print("Plugins path does not exist !")
         exit(-1)
-    plugins_name = next(os.walk(input))[1]
+    plugins_name = next(os.walk(plugin_dir))[1]
     return plugins_name
 
 def create_temp_directory():
@@ -51,10 +52,10 @@ def create_temp_directory():
             break
     return temp_directory
 
-def get_version(plugin_details, plugins_dir_path, plugin_name):
+def get_version(plugin_details, dir_path, plugin_name):
     version_file_regexp = re.compile("(?i)Version: (.*)")
     try:
-        with open(os.path.join(plugins_dir_path, plugin_name, plugin_name +".php")) as plugin_info:
+        with open(os.path.join(dir_path, "wp-content", "plugins", plugin_name, plugin_name +".php")) as plugin_info:
             version = ''
             for line in plugin_info:
                 version = version_file_regexp.search(line)
@@ -102,7 +103,7 @@ def get_last_version_info(plugin_details):
         return "", e
     return plugin_details["last_version"], None
 
-def check_alteration(plugin_details, plugins_dir_path, temp_directory):
+def check_alteration(plugin_details, dir_path, temp_directory):
     plugin_url = "https://downloads.wordpress.org/plugin/{}.{}.zip".format(plugin_details["name"], plugin_details["version"])
 
     if plugin_details["version"] == "trunk":
@@ -118,7 +119,7 @@ def check_alteration(plugin_details, plugins_dir_path, temp_directory):
             zip_file.extractall(temp_directory)
             zip_file.close()
             os.remove(compressed_plugin[0])
-            project_dir_hash = dirhash(os.path.join(plugins_dir_path, plugin_details["name"]), 'sha1')
+            project_dir_hash = dirhash(os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"]), 'sha1')
             ref_dir_hash = dirhash(os.path.join(temp_directory, plugin_details["name"]), 'sha1')
 
         if project_dir_hash == ref_dir_hash:
@@ -167,6 +168,24 @@ def check_wpvulndb(plugin_details):
         return "", e
     return cve, None
 
+def check_core_version(dir_path):
+    version_core_regexp = re.compile("\$wp_version = '(.*)';")
+    try:
+        with open(os.path.join(dir_path, "wp-includes/" "version.php")) as version_file:
+            version_core = ''
+            for line in version_file:
+                version_core = version_core_regexp.search(line)
+                if version_core:
+                    print("\033[34m[+] Version de WordPress : "+ version_core.group(1).strip()+ "\033[0m")
+                    break
+
+    except FileNotFoundError as e:
+        msg = "WordPress version not found. Search manually !"
+        print("\t\033[91m[-] " + msg + "\033[0m")
+        #plugin_details["notes"] += msg
+        return "", e
+    return version_core, None
+
 def get_plugins_details(args):
 
     plugins_details = []
@@ -181,10 +200,13 @@ def get_plugins_details(args):
         print("No plugin path receive !")
         sys.exit()
 
-    plugins_dir_path = args.DIR
+    dir_path = args.DIR
+
+    # Check current WordPress version
+    _ , err = check_core_version(dir_path)
 
     # Get the list of plugin to work with
-    plugins_name = fetch_plugins(plugins_dir_path)
+    plugins_name = fetch_plugins(dir_path)
 
     for plugin_name in plugins_name:
         plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
@@ -195,7 +217,7 @@ def get_plugins_details(args):
         plugin_details["name"] = plugin_name
 
         # Get plugin version
-        _ , err = get_version(plugin_details, plugins_dir_path, plugin_name)
+        _ , err = get_version(plugin_details, dir_path, plugin_name)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -213,7 +235,7 @@ def get_plugins_details(args):
             continue
 
         # Check if the plugin have been altered
-        _ , err = check_alteration(plugin_details, plugins_dir_path, temp_directory)
+        _ , err = check_alteration(plugin_details, dir_path, temp_directory)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -222,6 +244,8 @@ def get_plugins_details(args):
     shutil.rmtree(temp_directory, ignore_errors=True)
 
     return plugins_details
+
+
 
 class WPPluginXLSX:
     """ WPPlugin XLS Generator """
