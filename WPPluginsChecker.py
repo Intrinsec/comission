@@ -422,7 +422,7 @@ if __name__ == "__main__":
 
     # Check current WordPress version
     version_core , err = check_core_version(args.DIR)
-    core_details = [version_core, "N/A"]
+    core_details = [version_core, "https://codex.wordpress.org/WordPress_Versions"]
     core_vulns_details = get_core_details(args)
 
     plugins_details = get_plugins_details(args)
