@@ -137,7 +137,7 @@ def check_alteration(plugin_details, dir_path, temp_directory):
         return msg, e
     return altered, None
 
-def check_wpvulndb(plugin_details):
+def check_wpvulndb_plugin(plugin_details):
     cve = ""
     try:
         url = "https://wpvulndb.com/api/v2/plugins/" + plugin_details["name"]
@@ -174,9 +174,10 @@ def check_core_version(dir_path):
         with open(os.path.join(dir_path, "wp-includes/" "version.php")) as version_file:
             version_core = ''
             for line in version_file:
-                version_core = version_core_regexp.search(line)
-                if version_core:
-                    print("\033[34m[+] Version de WordPress : "+ version_core.group(1).strip()+ "\033[0m")
+                version_core_match = version_core_regexp.search(line)
+                if version_core_match:
+                    version_core = version_core_match.group(1).strip()
+                    print("\t\033[34m[+] Version de WordPress : "+ version_core + "\033[0m")
                     break
 
     except FileNotFoundError as e:
@@ -186,8 +187,39 @@ def check_core_version(dir_path):
         return "", e
     return version_core, None
 
-def get_plugins_details(args):
+def get_core_last_version():
+    https://api.wordpress.org/core/version-check/1.7/
 
+def check_wpvulndb_core(version_core):
+    vulns_details = []
+
+    version = version_core.replace('.', '')
+    url = "https://wpvulndb.com/api/v2/wordpresses/" + version
+    url_details = "https://wpvulndb.com/vulnerabilities/"
+
+    try:
+        response = urllib.request.urlopen(url)
+
+        if response.status == 200:
+            page = response.read().decode('utf-8')
+            page_json = json.loads(page)
+
+            vulns = page_json[version_core]["vulnerabilities"]
+
+            for vuln in vulns:
+                vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
+                                "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+                                }
+                print("\t\033[91m" + vuln["title"] + "\033[0m\t"+ str(vuln["fixed_in"]))
+                vulns_details.append(vuln_details)
+
+    except urllib.error.HTTPError as e:
+        msg = "No entry on wpvulndb."
+        print("\t\033[34m[+] " + msg + "\033[0m")
+        return "", e
+    return vulns_details, None
+
+def get_plugins_details(args):
     plugins_details = []
     temp_directory = create_temp_directory()
 
@@ -202,9 +234,6 @@ def get_plugins_details(args):
 
     dir_path = args.DIR
 
-    # Check current WordPress version
-    _ , err = check_core_version(dir_path)
-
     # Get the list of plugin to work with
     plugins_name = fetch_plugins(dir_path)
 
@@ -213,7 +242,7 @@ def get_plugins_details(args):
                         "last_release_date":"", "link":"", "edited":"", \
                         "cve":"", "cve_details":"", "notes":"" \
                         }
-        print("[+] " + plugin_name)
+        print("\033[34m[+] " + plugin_name + "\033[0m")
         plugin_details["name"] = plugin_name
 
         # Get plugin version
@@ -229,7 +258,7 @@ def get_plugins_details(args):
             continue
 
         # Check if there are known CVE in wpvulndb
-        _ , err = check_wpvulndb(plugin_details)
+        _ , err = check_wpvulndb_plugin(plugin_details)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -245,6 +274,13 @@ def get_plugins_details(args):
 
     return plugins_details
 
+def get_core_details(args):
+    dir_path = args.DIR
+
+    # Check for vuln on the WordPress version
+    vulns_details , err = check_wpvulndb_core(version_core)
+
+    return vulns_details
 
 
 class WPPluginXLSX:
@@ -253,12 +289,16 @@ class WPPluginXLSX:
     def __init__(self, output_filename="output.xlsx"):
         """ generate XLSX """
         self.workbook = xlsxwriter.Workbook(output_filename)
-        self.worksheet = self.workbook.add_worksheet("Plugins")
+        self.core_worksheet = self.workbook.add_worksheet("Core")
+        self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
         self.generate_heading(self.workbook)
         self.generate_formating(self.workbook)
 
     def add_plugin(self, position, plugin = []):
-        self.worksheet.write_row('A'+ str(position), plugin)
+        self.plugins_worksheet.write_row(position, plugin)
+
+    def add_core_data(self, position, data):
+        self.core_worksheet.write_row(position, data)
 
     def generate_xlsx(self):
         self.workbook.close()
@@ -267,13 +307,22 @@ class WPPluginXLSX:
         x = 0
         y = 0
 
-        headings = ["Status", "Plugin", "Version", \
+        plugins_headings = ["Status", "Plugin", "Version", \
                     "Last version", "Last release date", "Link", "Code altered", \
                     "CVE", "Vulnerabilities", "Notes"
                     ]
+        core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
+                    "Type", "Fixed In"
+                    ]
+        for heading in plugins_headings:
+            self.plugins_worksheet.write(x, y, heading)
+            y += 1
 
-        for heading in headings:
-            self.worksheet.write(x, y, heading)
+        x = 0
+        y = 0
+
+        for heading in core_headings:
+            self.core_worksheet.write(x, y, heading)
             y += 1
 
     def generate_formating(self, workbook):
@@ -297,7 +346,7 @@ class WPPluginXLSX:
 
 
         # Write conditionnal formats
-        worksheet = workbook.get_worksheet_by_name('Plugins')
+        worksheet = self.plugins_worksheet
         worksheet.conditional_format('A1:A300', {'type': 'text',
                                          'criteria': 'containing',
                                          'value': 'todo',
@@ -341,7 +390,7 @@ class WPPluginXLSX:
                                          'criteria': '==',
                                          'value': '"N/A"',
                                          'format': na})
-
+        # Format Plugin worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 7)
         worksheet.set_column('B:B', 25)
@@ -353,23 +402,51 @@ class WPPluginXLSX:
         worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
 
+        # Format WordPress Core worksheet
+        worksheet = self.core_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:B', 10)
+        worksheet.set_column('D:D', 80)
+        worksheet.set_column('E:E', 40)
+        worksheet.set_column('F:F', 8)
+        worksheet.set_column('G:G', 12)
+
 if __name__ == "__main__":
     args = parse_args()
+
+    print("\033[34m[+] WordPress Core checking \033[0m")
+
+    # Check current WordPress version
+    version_core , err = check_core_version(args.DIR)
+    core_details = [version_core, "N/A"]
+    core_vulns_details = get_core_details(args)
 
     plugins_details = get_plugins_details(args)
 
     if args.output:
         result_xlsx = WPPluginXLSX(args.output)
-        position = 2
+        y = 2
+        x = 2
         for plugin_details in plugins_details:
             plugin_details_list = [plugin_details["status"], plugin_details["name"], \
-                                plugin_details["version"], \
-                                plugin_details["last_version"], plugin_details["last_release_date"], \
-                                plugin_details["link"], plugin_details["edited"], plugin_details["cve"], \
+                                plugin_details["version"], plugin_details["last_version"], \
+                                plugin_details["last_release_date"], plugin_details["link"], \
+                                plugin_details["edited"], plugin_details["cve"], \
                                 plugin_details["cve_details"], plugin_details["notes"] \
                                 ]
-            result_xlsx.add_plugin(position, plugin_details_list)
-            position += 1
+            result_xlsx.add_plugin('A'+ str(y), plugin_details_list)
+            y += 1
+
+        # Add core data
+        result_xlsx.add_core_data('A2', core_details)
+
+        # Add core vulns
+        for core_vuln_details in core_vulns_details:
+            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
+                                    core_vuln_details["type"],core_vuln_details["fixed_in"] \
+                                    ]
+            result_xlsx.add_core_data('D'+ str(x), core_vuln_details_list)
+            x += 1
 
         # Generate result file
         result_xlsx.generate_xlsx()
