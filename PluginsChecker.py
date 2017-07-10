@@ -10,7 +10,9 @@ import zipfile
 
 from checksumdir import dirhash
 
-parser = argparse.ArgumentParser(description='Plugins Checker checks plugins in the directory dir.')
+PLUGIN_DRUPAL_URL = "https://ftp.drupal.org/files/projects/{}-{}.zip"
+
+parser = argparse.ArgumentParser(description='Plugins Checker.')
 parser.add_argument('DIR', nargs=1, help='Plugins directory')
 parser.add_argument('-o', '--output', metavar="FILE", help='Path to output file')
 args = parser.parse_args()
