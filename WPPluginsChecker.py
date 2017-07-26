@@ -181,18 +181,31 @@ def check_core_version(dir_path):
                 version_core_match = version_core_regexp.search(line)
                 if version_core_match:
                     version_core = version_core_match.group(1).strip()
-                    print("\t\033[34m[+] Version de WordPress : "+ version_core + "\033[0m")
+                    print("\t\033[34m[+] WordPress version used : "+ version_core + "\033[0m")
                     break
 
     except FileNotFoundError as e:
         msg = "WordPress version not found. Search manually !"
         print("\t\033[91m[-] " + msg + "\033[0m")
-        #plugin_details["notes"] += msg
         return "", e
     return version_core, None
 
 def get_core_last_version():
-    url = "https://api.wordpress.org/core/version-check/1.7/"
+    api_url = "https://api.wordpress.org/core/version-check/1.7/"
+    last_version_core = ""
+    try:
+        response = urllib.request.urlopen(api_url)
+        if response.status == 200:
+            page = response.read().decode('utf-8')
+            page_json = json.loads(page)
+            last_version_core = page_json["offers"][0]["version"]
+            print("\t\033[34m[+] Last WordPress version: "+ last_version_core + "\033[0m")
+    except urllib.error.HTTPError as e:
+        #log_debug(e)
+        msg = "Unable to retrieve last wordpress version. Search manually !"
+        print("\t\033[91m[-] "+ msg + "\033[0m")
+        return "", e
+    return last_version_core, None
 
 def check_wpvulndb_core(version_core):
     vulns_details = []
@@ -223,20 +236,10 @@ def check_wpvulndb_core(version_core):
         return "", e
     return vulns_details, None
 
-def get_plugins_details(args):
+def get_plugins_details(dir_path):
     plugins_details = []
     temp_directory = create_temp_directory()
 
-    if args.output:
-        output_file = open(args.output, 'w')
-    else:
-        output_file = None
-
-    if not args.DIR:
-        print("No plugin path receive !")
-        sys.exit()
-
-    dir_path = args.DIR
 
     # Get the list of plugin to work with
     plugins_name = fetch_plugins(dir_path)
@@ -278,13 +281,23 @@ def get_plugins_details(args):
 
     return plugins_details
 
-def get_core_details(args):
-    dir_path = args.DIR
+def get_core_details(dir_path):
+    core_details = {"infos": [], "vulns":[]}
+
+    print("\033[34m[+] WordPress Core checking \033[0m")
+
+    # Check current WordPress version
+    version_core , err = check_core_version(dir_path)
+    last_version_core , err = get_core_last_version()
+
+    core_details["infos"] = [version_core, last_version_core]
 
     # Check for vuln on the WordPress version
-    vulns_details , err = check_wpvulndb_core(version_core)
+    core_vulns_details , err = check_wpvulndb_core(version_core)
 
-    return vulns_details
+    core_details["vulns"] = core_vulns_details
+
+    return core_details
 
 
 class WPPluginXLSX:
@@ -418,14 +431,19 @@ class WPPluginXLSX:
 if __name__ == "__main__":
     args = parse_args()
 
-    print("\033[34m[+] WordPress Core checking \033[0m")
+    if args.output:
+        output_file = open(args.output, 'w')
+    else:
+        output_file = None
 
-    # Check current WordPress version
-    version_core , err = check_core_version(args.DIR)
-    core_details = [version_core, "https://codex.wordpress.org/WordPress_Versions"]
-    core_vulns_details = get_core_details(args)
+    if not args.DIR:
+        print("No path receive !")
+        sys.exit()
 
-    plugins_details = get_plugins_details(args)
+    dir_path = args.DIR
+
+    core_details = get_core_details(dir_path)
+    plugins_details = get_plugins_details(dir_path)
 
     if args.output:
         result_xlsx = WPPluginXLSX(args.output)
@@ -442,10 +460,10 @@ if __name__ == "__main__":
             y += 1
 
         # Add core data
-        result_xlsx.add_core_data('A2', core_details)
+        result_xlsx.add_core_data('A2', core_details["infos"])
 
         # Add core vulns
-        for core_vuln_details in core_vulns_details:
+        for core_vuln_details in core_details["vulns"]:
             core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
                                     core_vuln_details["type"],core_vuln_details["fixed_in"] \
                                     ]
