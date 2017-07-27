@@ -2,12 +2,14 @@
 
 import re
 import os
+import io
 import sys
 import json
 import random
 import shutil
 import string
 import zipfile
+import requests
 import datetime
 import argparse
 import tempfile
@@ -85,9 +87,11 @@ def get_last_version_info(plugin_details):
     releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
     last_version = "Not found"
     try:
-        response = urllib.request.urlopen(releases_url)
-        if response.status == 200:
-            page = response.read().decode('utf-8')
+        response = requests.get(releases_url, allow_redirects=False)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            page = response.text
 
             last_version_result = version_web_regexp.search(page)
             date_last_release_result = date_last_release_regexp.search(page)
@@ -98,12 +102,12 @@ def get_last_version_info(plugin_details):
                 plugin_details["link"] = releases_url
 
                 if plugin_details["last_version"] == plugin_details["version"]:
-                    print(GREEN + "\tUp to date !\033[0m")
+                    print(GREEN + "\tUp to date !" + DEFAULT)
                 else:
                     print(RED + "\tOutdated, last version: " + plugin_details["last_version"] + \
                     "\033[0m ( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url)
 
-    except urllib.error.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         #log_debug(e)
         msg = "Plugin not in wordpress official site. Search manually !"
         print(RED + "\t[-] "+ msg + DEFAULT)
@@ -120,25 +124,26 @@ def check_alteration(plugin_details, dir_path, temp_directory):
     print("\tTo download the plugin : " + plugin_url)
 
     try:
-        response = urllib.request.urlopen(plugin_url)
-        if response.status == 200:
-            compressed_plugin = urllib.request.urlretrieve(plugin_url)
-            zip_file = zipfile.ZipFile(compressed_plugin[0], 'r')
+        response = requests.get(plugin_url)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
             zip_file.extractall(temp_directory)
             zip_file.close()
-            os.remove(compressed_plugin[0])
+
             project_dir_hash = dirhash(os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"]), 'sha1')
             ref_dir_hash = dirhash(os.path.join(temp_directory, plugin_details["name"]), 'sha1')
 
-        if project_dir_hash == ref_dir_hash:
-            altered = "NO"
-            print("\tDifferent from sources : " + GREEN + altered + DEFAULT)
-        else:
-            altered = "YES"
-            print("\tDifferent from sources : " + RED + altered + DEFAULT)
-        plugin_details["edited"] = altered
+            if project_dir_hash == ref_dir_hash:
+                altered = "NO"
+                print("\tDifferent from sources : " + GREEN + altered + DEFAULT)
+            else:
+                altered = "YES"
+                print("\tDifferent from sources : " + RED + altered + DEFAULT)
+            plugin_details["edited"] = altered
 
-    except urllib.error.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         msg = "The download link is not standard. Search manually !"
         print("\t"+msg)
         plugin_details["notes"] = msg
@@ -158,16 +163,15 @@ def check_core_alteration(dir_path, version_core):
     print(BLUE + "[+] Checking core alteration" + DEFAULT)
 
     try:
-        response = urllib.request.urlopen(core_url)
+        response = requests.get(core_url)
+        response.raise_for_status()
 
-        if response.status == 200:
-            compressed_core = urllib.request.urlretrieve(core_url)
-            zip_file = zipfile.ZipFile(compressed_core[0], 'r')
+        if response.status_code == 200:
+            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
             zip_file.extractall(temp_directory)
             zip_file.close()
-            os.remove(compressed_core[0])
 
-    except urllib.error.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         msg = "The original wordpress archive has not been found. Search manually !"
         print(RED + "\t" + msg)
         return msg, e
@@ -201,11 +205,12 @@ def check_wpvulndb_plugin(plugin_details):
     cve = ""
     try:
         url = "https://wpvulndb.com/api/v2/plugins/" + plugin_details["name"]
-        response = urllib.request.urlopen(url)
 
-        if response.status == 200:
-            page = response.read().decode('utf-8')
-            page_json = json.loads(page)
+        response = requests.get(url)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            page_json = response.json()
 
             vulns = page_json[plugin_details["name"]]["vulnerabilities"]
             print(BLUE+"\t[+] CVE list "+DEFAULT)
@@ -225,7 +230,7 @@ def check_wpvulndb_plugin(plugin_details):
             else:
                 plugin_details["cve"] = "NO"
 
-    except urllib.error.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         msg = "No entry on wpvulndb."
         print(BLUE + "\t[+] " + msg + DEFAULT)
         plugin_details["cve"] = "NO"
@@ -254,14 +259,16 @@ def get_core_last_version():
     api_url = "https://api.wordpress.org/core/version-check/1.7/"
     last_version_core = ""
     try:
-        response = urllib.request.urlopen(api_url)
-        if response.status == 200:
-            page = response.read().decode('utf-8')
-            page_json = json.loads(page)
+        response = requests.get(api_url)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            page_json = response.json()
+
             last_version_core = page_json["offers"][0]["version"]
             print(BLUE+"[+] Last WordPress version: "+ last_version_core + DEFAULT)
-    except urllib.error.HTTPError as e:
-        #log_debug(e)
+
+    except requests.exceptions.HTTPError as e:
         msg = "Unable to retrieve last wordpress version. Search manually !"
         print(RED + "\t[-] "+ msg + DEFAULT)
         return "", e
@@ -275,11 +282,11 @@ def check_wpvulndb_core(version_core):
     url_details = "https://wpvulndb.com/vulnerabilities/"
 
     try:
-        response = urllib.request.urlopen(url)
+        response = requests.get(url)
+        response.raise_for_status()
 
-        if response.status == 200:
-            page = response.read().decode('utf-8')
-            page_json = json.loads(page)
+        if response.status_code == 200:
+            page_json = response.json()
 
             vulns = page_json[version_core]["vulnerabilities"]
             print(BLUE+"[+] CVE list "+DEFAULT)
@@ -291,7 +298,7 @@ def check_wpvulndb_core(version_core):
                 print(BLUE + "\t[+] Fixed in version "+ str(vuln["fixed_in"])+DEFAULT)
                 vulns_details.append(vuln_details)
 
-    except urllib.error.HTTPError as e:
+    except requests.exceptions.HTTPError as e:
         msg = "No entry on wpvulndb."
         print(BLUE+"\t[+] " + msg + DEFAULT)
         return "", e
