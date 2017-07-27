@@ -14,7 +14,6 @@ import datetime
 import argparse
 import tempfile
 import xlsxwriter
-import urllib.request
 
 from filecmp import dircmp
 from checksumdir import dirhash
@@ -62,7 +61,45 @@ def create_temp_directory():
             break
     return temp_directory
 
-def get_version(plugin_details, dir_path, plugin_name):
+def diff_files(dcmp, alterations):
+    for name in dcmp.diff_files:
+        alteration = {"file":"", "status":""}
+        print(RED + "\t" + name + DEFAULT + " was altered !")
+        alteration["file"] = name
+        alteration["status"] = "altered"
+
+        alterations.append(alteration)
+
+    for name in dcmp.right_only:
+        alteration = {"file":"", "status":""}
+        print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
+        alteration["file"] = name
+        alteration["status"] = "not present in base wordpress"
+
+        alterations.append(alteration)
+
+    for sub_dcmp in dcmp.subdirs.values():
+        diff_files(sub_dcmp, alterations)
+
+def get_core_version(dir_path):
+    version_core_regexp = re.compile("\$wp_version = '(.*)';")
+    try:
+        with open(os.path.join(dir_path, "wp-includes/" "version.php")) as version_file:
+            version_core = ''
+            for line in version_file:
+                version_core_match = version_core_regexp.search(line)
+                if version_core_match:
+                    version_core = version_core_match.group(1).strip()
+                    print(BLUE + "[+] WordPress version used : "+ version_core + DEFAULT)
+                    break
+
+    except FileNotFoundError as e:
+        msg = "WordPress version not found. Search manually !"
+        print(RED + "\t[-] " + msg + DEFAULT)
+        return "", e
+    return version_core, None
+
+def get_plugin_version(plugin_details, dir_path, plugin_name):
     version_file_regexp = re.compile("(?i)Version: (.*)")
     try:
         with open(os.path.join(dir_path, "wp-content", "plugins", plugin_name, plugin_name +".php")) as plugin_info:
@@ -81,7 +118,26 @@ def get_version(plugin_details, dir_path, plugin_name):
         return "", e
     return version, None
 
-def get_last_version_info(plugin_details):
+def get_core_last_version():
+    api_url = "https://api.wordpress.org/core/version-check/1.7/"
+    last_version_core = ""
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            page_json = response.json()
+
+            last_version_core = page_json["offers"][0]["version"]
+            print(BLUE+"[+] Last WordPress version: "+ last_version_core + DEFAULT)
+
+    except requests.exceptions.HTTPError as e:
+        msg = "Unable to retrieve last wordpress version. Search manually !"
+        print(RED + "\t[-] "+ msg + DEFAULT)
+        return "", e
+    return last_version_core, None
+
+def get_plugin_last_version_info(plugin_details):
     version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
     date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
     releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
@@ -115,7 +171,38 @@ def get_last_version_info(plugin_details):
         return "", e
     return plugin_details["last_version"], None
 
-def check_alteration(plugin_details, dir_path, temp_directory):
+def check_core_alteration(dir_path, version_core):
+
+    core_url = "https://wordpress.org/wordpress-" + version_core + ".zip"
+
+    alterations = []
+    ignored = [".git", "cache", "plugins", "themes", "images", \
+                "license.txt", "readme.html", "version.php"]
+
+    temp_directory = create_temp_directory()
+
+    print(BLUE + "[+] Checking core alteration" + DEFAULT)
+
+    try:
+        response = requests.get(core_url)
+        response.raise_for_status()
+
+        if response.status_code == 200:
+            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
+            zip_file.extractall(temp_directory)
+            zip_file.close()
+
+    except requests.exceptions.HTTPError as e:
+        msg = "The original wordpress archive has not been found. Search manually !"
+        print(RED + "\t" + msg)
+        return msg, e
+
+    dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
+    diff_files(dcmp, alterations)
+
+    return alterations, None
+
+def check_plugin_alteration(plugin_details, dir_path, temp_directory):
     plugin_url = "https://downloads.wordpress.org/plugin/{}.{}.zip".format(plugin_details["name"], plugin_details["version"])
 
     if plugin_details["version"] == "trunk":
@@ -150,56 +237,35 @@ def check_alteration(plugin_details, dir_path, temp_directory):
         return msg, e
     return altered, None
 
-def check_core_alteration(dir_path, version_core):
+def check_wpvulndb_core(version_core):
+    vulns_details = []
 
-    core_url = "https://wordpress.org/wordpress-" + version_core + ".zip"
-
-    alterations = []
-    ignored = [".git", "cache", "plugins", "themes", "images", \
-                "license.txt", "readme.html", "version.php"]
-
-    temp_directory = create_temp_directory()
-
-    print(BLUE + "[+] Checking core alteration" + DEFAULT)
+    version = version_core.replace('.', '')
+    url = "https://wpvulndb.com/api/v2/wordpresses/" + version
+    url_details = "https://wpvulndb.com/vulnerabilities/"
 
     try:
-        response = requests.get(core_url)
+        response = requests.get(url)
         response.raise_for_status()
 
         if response.status_code == 200:
-            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
-            zip_file.extractall(temp_directory)
-            zip_file.close()
+            page_json = response.json()
+
+            vulns = page_json[version_core]["vulnerabilities"]
+            print(BLUE+"[+] CVE list "+DEFAULT)
+            for vuln in vulns:
+                vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
+                                "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+                                }
+                print(RED + "\t" + vuln["title"] + DEFAULT)
+                print(BLUE + "\t[+] Fixed in version "+ str(vuln["fixed_in"])+DEFAULT)
+                vulns_details.append(vuln_details)
 
     except requests.exceptions.HTTPError as e:
-        msg = "The original wordpress archive has not been found. Search manually !"
-        print(RED + "\t" + msg)
-        return msg, e
-
-    dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
-    diff_files(dcmp, alterations)
-
-    return alterations, None
-
-def diff_files(dcmp, alterations):
-    for name in dcmp.diff_files:
-        alteration = {"file":"", "status":""}
-        print(RED + "\t" + name + DEFAULT + " was altered !")
-        alteration["file"] = name
-        alteration["status"] = "altered"
-
-        alterations.append(alteration)
-
-    for name in dcmp.right_only:
-        alteration = {"file":"", "status":""}
-        print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
-        alteration["file"] = name
-        alteration["status"] = "not present in base wordpress"
-
-        alterations.append(alteration)
-
-    for sub_dcmp in dcmp.subdirs.values():
-        diff_files(sub_dcmp, alterations)
+        msg = "No entry on wpvulndb."
+        print(BLUE+"\t[+] " + msg + DEFAULT)
+        return "", e
+    return vulns_details, None
 
 def check_wpvulndb_plugin(plugin_details):
     cve = ""
@@ -237,72 +303,28 @@ def check_wpvulndb_plugin(plugin_details):
         return "", e
     return cve, None
 
-def check_core_version(dir_path):
-    version_core_regexp = re.compile("\$wp_version = '(.*)';")
-    try:
-        with open(os.path.join(dir_path, "wp-includes/" "version.php")) as version_file:
-            version_core = ''
-            for line in version_file:
-                version_core_match = version_core_regexp.search(line)
-                if version_core_match:
-                    version_core = version_core_match.group(1).strip()
-                    print(BLUE + "[+] WordPress version used : "+ version_core + DEFAULT)
-                    break
+def get_core_details(dir_path):
+    core_details = {"infos": [], "alterations": [], "vulns":[]}
 
-    except FileNotFoundError as e:
-        msg = "WordPress version not found. Search manually !"
-        print(RED + "\t[-] " + msg + DEFAULT)
-        return "", e
-    return version_core, None
+    print(BLUE)
+    print("#######################################################")
+    print("\t\tWordPress Core analysis")
+    print("#######################################################")
+    print(DEFAULT)
 
-def get_core_last_version():
-    api_url = "https://api.wordpress.org/core/version-check/1.7/"
-    last_version_core = ""
-    try:
-        response = requests.get(api_url)
-        response.raise_for_status()
+    # Check current WordPress version
+    version_core , err = get_core_version(dir_path)
+    last_version_core , err = get_core_last_version()
 
-        if response.status_code == 200:
-            page_json = response.json()
+    core_details["infos"] = [version_core, last_version_core]
 
-            last_version_core = page_json["offers"][0]["version"]
-            print(BLUE+"[+] Last WordPress version: "+ last_version_core + DEFAULT)
+    # Check for vuln on the WordPress version
+    core_details["vulns"] , err = check_wpvulndb_core(version_core)
 
-    except requests.exceptions.HTTPError as e:
-        msg = "Unable to retrieve last wordpress version. Search manually !"
-        print(RED + "\t[-] "+ msg + DEFAULT)
-        return "", e
-    return last_version_core, None
+    # Check if the core have been altered
+    core_details["alterations"], err = check_core_alteration(dir_path, version_core)
 
-def check_wpvulndb_core(version_core):
-    vulns_details = []
-
-    version = version_core.replace('.', '')
-    url = "https://wpvulndb.com/api/v2/wordpresses/" + version
-    url_details = "https://wpvulndb.com/vulnerabilities/"
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-
-        if response.status_code == 200:
-            page_json = response.json()
-
-            vulns = page_json[version_core]["vulnerabilities"]
-            print(BLUE+"[+] CVE list "+DEFAULT)
-            for vuln in vulns:
-                vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
-                                "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
-                                }
-                print(RED + "\t" + vuln["title"] + DEFAULT)
-                print(BLUE + "\t[+] Fixed in version "+ str(vuln["fixed_in"])+DEFAULT)
-                vulns_details.append(vuln_details)
-
-    except requests.exceptions.HTTPError as e:
-        msg = "No entry on wpvulndb."
-        print(BLUE+"\t[+] " + msg + DEFAULT)
-        return "", e
-    return vulns_details, None
+    return core_details
 
 def get_plugins_details(dir_path):
     plugins_details = []
@@ -326,13 +348,13 @@ def get_plugins_details(dir_path):
         plugin_details["name"] = plugin_name
 
         # Get plugin version
-        _ , err = get_version(plugin_details, dir_path, plugin_name)
+        _ , err = get_plugin_version(plugin_details, dir_path, plugin_name)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
 
         # Check plugin last version
-        _ , err = get_last_version_info(plugin_details)
+        _ , err = get_plugin_last_version_info(plugin_details)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -344,7 +366,7 @@ def get_plugins_details(dir_path):
             continue
 
         # Check if the plugin have been altered
-        _ , err = check_alteration(plugin_details, dir_path, temp_directory)
+        _ , err = check_plugin_alteration(plugin_details, dir_path, temp_directory)
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -353,29 +375,6 @@ def get_plugins_details(dir_path):
     shutil.rmtree(temp_directory, ignore_errors=True)
 
     return plugins_details
-
-def get_core_details(dir_path):
-    core_details = {"infos": [], "alterations": [], "vulns":[]}
-
-    print(BLUE)
-    print("#######################################################")
-    print("\t\tWordPress Core analysis")
-    print("#######################################################")
-    print(DEFAULT)
-
-    # Check current WordPress version
-    version_core , err = check_core_version(dir_path)
-    last_version_core , err = get_core_last_version()
-
-    core_details["infos"] = [version_core, last_version_core]
-
-    # Check for vuln on the WordPress version
-    core_details["vulns"] , err = check_wpvulndb_core(version_core)
-
-    # Check if the core have been altered
-    core_details["alterations"], err = check_core_alteration(dir_path, version_core)
-
-    return core_details
 
 
 class WPPluginXLSX:
@@ -526,33 +525,22 @@ if __name__ == "__main__":
         output_file = None
 
     if not args.DIR:
-        print("No path receive !")
+        print("No path received !")
         sys.exit()
 
     dir_path = args.DIR
+
     core_details = get_core_details(dir_path)
     plugins_details = get_plugins_details(dir_path)
 
-
     if args.output:
         result_xlsx = WPPluginXLSX(args.output)
-        x = 2
-        y = 2
-        z = 2
-        for plugin_details in plugins_details:
-            plugin_details_list = [plugin_details["status"], plugin_details["name"], \
-                                plugin_details["version"], plugin_details["last_version"], \
-                                plugin_details["last_release_date"], plugin_details["link"], \
-                                plugin_details["edited"], plugin_details["cve"], \
-                                plugin_details["cve_details"], plugin_details["notes"] \
-                                ]
-            result_xlsx.add_plugin('A'+ str(y), plugin_details_list)
-            y += 1
 
         # Add core data
         result_xlsx.add_core_data('A2', core_details["infos"])
 
         # Add core vulns
+        x = 2
         for core_vuln_details in core_details["vulns"]:
             core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
                                     core_vuln_details["type"],core_vuln_details["fixed_in"] \
@@ -561,10 +549,23 @@ if __name__ == "__main__":
             x += 1
 
         # Add core alteration details
+        x = 2
         for core_alteration in core_details["alterations"]:
             core_alterations_list = [core_alteration["file"], core_alteration["status"]]
             result_xlsx.add_core_alteration_data('A'+ str(z), core_alterations_list)
-            z += 1
+            x += 1
+
+        # Add plugin details
+        x = 2
+        for plugin_details in plugins_details:
+            plugin_details_list = [plugin_details["status"], plugin_details["name"], \
+                                plugin_details["version"], plugin_details["last_version"], \
+                                plugin_details["last_release_date"], plugin_details["link"], \
+                                plugin_details["edited"], plugin_details["cve"], \
+                                plugin_details["cve_details"], plugin_details["notes"] \
+                                ]
+            result_xlsx.add_plugin('A'+ str(y), plugin_details_list)
+            x += 1
 
         # Generate result file
         result_xlsx.generate_xlsx()
