@@ -145,8 +145,9 @@ def check_alteration(plugin_details, dir_path, temp_directory):
         return msg, e
     return altered, None
 
-def check_core_alteration(dir_path):
-    core_url = "https://wordpress.org/wordpress-4.5.1.zip"
+def check_core_alteration(dir_path, version_core):
+
+    core_url = "https://wordpress.org/wordpress-" + version_core + ".zip"
 
     alterations = []
     ignored = [".git", "cache", "plugins", "themes", "images", \
@@ -365,7 +366,7 @@ def get_core_details(dir_path):
     core_details["vulns"] , err = check_wpvulndb_core(version_core)
 
     # Check if the core have been altered
-    core_details["alterations"], err = check_core_alteration(dir_path)
+    core_details["alterations"], err = check_core_alteration(dir_path, version_core)
 
     return core_details
 
