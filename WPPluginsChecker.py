@@ -21,6 +21,7 @@ from distutils.version import LooseVersion
 debug = True
 quiet = False
 
+# Define color for output
 GREEN = "\033[92m"
 BLUE = "\033[34m"
 RED = "\033[91m"
@@ -145,15 +146,19 @@ def check_alteration(plugin_details, dir_path, temp_directory):
     return altered, None
 
 def check_core_alteration(dir_path):
-    temp_directory = create_temp_directory()
     core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-    altered = ""
+
+    alterations = []
     ignored = [".git", "cache", "plugins", "themes", "images", \
                 "license.txt", "readme.html", "version.php"]
 
+    temp_directory = create_temp_directory()
+
     print(BLUE + "[+] Checking core alteration" + DEFAULT)
+
     try:
         response = urllib.request.urlopen(core_url)
+
         if response.status == 200:
             compressed_core = urllib.request.urlretrieve(core_url)
             zip_file = zipfile.ZipFile(compressed_core[0], 'r')
@@ -161,22 +166,35 @@ def check_core_alteration(dir_path):
             zip_file.close()
             os.remove(compressed_core[0])
 
-        dcmp = dircmp(temp_directory+"/wordpress", dir_path, ignored)
-
-        def print_diff_files(dcmp):
-            for name in dcmp.diff_files:
-                print(RED + "\t" + name + DEFAULT + " was altered !")
-            for name in dcmp.right_only:
-                print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
-            for sub_dcmp in dcmp.subdirs.values():
-                print_diff_files(sub_dcmp)
-        print_diff_files(dcmp)
-
     except urllib.error.HTTPError as e:
         msg = "The original wordpress archive has not been found. Search manually !"
-        print(RED + "\t"+msg)
+        print(RED + "\t" + msg)
         return msg, e
-    return altered, None
+
+    dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
+    diff_files(dcmp, alterations)
+
+    return alterations, None
+
+def diff_files(dcmp, alterations):
+    for name in dcmp.diff_files:
+        alteration = {"file":"", "status":""}
+        print(RED + "\t" + name + DEFAULT + " was altered !")
+        alteration["file"] = name
+        alteration["status"] = "altered"
+
+        alterations.append(alteration)
+
+    for name in dcmp.right_only:
+        alteration = {"file":"", "status":""}
+        print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
+        alteration["file"] = name
+        alteration["status"] = "not present in base wordpress"
+
+        alterations.append(alteration)
+
+    for sub_dcmp in dcmp.subdirs.values():
+        diff_files(sub_dcmp, alterations)
 
 def check_wpvulndb_plugin(plugin_details):
     cve = ""
@@ -329,7 +347,7 @@ def get_plugins_details(dir_path):
     return plugins_details
 
 def get_core_details(dir_path):
-    core_details = {"infos": [], "vulns":[]}
+    core_details = {"infos": [], "alterations": [], "vulns":[]}
 
     print(BLUE)
     print("#######################################################")
@@ -344,9 +362,10 @@ def get_core_details(dir_path):
     core_details["infos"] = [version_core, last_version_core]
 
     # Check for vuln on the WordPress version
-    core_vulns_details , err = check_wpvulndb_core(version_core)
+    core_details["vulns"] , err = check_wpvulndb_core(version_core)
 
-    core_details["vulns"] = core_vulns_details
+    # Check if the core have been altered
+    core_details["alterations"], err = check_core_alteration(dir_path)
 
     return core_details
 
@@ -358,6 +377,7 @@ class WPPluginXLSX:
         """ generate XLSX """
         self.workbook = xlsxwriter.Workbook(output_filename)
         self.core_worksheet = self.workbook.add_worksheet("Core")
+        self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
         self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
         self.generate_heading(self.workbook)
         self.generate_formating(self.workbook)
@@ -368,12 +388,13 @@ class WPPluginXLSX:
     def add_core_data(self, position, data):
         self.core_worksheet.write_row(position, data)
 
+    def add_core_alteration_data(self, position, data):
+        self.core_alteration_worksheet.write_row(position, data)
+
     def generate_xlsx(self):
         self.workbook.close()
 
     def generate_heading(self, workbook):
-        x = 0
-        y = 0
 
         plugins_headings = ["Status", "Plugin", "Version", \
                     "Last version", "Last release date", "Link", "Code altered", \
@@ -382,16 +403,18 @@ class WPPluginXLSX:
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
                     "Type", "Fixed In"
                     ]
-        for heading in plugins_headings:
-            self.plugins_worksheet.write(x, y, heading)
-            y += 1
+        core_alteration_headings = ["File", "Status"
+                    ]
 
-        x = 0
-        y = 0
+        headings_list = [core_headings, core_alteration_headings, plugins_headings]
+        worksheets_list = [self.core_worksheet, self.core_alteration_worksheet, \
+                            self.plugins_worksheet]
 
-        for heading in core_headings:
-            self.core_worksheet.write(x, y, heading)
-            y += 1
+        for target_worksheet, headings in zip(worksheets_list, headings_list):
+            y = 0
+            for heading in headings:
+                target_worksheet.write(0, y, heading)
+                y += 1
 
     def generate_formating(self, workbook):
         # Bad : Light red fill with dark red text.
@@ -479,6 +502,13 @@ class WPPluginXLSX:
         worksheet.set_column('F:F', 8)
         worksheet.set_column('G:G', 12)
 
+        # Format WordPress Core Alteration worksheet
+        worksheet = self.core_alteration_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:A', 40)
+        worksheet.set_column('B:B', 50)
+
+
 if __name__ == "__main__":
     args = parse_args()
 
@@ -493,14 +523,14 @@ if __name__ == "__main__":
 
     dir_path = args.DIR
     core_details = get_core_details(dir_path)
-    check_core_alteration(dir_path)
     plugins_details = get_plugins_details(dir_path)
 
 
     if args.output:
         result_xlsx = WPPluginXLSX(args.output)
-        y = 2
         x = 2
+        y = 2
+        z = 2
         for plugin_details in plugins_details:
             plugin_details_list = [plugin_details["status"], plugin_details["name"], \
                                 plugin_details["version"], plugin_details["last_version"], \
@@ -521,6 +551,12 @@ if __name__ == "__main__":
                                     ]
             result_xlsx.add_core_data('D'+ str(x), core_vuln_details_list)
             x += 1
+
+        # Add core alteration details
+        for core_alteration in core_details["alterations"]:
+            core_alterations_list = [core_alteration["file"], core_alteration["status"]]
+            result_xlsx.add_core_alteration_data('A'+ str(z), core_alterations_list)
+            z += 1
 
         # Generate result file
         result_xlsx.generate_xlsx()
