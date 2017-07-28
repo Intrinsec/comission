@@ -44,10 +44,19 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def verify_path(dir_path):
+    to_check = ["wp-content", "wp-includes", "wp-admin"]
+
+    for directory in to_check:
+        if not os.path.exists(os.path.join(dir_path, directory)):
+            print(RED + "[-] The path provided does not seem to be a wordpress "
+                        "directory. Please check the path !"+ DEFAULT)
+            sys.exit()
+
 def fetch_plugins(input):
     plugin_dir = input + "wp-content/plugins/"
     if not os.path.exists(plugin_dir):
-        print("Plugins path does not exist !")
+        print(RED + "Plugins path does not exist !" + DEFAULT)
         exit(-1)
     plugins_name = next(os.walk(plugin_dir))[1]
     return plugins_name
@@ -95,7 +104,7 @@ def get_core_version(dir_path):
 
     except FileNotFoundError as e:
         msg = "WordPress version not found. Search manually !"
-        print(RED + "\t[-] " + msg + DEFAULT)
+        print(RED + "[-] " + msg + DEFAULT)
         return "", e
     return version_core, None
 
@@ -193,8 +202,8 @@ def check_core_alteration(dir_path, version_core):
             zip_file.close()
 
     except requests.exceptions.HTTPError as e:
-        msg = "The original wordpress archive has not been found. Search manually !"
-        print(RED + "\t" + msg)
+        msg = "[-] The original wordpress archive has not been found. Search manually !"
+        print(RED + msg + DEFAULT)
         return msg, e
 
     dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
@@ -525,10 +534,12 @@ if __name__ == "__main__":
         output_file = None
 
     if not args.DIR:
-        print("No path received !")
+        print(RED + "No path received !"+ DEFAULT)
         sys.exit()
 
     dir_path = args.DIR
+
+    verify_path(dir_path)
 
     core_details = get_core_details(dir_path)
     plugins_details = get_plugins_details(dir_path)
@@ -552,7 +563,7 @@ if __name__ == "__main__":
         x = 2
         for core_alteration in core_details["alterations"]:
             core_alterations_list = [core_alteration["file"], core_alteration["status"]]
-            result_xlsx.add_core_alteration_data('A'+ str(z), core_alterations_list)
+            result_xlsx.add_core_alteration_data('A'+ str(x), core_alterations_list)
             x += 1
 
         # Add plugin details
@@ -564,7 +575,7 @@ if __name__ == "__main__":
                                 plugin_details["edited"], plugin_details["cve"], \
                                 plugin_details["cve_details"], plugin_details["notes"] \
                                 ]
-            result_xlsx.add_plugin('A'+ str(y), plugin_details_list)
+            result_xlsx.add_plugin('A'+ str(x), plugin_details_list)
             x += 1
 
         # Generate result file
