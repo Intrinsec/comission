@@ -70,25 +70,27 @@ def create_temp_directory():
             break
     return temp_directory
 
-def diff_files(dcmp, alterations):
+def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
-        alteration = {"file":"", "status":""}
+        alteration = {"target":"", "file":"", "status":""}
         print(RED + "\t" + name + DEFAULT + " was altered !")
+        alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "altered"
 
         alterations.append(alteration)
 
     for name in dcmp.right_only:
-        alteration = {"file":"", "status":""}
+        alteration = {"target":"", "file":"", "status":""}
         print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
+        alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "not present in base wordpress"
 
         alterations.append(alteration)
 
     for sub_dcmp in dcmp.subdirs.values():
-        diff_files(sub_dcmp, alterations)
+        diff_files(sub_dcmp, alterations, target)
 
 def get_core_version(dir_path):
     version_core_regexp = re.compile("\$wp_version = '(.*)';")
@@ -207,7 +209,7 @@ def check_core_alteration(dir_path, version_core):
         return msg, e
 
     dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
-    diff_files(dcmp, alterations)
+    diff_files(dcmp, alterations, "core")
 
     return alterations, None
 
@@ -228,8 +230,10 @@ def check_plugin_alteration(plugin_details, dir_path, temp_directory):
             zip_file.extractall(temp_directory)
             zip_file.close()
 
-            project_dir_hash = dirhash(os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"]), 'sha1')
-            ref_dir_hash = dirhash(os.path.join(temp_directory, plugin_details["name"]), 'sha1')
+            project_dir = os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"])
+            project_dir_hash = dirhash(project_dir, 'sha1')
+            ref_dir = os.path.join(temp_directory, plugin_details["name"])
+            ref_dir_hash = dirhash(ref_dir, 'sha1')
 
             if project_dir_hash == ref_dir_hash:
                 altered = "NO"
@@ -237,6 +241,12 @@ def check_plugin_alteration(plugin_details, dir_path, temp_directory):
             else:
                 altered = "YES"
                 print("\tDifferent from sources : " + RED + altered + DEFAULT)
+
+                ignored = ["css", "img", "js", "fonts", "images"]
+
+                dcmp = dircmp(project_dir, ref_dir, ignored)
+                diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
+
             plugin_details["edited"] = altered
 
     except requests.exceptions.HTTPError as e:
@@ -350,8 +360,8 @@ def get_plugins_details(dir_path):
 
     for plugin_name in plugins_name:
         plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
-                        "last_release_date":"", "link":"", "edited":"", \
-                        "cve":"", "cve_details":"", "notes":"" \
+                        "last_release_date":"", "link":"", "edited":"", "cve":"", \
+                        "cve_details":"", "notes":"", "alterations" : [] \
                         }
         print(BLUE+"[+] " + plugin_name + DEFAULT)
         plugin_details["name"] = plugin_name
@@ -395,6 +405,7 @@ class WPPluginXLSX:
         self.core_worksheet = self.workbook.add_worksheet("Core")
         self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
         self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
+        self.plugins_alteration_worksheet = self.workbook.add_worksheet("Plugins Alteration")
         self.generate_heading(self.workbook)
         self.generate_formating(self.workbook)
 
@@ -407,24 +418,30 @@ class WPPluginXLSX:
     def add_core_alteration_data(self, position, data):
         self.core_alteration_worksheet.write_row(position, data)
 
+    def add_plugin_alteration_data(self, position, data):
+        self.plugins_alteration_worksheet.write_row(position, data)
+
     def generate_xlsx(self):
         self.workbook.close()
 
     def generate_heading(self, workbook):
 
-        plugins_headings = ["Status", "Plugin", "Version", \
-                    "Last version", "Last release date", "Link", "Code altered", \
-                    "CVE", "Vulnerabilities", "Notes"
-                    ]
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
-                    "Type", "Fixed In"
-                    ]
+                        "Type", "Fixed In"
+                        ]
         core_alteration_headings = ["File", "Status"
-                    ]
+                                    ]
+        plugins_headings = ["Status", "Plugin", "Version", "Last version", \
+                            "Last release date", "Link", "Code altered", \
+                            "CVE", "Vulnerabilities", "Notes"
+                            ]
+        plugins_alteration_headings = ["Name","File", "Status"
+                                        ]
 
-        headings_list = [core_headings, core_alteration_headings, plugins_headings]
+        headings_list = [core_headings, core_alteration_headings, plugins_headings, \
+                        plugins_alteration_headings]
         worksheets_list = [self.core_worksheet, self.core_alteration_worksheet, \
-                            self.plugins_worksheet]
+                            self.plugins_worksheet, self.plugins_alteration_worksheet]
 
         for target_worksheet, headings in zip(worksheets_list, headings_list):
             y = 0
@@ -497,7 +514,25 @@ class WPPluginXLSX:
                                          'criteria': '==',
                                          'value': '"N/A"',
                                          'format': na})
-        # Format Plugin worksheet
+
+        # Format WordPress Core worksheet
+        worksheet = self.core_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:B', 10)
+        worksheet.set_column('C:C', 5)
+        worksheet.set_column('D:D', 100)
+        worksheet.set_column('E:E', 40)
+        worksheet.set_column('F:F', 10)
+        worksheet.set_column('G:G', 10)
+
+        # Format WordPress Core Alteration worksheet
+        worksheet = self.core_alteration_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:A', 40)
+        worksheet.set_column('B:B', 30)
+
+        # Format Plugins worksheet
+        worksheet = self.plugins_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 7)
         worksheet.set_column('B:B', 25)
@@ -509,20 +544,12 @@ class WPPluginXLSX:
         worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
 
-        # Format WordPress Core worksheet
-        worksheet = self.core_worksheet
+        # Format WordPress Plugins Alteration worksheet
+        worksheet = self.plugins_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:B', 10)
-        worksheet.set_column('D:D', 80)
-        worksheet.set_column('E:E', 40)
-        worksheet.set_column('F:F', 8)
-        worksheet.set_column('G:G', 12)
-
-        # Format WordPress Core Alteration worksheet
-        worksheet = self.core_alteration_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 40)
-        worksheet.set_column('B:B', 50)
+        worksheet.set_column('A:A', 25)
+        worksheet.set_column('B:B', 40)
+        worksheet.set_column('C:C', 30)
 
 
 if __name__ == "__main__":
@@ -577,6 +604,15 @@ if __name__ == "__main__":
                                 ]
             result_xlsx.add_plugin('A'+ str(x), plugin_details_list)
             x += 1
+
+        # Add plugins alteration details
+        x = 2
+        for plugin_details in plugins_details:
+            for plugin_alteration in plugin_details["alterations"]:
+                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"], \
+                                            plugin_alteration["status"]]
+                result_xlsx.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
+                x += 1
 
         # Generate result file
         result_xlsx.generate_xlsx()
