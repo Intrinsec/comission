@@ -5,16 +5,14 @@ import os
 import io
 import sys
 import json
-import random
 import shutil
 import string
 import zipfile
 import requests
 import datetime
-import argparse
-import tempfile
 import xlsxwriter
 
+from utilsCMS import *
 from filecmp import dircmp
 from checksumdir import dirhash
 from distutils.version import LooseVersion
@@ -29,68 +27,6 @@ RED = "\033[91m"
 YELLOW = "\033[33m"
 DEFAULT = "\033[0m"
 
-def log_debug(msg):
-    global debug
-    if debug and not quiet:
-        time = datetime.datetime.now()
-        print("{}: {}".format(time, msg))
-
-def parse_args():
-    parser = argparse.ArgumentParser(description='WP Plugins Checker checks \
-    plugins in a directory.')
-    parser.add_argument('-d', '--dir', dest='DIR', help='WordPress root directory')
-    parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
-    file')
-    args = parser.parse_args()
-    return args
-
-def verify_path(dir_path):
-    to_check = ["wp-content", "wp-includes", "wp-admin"]
-
-    for directory in to_check:
-        if not os.path.exists(os.path.join(dir_path, directory)):
-            print(RED + "[-] The path provided does not seem to be a wordpress "
-                        "directory. Please check the path !"+ DEFAULT)
-            sys.exit()
-
-def fetch_plugins(input):
-    plugin_dir = input + "wp-content/plugins/"
-    if not os.path.exists(plugin_dir):
-        print(RED + "Plugins path does not exist !" + DEFAULT)
-        exit(-1)
-    plugins_name = next(os.walk(plugin_dir))[1]
-    return plugins_name
-
-def create_temp_directory():
-    while True:
-        random_dir_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(5))
-        temp_directory = os.path.join(tempfile.gettempdir(), random_dir_name)
-        if not os.path.exists(temp_directory):
-            os.makedirs(temp_directory)
-            break
-    return temp_directory
-
-def diff_files(dcmp, alterations, target):
-    for name in dcmp.diff_files:
-        alteration = {"target":"", "file":"", "status":""}
-        print(RED + "\t" + name + DEFAULT + " was altered !")
-        alteration["target"] = target
-        alteration["file"] = name
-        alteration["status"] = "altered"
-
-        alterations.append(alteration)
-
-    for name in dcmp.right_only:
-        alteration = {"target":"", "file":"", "status":""}
-        print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
-        alteration["target"] = target
-        alteration["file"] = name
-        alteration["status"] = "not present in base wordpress"
-
-        alterations.append(alteration)
-
-    for sub_dcmp in dcmp.subdirs.values():
-        diff_files(sub_dcmp, alterations, target)
 
 def get_core_version(dir_path):
     version_core_regexp = re.compile("\$wp_version = '(.*)';")
@@ -396,8 +332,8 @@ def get_plugins_details(dir_path):
     return plugins_details
 
 
-class WPPluginXLSX:
-    """ WPPlugin XLS Generator """
+class ComissionXLSX:
+    """ CoMisSion XLS Generator """
 
     def __init__(self, output_filename="output.xlsx"):
         """ generate XLSX """
@@ -572,7 +508,7 @@ if __name__ == "__main__":
     plugins_details = get_plugins_details(dir_path)
 
     if args.output:
-        result_xlsx = WPPluginXLSX(args.output)
+        result_xlsx = ComissionXLSX(args.output)
 
         # Add core data
         result_xlsx.add_core_data('A2', core_details["infos"])
