@@ -6,10 +6,8 @@ import io
 import sys
 import json
 import shutil
-import string
 import zipfile
 import requests
-import datetime
 import xlsxwriter
 
 from utilsCMS import *
@@ -17,31 +15,26 @@ from filecmp import dircmp
 from checksumdir import dirhash
 from distutils.version import LooseVersion
 
-debug = True
-quiet = False
 
-
-def get_core_version(dir_path):
-    version_core_regexp = re.compile("\$wp_version = '(.*)';")
+def get_core_version(dir_path,version_core_regexp, cms_path ):
     try:
-        with open(os.path.join(dir_path, "wp-includes/" "version.php")) as version_file:
+        with open(os.path.join(dir_path, cms_path)) as version_file:
             version_core = ''
             for line in version_file:
                 version_core_match = version_core_regexp.search(line)
                 if version_core_match:
                     version_core = version_core_match.group(1).strip()
-                    print_cms("info", "[+] WordPress version used : "+ version_core, "", 0)
+                    print_cms("info", "[+] CMS version used : "+ version_core, "", 0)
                     break
 
     except FileNotFoundError as e:
-        print_cms("alert", "[-] WordPress version not found. Search manually !", 0)
+        print_cms("alert", "[-] CMS version not found. Search manually !", 0)
         return "", e
     return version_core, None
 
-def get_plugin_version(plugin_details, dir_path, plugin_name):
-    version_file_regexp = re.compile("(?i)Version: (.*)")
+def get_plugin_version(plugin_details, dir_path, plugin_main_file, version_file_regexp, plugins_path):
     try:
-        with open(os.path.join(dir_path, "wp-content", "plugins", plugin_name, plugin_name +".php")) as plugin_info:
+        with open(os.path.join(dir_path, plugins_path, plugin_main_file)) as plugin_info:
             version = ''
             for line in plugin_info:
                 version = version_file_regexp.search(line)
@@ -57,18 +50,17 @@ def get_plugin_version(plugin_details, dir_path, plugin_name):
         return "", e
     return version, None
 
-def get_core_last_version():
-    api_url = "https://api.wordpress.org/core/version-check/1.7/"
+def get_core_last_version(url):
     last_version_core = ""
     try:
-        response = requests.get(api_url)
+        response = requests.get(url)
         response.raise_for_status()
 
         if response.status_code == 200:
             page_json = response.json()
 
             last_version_core = page_json["offers"][0]["version"]
-            print_cms("info", "[+] Last WordPress version: "+ last_version_core, "", 0)
+            print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
 
     except requests.exceptions.HTTPError as e:
         msg = "Unable to retrieve last wordpress version. Search manually !"
@@ -103,16 +95,13 @@ def get_plugin_last_version_info(plugin_details):
                     "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
 
     except requests.exceptions.HTTPError as e:
-        #log_debug(e)
         msg = "Plugin not in wordpress official site. Search manually !"
         print_cms("alert", "[-] "+ msg, "", 1)
         plugin_details["notes"] = msg
         return "", e
     return plugin_details["last_version"], None
 
-def check_core_alteration(dir_path, version_core):
-
-    core_url = "https://wordpress.org/wordpress-" + version_core + ".zip"
+def check_core_alteration(dir_path, version_core, core_url):
 
     alterations = []
     ignored = [".git", "cache", "plugins", "themes", "images", \
@@ -256,20 +245,21 @@ def get_core_details(dir_path):
 
     print_cms("info",
     "#######################################################" \
-    + "\n\t\tWordPress Core analysis" \
+    + "\n\t\tCore analysis" \
     + "\n#######################################################" \
     , "", 0)
-    # Check current WordPress version
-    version_core , err = get_core_version(dir_path)
-    last_version_core , err = get_core_last_version()
+    # Check current CMS version
+    version_core , err = get_core_version(dir_path, re.compile("\$wp_version = '(.*)';"), \
+                                            "wp-includes/version.php")
+    last_version_core , err = get_core_last_version("https://api.wordpress.org/core/version-check/1.7/")
 
     core_details["infos"] = [version_core, last_version_core]
 
-    # Check for vuln on the WordPress version
+    # Check for vuln on the CMS version
     core_details["vulns"] , err = check_wpvulndb_core(version_core)
 
     # Check if the core have been altered
-    core_details["alterations"], err = check_core_alteration(dir_path, version_core)
+    core_details["alterations"], err = check_core_alteration(dir_path, version_core, "https://wordpress.org/wordpress-" + version_core + ".zip")
 
     return core_details
 
@@ -295,7 +285,9 @@ def get_plugins_details(dir_path):
         plugin_details["name"] = plugin_name
 
         # Get plugin version
-        _ , err = get_plugin_version(plugin_details, dir_path, plugin_name)
+        _ , err = get_plugin_version(plugin_details, dir_path, plugin_name + "/" + plugin_name +".php"
+                                    , re.compile("(?i)Version: (.*)"),
+                                    "wp-content/plugins")
         if err is not None:
             plugins_details.append(plugin_details)
             continue
@@ -328,7 +320,7 @@ class ComissionXLSX:
     """ CoMisSion XLS Generator """
 
     def __init__(self, output_filename="output.xlsx"):
-        """ generate XLSX """
+        """ Generate XLSX """
         self.workbook = xlsxwriter.Workbook(output_filename)
         self.core_worksheet = self.workbook.add_worksheet("Core")
         self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
@@ -337,7 +329,48 @@ class ComissionXLSX:
         self.generate_heading(self.workbook)
         self.generate_formating(self.workbook)
 
-    def add_plugin(self, position, plugin = []):
+    def add_data(self,core_details,plugins_details):
+        # Add core data
+        self.add_core_data('A2', core_details["infos"])
+
+        # Add core vulns
+        x = 2
+        for core_vuln_details in core_details["vulns"]:
+            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
+                                    core_vuln_details["type"],core_vuln_details["fixed_in"] \
+                                    ]
+            self.add_core_data('D'+ str(x), core_vuln_details_list)
+            x += 1
+
+        # Add core alteration details
+        x = 2
+        for core_alteration in core_details["alterations"]:
+            core_alterations_list = [core_alteration["file"], core_alteration["status"]]
+            self.add_core_alteration_data('A'+ str(x), core_alterations_list)
+            x += 1
+
+        # Add plugin details
+        x = 2
+        for plugin_details in plugins_details:
+            plugin_details_list = [plugin_details["status"], plugin_details["name"], \
+                                plugin_details["version"], plugin_details["last_version"], \
+                                plugin_details["last_release_date"], plugin_details["link"], \
+                                plugin_details["edited"], plugin_details["cve"], \
+                                plugin_details["cve_details"], plugin_details["notes"] \
+                                ]
+            self.add_plugin_data('A'+ str(x), plugin_details_list)
+            x += 1
+
+        # Add plugins alteration details
+        x = 2
+        for plugin_details in plugins_details:
+            for plugin_alteration in plugin_details["alterations"]:
+                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"], \
+                                            plugin_alteration["status"]]
+                self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
+                x += 1
+
+    def add_plugin_data(self, position, plugin = []):
         self.plugins_worksheet.write_row(position, plugin)
 
     def add_core_data(self, position, data):
@@ -493,54 +526,19 @@ if __name__ == "__main__":
         sys.exit()
 
     dir_path = args.DIR
-
     verify_path(dir_path)
 
+
+
+    # Analyse the CMS
     core_details = get_core_details(dir_path)
     plugins_details = get_plugins_details(dir_path)
 
+
+    # Save results to a file
     if args.output:
         result_xlsx = ComissionXLSX(args.output)
-
-        # Add core data
-        result_xlsx.add_core_data('A2', core_details["infos"])
-
-        # Add core vulns
-        x = 2
-        for core_vuln_details in core_details["vulns"]:
-            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
-                                    core_vuln_details["type"],core_vuln_details["fixed_in"] \
-                                    ]
-            result_xlsx.add_core_data('D'+ str(x), core_vuln_details_list)
-            x += 1
-
-        # Add core alteration details
-        x = 2
-        for core_alteration in core_details["alterations"]:
-            core_alterations_list = [core_alteration["file"], core_alteration["status"]]
-            result_xlsx.add_core_alteration_data('A'+ str(x), core_alterations_list)
-            x += 1
-
-        # Add plugin details
-        x = 2
-        for plugin_details in plugins_details:
-            plugin_details_list = [plugin_details["status"], plugin_details["name"], \
-                                plugin_details["version"], plugin_details["last_version"], \
-                                plugin_details["last_release_date"], plugin_details["link"], \
-                                plugin_details["edited"], plugin_details["cve"], \
-                                plugin_details["cve_details"], plugin_details["notes"] \
-                                ]
-            result_xlsx.add_plugin('A'+ str(x), plugin_details_list)
-            x += 1
-
-        # Add plugins alteration details
-        x = 2
-        for plugin_details in plugins_details:
-            for plugin_alteration in plugin_details["alterations"]:
-                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"], \
-                                            plugin_alteration["status"]]
-                result_xlsx.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
-                x += 1
+        result_xlsx.add_data(core_details, plugins_details)
 
         # Generate result file
         result_xlsx.generate_xlsx()
