@@ -1,4 +1,3 @@
 *.py[co]
 __pycache__
-MANIFEST
-.idea
+wptest.xlsx
