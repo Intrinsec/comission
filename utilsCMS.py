@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import random
 import string
+import datetime
 import argparse
 import tempfile
+
+debug = True
+quiet = False
 
 def log_debug(msg):
     global debug
@@ -16,6 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='CoMisSion analyse a CMS \
     and plugins used.')
     parser.add_argument('-d', '--dir', dest='DIR', help='CMS root directory')
+    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (Drupal, WordPress)')
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
     args = parser.parse_args()
@@ -26,14 +32,14 @@ def verify_path(dir_path):
 
     for directory in to_check:
         if not os.path.exists(os.path.join(dir_path, directory)):
-            print(RED + "[-] The path provided does not seem to be a wordpress "
-                        "directory. Please check the path !"+ DEFAULT)
+            print_cms("alert", "[-] The path provided does not seem to be a " \
+                        "wordpress directory. Please check the path !", "", 0)
             sys.exit()
 
 def fetch_plugins(input):
-    plugin_dir = input + "wp-content/plugins/"
+    plugin_dir = input + "/wp-content/plugins/"
     if not os.path.exists(plugin_dir):
-        print(RED + "Plugins path does not exist !" + DEFAULT)
+        print_cms("alert", "Plugins path does not exist !", "", 0)
         exit(-1)
     plugins_name = next(os.walk(plugin_dir))[1]
     return plugins_name
