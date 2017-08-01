@@ -6,13 +6,6 @@ import string
 import argparse
 import tempfile
 
-GREEN = "\033[92m"
-BLUE = "\033[34m"
-RED = "\033[91m"
-YELLOW = "\033[33m"
-DEFAULT = "\033[0m"
-
-
 def log_debug(msg):
     global debug
     if debug and not quiet:
@@ -57,7 +50,8 @@ def create_temp_directory():
 def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
         alteration = {"target":"", "file":"", "status":""}
-        print(RED + "\t" + name + DEFAULT + " was altered !")
+        #print(RED + "\t" + name + DEFAULT + " was altered !")
+        print_cms("alert", name, " was altered !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "altered"
@@ -66,7 +60,8 @@ def diff_files(dcmp, alterations, target):
 
     for name in dcmp.right_only:
         alteration = {"target":"", "file":"", "status":""}
-        print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
+        #print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
+        print_cms("warning", name, " not present in base wordpress !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "not present in base wordpress"
@@ -75,3 +70,23 @@ def diff_files(dcmp, alterations, target):
 
     for sub_dcmp in dcmp.subdirs.values():
         diff_files(sub_dcmp, alterations, target)
+
+def print_cms(type, msg, msg_default, level):
+
+    # Define color for output
+    DEFAULT = "\033[0m"
+    BLUE = "\033[34m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[33m"
+    RED = "\033[91m"
+
+    if type == "default":
+        print(DEFAULT + '\t'*level +  msg)
+    if type == "info":
+        print(BLUE + '\t'*level +  msg + DEFAULT + msg_default)
+    if type == "good":
+        print(GREEN + '\t'*level +  msg + DEFAULT + msg_default)
+    if type == "warning":
+        print(YELLOW + '\t'*level +  msg + DEFAULT + msg_default)
+    if type == "alert" :
+        print(RED + '\t'*level +  msg + DEFAULT + msg_default)
