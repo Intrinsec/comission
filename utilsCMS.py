@@ -27,9 +27,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def verify_path(dir_path):
-    to_check = ["wp-content", "wp-includes", "wp-admin"]
-
+def verify_path(dir_path, to_check):
     for directory in to_check:
         if not os.path.exists(os.path.join(dir_path, directory)):
             print_cms("alert", "[-] The path provided does not seem to be a " \
@@ -37,11 +35,10 @@ def verify_path(dir_path):
             sys.exit()
 
 def fetch_plugins(input):
-    plugin_dir = input + "/wp-content/plugins/"
-    if not os.path.exists(plugin_dir):
+    if not os.path.exists(input):
         print_cms("alert", "Plugins path does not exist !", "", 0)
         exit(-1)
-    plugins_name = next(os.walk(plugin_dir))[1]
+    plugins_name = next(os.walk(input))[1]
     return plugins_name
 
 def create_temp_directory():
