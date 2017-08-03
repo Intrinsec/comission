@@ -11,6 +11,8 @@ import requests
 import xlsxwriter
 
 from utilsCMS import *
+
+from lxml import etree
 from filecmp import dircmp
 from checksumdir import dirhash
 from distutils.version import LooseVersion
@@ -19,6 +21,8 @@ class CMS:
     """ CMS object """
     def __init__(self):
         self.site_url = ""
+        self.download_core_url = ""
+        self.download_plugin_url = ""
         self.cve_ref_url = ""
         self.plugin_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
@@ -358,7 +362,7 @@ class WP (CMS):
         , "", 0)
 
         # Get the list of plugin to work with
-        plugins_name = fetch_plugins(dir_path)
+        plugins_name = fetch_plugins(os.path.join(dir_path, "wp-content", "plugins"))
 
         for plugin_name in plugins_name:
             plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
@@ -400,6 +404,258 @@ class WP (CMS):
         shutil.rmtree(temp_directory, ignore_errors=True)
 
         return self.plugins_details
+
+
+class DPL:
+    """ DRUPAL object """
+    def __init__(self):
+        self.site_url = "https://www.drupal.org"
+        self.download_core_url = "https://ftp.drupal.org/files/projects/drupal-"
+        self.download_plugin_url = "https://ftp.drupal.org/files/projects/"
+        self.cve_ref_url = ""
+        self.plugin_path = ""
+        self.core_details = {"infos": [], "alterations": [], "vulns":[]}
+        self.plugins_details = []
+
+    def get_core_version(self, dir_path, version_core_regexp, cms_path):
+        try:
+            with open(os.path.join(dir_path, cms_path)) as version_file:
+                version_core = ''
+                for line in version_file:
+                    version_core_match = version_core_regexp.search(line)
+                    if version_core_match:
+                        version_core = version_core_match.group(1).strip()
+                        print_cms("info", "[+] DRUPAL version used : "+ version_core, "", 0)
+                        break
+
+        except FileNotFoundError as e:
+            print_cms("alert", "[-] DRUPAL version not found. Search manually !", "", 0)
+            return "", e
+        return version_core, None
+
+    def get_plugin_version(self, plugin_details, dir_path, plugin_main_file, version_file_regexp, plugin_path):
+        try:
+            with open(os.path.join(dir_path, plugin_path, plugin_main_file)) as plugin_info:
+                for line in plugin_info:
+                    version = version_file_regexp.search(line)
+                    if version:
+                        plugin_details["version"] = version.group(1).strip("\"")
+                        print_cms("default", "Version : "+ plugin_details["version"], "", 1)
+                        break
+
+        except FileNotFoundError as e:
+            msg = "No standard extension file. Search manually !"
+            print_cms("alert", "[-] " + msg, "", 1)
+            plugin_details["notes"] = msg
+            return "", e
+        return version, None
+
+    def get_core_last_version(self, url, version_core):
+        last_version_core = ""
+        major = version_core.split(".")[0]
+        url_release = url + major + ".x"
+
+        try:
+            response = requests.get(url_release)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                tree = etree.fromstring(response.content)
+                last_version_core = tree.xpath("/project/releases/release/tag")[0].text
+
+                print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "Unable to retrieve last wordpress version. Search manually !"
+            print_cms("alert", "[-] "+ msg, "", 1)
+            return "", e
+        return last_version_core, None
+
+    def get_plugin_last_version(self, plugin_details):
+        version_web_regexp = re.compile("<h2><a href=\"(.*?)\">(.+?) (.+?)</a></h2>")
+        date_last_release_regexp = re.compile("<time pubdate datetime=\"(.*?)\">(.+?)</time>")
+
+        releases_url = "https://www.drupal.org/project/{}/releases".format(plugin_details["name"])
+        last_version = "Not found"
+
+        if plugin_details["version"] == "VERSION":
+            msg = "This is a default plugin. Analysis is not yet implemented !"
+            print_cms("alert", msg, "", 1)
+            plugin_details["notes"] = msg
+            return "", None
+
+        try:
+            response = requests.get(releases_url, allow_redirects=False)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                page = response.text
+
+                last_version_result = version_web_regexp.search(page)
+                date_last_release_result = date_last_release_regexp.search(page)
+
+                if last_version_result and date_last_release_result:
+                    plugin_details["last_version"] = last_version_result.group(3)
+                    plugin_details["last_release_date"] = date_last_release_result.group(2)
+                    plugin_details["link"] = releases_url
+
+                    if plugin_details["last_version"] == plugin_details["version"]:
+                        print_cms("good", "Up to date !", "", 1)
+                    else:
+                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] + \
+                        " ( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "Plugin not in drupal official site. Search manually !"
+            print_cms("alert", "[-] "+ msg, "", 1)
+            plugin_details["notes"] = msg
+            return "", e
+        return plugin_details["last_version"], None
+
+    def check_core_alteration(self):
+        # TODO
+        """
+        Check if the core have been altered
+        """
+        raise NotImplemented
+
+    def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
+        plugin_url = "{}{}-{}.zip".format(self.download_plugin_url, \
+                                                plugin_details["name"], \
+                                                plugin_details["version"])
+
+        if plugin_details["version"] == "VERSION":
+            # TODO
+            return None, None
+
+        print_cms("default", "To download the plugin : " + plugin_url, "", 1)
+
+        try:
+            response = requests.get(plugin_url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
+                zip_file.extractall(temp_directory)
+                zip_file.close()
+
+                project_dir = os.path.join(dir_path, "modules", plugin_details["name"])
+                project_dir_hash = dirhash(project_dir, 'sha1')
+                ref_dir = os.path.join(temp_directory, plugin_details["name"])
+                ref_dir_hash = dirhash(ref_dir, 'sha1')
+
+                if project_dir_hash == ref_dir_hash:
+                    altered = "NO"
+                    print_cms("good", "Different from sources : " + altered, "", 1)
+                else:
+                    altered = "YES"
+                    print_cms("alert", "Different from sources : " + altered, "", 1)
+
+                    ignored = ["tests"]
+
+                    dcmp = dircmp(project_dir, ref_dir, ignored)
+                    diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
+
+                plugin_details["edited"] = altered
+
+        except requests.exceptions.HTTPError as e:
+            msg = "The download link is not standard. Search manually !"
+            print_cms("alert", msg, "", 1)
+            plugin_details["notes"] = msg
+            return msg, e
+        return altered, None
+
+    def check_vulns_core(self):
+        # TODO
+        """
+        Check if there are any vulns on the CMS core used
+        """
+        raise NotImplemented
+
+    def check_vulns_plugin(self, plugin_details):
+        # TODO
+        print_cms("alert","CVE check not yet implemented !" , "", 1)
+        return None, None
+
+    def core_analysis(self, dir_path):
+        print_cms("info",
+        "#######################################################" \
+        + "\n\t\tCore analysis" \
+        + "\n#######################################################" \
+        , "", 0)
+        # Check current CMS version
+        version_core , err = self.get_core_version(dir_path,
+                                                    re.compile("define\('VERSION', '(.*)'\);"),
+                                                    "includes/bootstrap.inc")
+        # Get the last released version
+        last_version_core , err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/", version_core)
+
+        # Get some details on the core
+        self.core_details["infos"] = [version_core, last_version_core]
+
+        # Check for vuln on the CMS version
+        self.core_details["vulns"] , err = self.check_vulns_core(version_core)
+
+        # Check if the core have been altered
+        self.core_details["alterations"], err = self.check_core_alteration(dir_path, version_core,
+                                                                        self.download_core_url +
+                                                                        version_core + ".zip")
+
+        return self.core_details
+
+    def plugin_analysis(self, dir_path):
+        temp_directory = create_temp_directory()
+
+        print_cms("info",
+        "#######################################################" \
+        + "\n\t\tPlugins analysis" \
+        + "\n#######################################################" \
+        , "", 0)
+
+        # Get the list of plugin to work with
+        plugins_name = fetch_plugins(os.path.join(dir_path,"modules"))
+
+        for plugin_name in plugins_name:
+            plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
+                            "last_release_date":"", "link":"", "edited":"", "cve":"", \
+                            "cve_details":"", "notes":"", "alterations" : [] \
+                            }
+            print_cms("info", "[+] " + plugin_name , "", 0)
+            plugin_details["name"] = plugin_name
+
+            # Get plugin version
+            _ , err = self.get_plugin_version(plugin_details, dir_path,
+                                                plugin_name +".info",
+                                                re.compile("version = (.*)"),
+                                                "modules/"+plugin_name)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
+
+            # Check plugin last version
+            _ , err = self.get_plugin_last_version(plugin_details)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
+
+            # Check if there are known CVE in wpvulndb
+            _ , err = self.check_vulns_plugin(plugin_details)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
+
+            # Check if the plugin have been altered
+            _ , err = self.check_plugin_alteration(plugin_details, dir_path,
+                                                    temp_directory)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
+
+            self.plugins_details.append(plugin_details)
+        shutil.rmtree(temp_directory, ignore_errors=True)
+
+        return self.plugins_details
+
 
 
 class ComissionXLSX:
@@ -612,13 +868,16 @@ if __name__ == "__main__":
         sys.exit()
 
     dir_path = args.DIR
-    verify_path(dir_path)
 
     if args.CMS == "wordpress":
+        to_check = ["wp-content", "wp-includes", "wp-admin"]
+        verify_path(dir_path, to_check)
         cms = WP()
 
     elif args.CMS == "drupal":
-        cms = DRUPAL()
+        to_check = ["includes", "modules", "scripts", "themes"]
+        verify_path(dir_path, to_check)
+        cms = DPL()
 
     else:
         print_cms("alert", "CMS unknown or unsupported !", "", 0)
