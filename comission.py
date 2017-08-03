@@ -15,305 +15,391 @@ from filecmp import dircmp
 from checksumdir import dirhash
 from distutils.version import LooseVersion
 
+class CMS:
+    """ CMS object """
+    def __init__(self):
+        self.site_url = ""
+        self.cve_ref_url = ""
+        self.plugin_path = ""
+        self.core_details = {"infos": [], "alterations": [], "vulns":[]}
+        self.plugins_details = []
 
-def get_core_version(dir_path,version_core_regexp, cms_path ):
-    try:
-        with open(os.path.join(dir_path, cms_path)) as version_file:
-            version_core = ''
-            for line in version_file:
-                version_core_match = version_core_regexp.search(line)
-                if version_core_match:
-                    version_core = version_core_match.group(1).strip()
-                    print_cms("info", "[+] CMS version used : "+ version_core, "", 0)
-                    break
+    def get_core_version(self):
+        """
+        Get the CMS core version
+        """
+        raise NotImplemented
 
-    except FileNotFoundError as e:
-        print_cms("alert", "[-] CMS version not found. Search manually !", 0)
-        return "", e
-    return version_core, None
+    def get_plugin_version(self):
+        """
+        Get a plugin version
+        """
+        raise NotImplemented
 
-def get_plugin_version(plugin_details, dir_path, plugin_main_file, version_file_regexp, plugins_path):
-    try:
-        with open(os.path.join(dir_path, plugins_path, plugin_main_file)) as plugin_info:
-            version = ''
-            for line in plugin_info:
-                version = version_file_regexp.search(line)
-                if version:
-                    plugin_details["version"] = version.group(1).strip()
-                    print_cms("default", "Version : "+ plugin_details["version"], "", 1)
-                    break
+    def get_core_last_version(self):
+        """
+        Get the last released of the CMS
+        """
+        raise NotImplemented
 
-    except FileNotFoundError as e:
-        msg = "No standard extension file. Search manually !"
-        print_cms("alert", "[-] " + msg, "", 1)
-        plugin_details["notes"] = msg
-        return "", e
-    return version, None
+    def get_plugin_last_version(self):
+        """
+        Get the last released of the plugin and the date
+        """
+        raise NotImplemented
 
-def get_core_last_version(url):
-    last_version_core = ""
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
+    def check_core_alteration(self):
+        """
+        Check if the core have been altered
+        """
+        raise NotImplemented
 
-        if response.status_code == 200:
-            page_json = response.json()
+    def check_plugin_alteration(self):
+        """
+        Check if the plugin have been altered
+        """
+        raise NotImplemented
 
-            last_version_core = page_json["offers"][0]["version"]
-            print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+    def check_vulns_core(self):
+        """
+        Check if there are any vulns on the CMS core used
+        """
+        raise NotImplemented
 
-    except requests.exceptions.HTTPError as e:
-        msg = "Unable to retrieve last wordpress version. Search manually !"
-        print_cms("alert", "[-] "+ msg, "", 1)
-        return "", e
-    return last_version_core, None
+    def check_vulns_plugin(self):
+        """
+        Check if there are any vulns on the plugin
+        """
+        raise NotImplemented
 
-def get_plugin_last_version_info(plugin_details):
-    version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
-    date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
-    releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
-    last_version = "Not found"
-    try:
-        response = requests.get(releases_url, allow_redirects=False)
-        response.raise_for_status()
+    def core_analysis(self):
+        """
+        CMS Core analysis, return a dict {"infos": [], "alterations": [], "vulns":[]}
+        """
+        raise NotImplemented
 
-        if response.status_code == 200:
-            page = response.text
+    def plugin_analysis(self):
+        """
+        CMS plugin analysis, return a list of dict
+        """
+        raise NotImplemented
 
-            last_version_result = version_web_regexp.search(page)
-            date_last_release_result = date_last_release_regexp.search(page)
 
-            if last_version_result and date_last_release_result:
-                plugin_details["last_version"] = last_version_result.group(1)
-                plugin_details["last_release_date"] = date_last_release_result.group(1).split("T")[0]
-                plugin_details["link"] = releases_url
+class WP (CMS):
+    """ WordPress object """
+    def __init__(self):
+        super()
+        self.site_url = "https://wordpress.org/"
+        self.download_core_url = "https://wordpress.org/wordpress-"
+        self.download_plugin_url = "https://downloads.wordpress.org/plugin/"
+        self.cve_ref_url = "https://wpvulndb.com/api/v2/"
+        self.plugin_path = ""
+        self.core_details = {"infos": [], "alterations": [], "vulns":[]}
+        self.plugins_details = []
 
-                if plugin_details["last_version"] == plugin_details["version"]:
-                    print_cms("good", "Up to date !", "", 1)
+    def get_core_version(self, dir_path, version_core_regexp, cms_path):
+        try:
+            with open(os.path.join(dir_path, cms_path)) as version_file:
+                version_core = ''
+                for line in version_file:
+                    version_core_match = version_core_regexp.search(line)
+                    if version_core_match:
+                        version_core = version_core_match.group(1).strip()
+                        print_cms("info", "[+] CMS version used : "+ version_core, "", 0)
+                        break
+
+        except FileNotFoundError as e:
+            print_cms("alert", "[-] CMS version not found. Search manually !", 0)
+            return "", e
+        return version_core, None
+
+    def get_plugin_version(self, plugin_details, dir_path, plugin_main_file, version_file_regexp, plugins_path):
+        try:
+            with open(os.path.join(dir_path, plugins_path, plugin_main_file)) as plugin_info:
+                version = ''
+                for line in plugin_info:
+                    version = version_file_regexp.search(line)
+                    if version:
+                        plugin_details["version"] = version.group(1).strip()
+                        print_cms("default", "Version : "+ plugin_details["version"], "", 1)
+                        break
+
+        except FileNotFoundError as e:
+            msg = "No standard extension file. Search manually !"
+            print_cms("alert", "[-] " + msg, "", 1)
+            plugin_details["notes"] = msg
+            return "", e
+        return version, None
+
+    def get_core_last_version(self, url):
+        last_version_core = ""
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                page_json = response.json()
+
+                last_version_core = page_json["offers"][0]["version"]
+                print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "Unable to retrieve last wordpress version. Search manually !"
+            print_cms("alert", "[-] "+ msg, "", 1)
+            return "", e
+        return last_version_core, None
+
+    def get_plugin_last_version(self, plugin_details):
+        version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
+        date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
+        releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
+        last_version = "Not found"
+        try:
+            response = requests.get(releases_url, allow_redirects=False)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                page = response.text
+
+                last_version_result = version_web_regexp.search(page)
+                date_last_release_result = date_last_release_regexp.search(page)
+
+                if last_version_result and date_last_release_result:
+                    plugin_details["last_version"] = last_version_result.group(1)
+                    plugin_details["last_release_date"] = date_last_release_result.group(1).split("T")[0]
+                    plugin_details["link"] = releases_url
+
+                    if plugin_details["last_version"] == plugin_details["version"]:
+                        print_cms("good", "Up to date !", "", 1)
+                    else:
+                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] + \
+                        "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "Plugin not in wordpress official site. Search manually !"
+            print_cms("alert", "[-] "+ msg, "", 1)
+            plugin_details["notes"] = msg
+            return "", e
+        return plugin_details["last_version"], None
+
+    def check_core_alteration(self, dir_path, version_core, core_url):
+
+        alterations = []
+        ignored = [".git", "cache", "plugins", "themes", "images", \
+                    "license.txt", "readme.html", "version.php"]
+
+        temp_directory = create_temp_directory()
+
+        print_cms("info", "[+] Checking core alteration", "", 0)
+
+        try:
+            response = requests.get(core_url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
+                zip_file.extractall(temp_directory)
+                zip_file.close()
+
+        except requests.exceptions.HTTPError as e:
+            msg = "[-] The original wordpress archive has not been found. Search manually !"
+            print_cms("alert", msg, "", 0)
+            return msg, e
+
+        dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
+        diff_files(dcmp, alterations, "core")
+
+        return alterations, None
+
+    def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
+        plugin_url = "{}{}.{}.zip".format(self.download_plugin_url, \
+                                                plugin_details["name"], \
+                                                plugin_details["version"])
+
+        if plugin_details["version"] == "trunk":
+            plugin_url = "{}{}.zip".format(self.download_plugin_url, plugin_details["name"])
+
+        print_cms("default", "To download the plugin : " + plugin_url, "", 1)
+
+        try:
+            response = requests.get(plugin_url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
+                zip_file.extractall(temp_directory)
+                zip_file.close()
+
+                project_dir = os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"])
+                project_dir_hash = dirhash(project_dir, 'sha1')
+                ref_dir = os.path.join(temp_directory, plugin_details["name"])
+                ref_dir_hash = dirhash(ref_dir, 'sha1')
+
+                if project_dir_hash == ref_dir_hash:
+                    altered = "NO"
+                    print_cms("good", "Different from sources : " + altered, "", 1)
                 else:
-                    print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] + \
-                    "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                    altered = "YES"
+                    print_cms("alert", "Different from sources : " + altered, "", 1)
 
-    except requests.exceptions.HTTPError as e:
-        msg = "Plugin not in wordpress official site. Search manually !"
-        print_cms("alert", "[-] "+ msg, "", 1)
-        plugin_details["notes"] = msg
-        return "", e
-    return plugin_details["last_version"], None
+                    ignored = ["css", "img", "js", "fonts", "images"]
 
-def check_core_alteration(dir_path, version_core, core_url):
+                    dcmp = dircmp(project_dir, ref_dir, ignored)
+                    diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
 
-    alterations = []
-    ignored = [".git", "cache", "plugins", "themes", "images", \
-                "license.txt", "readme.html", "version.php"]
+                plugin_details["edited"] = altered
 
-    temp_directory = create_temp_directory()
+        except requests.exceptions.HTTPError as e:
+            msg = "The download link is not standard. Search manually !"
+            print_cms("alert", msg, "", 1)
+            plugin_details["notes"] = msg
+            return msg, e
+        return altered, None
 
-    print_cms("info", "[+] Checking core alteration", "", 0)
+    def check_vulns_core(self, version_core):
+        vulns_details = []
+        version = version_core.replace('.', '')
+        url = "{}wordpresses/{}".format(self.cve_ref_url, version)
+        url_details = "https://wpvulndb.com/vulnerabilities/"
 
-    try:
-        response = requests.get(core_url)
-        response.raise_for_status()
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
 
-        if response.status_code == 200:
-            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
-            zip_file.extractall(temp_directory)
-            zip_file.close()
+            if response.status_code == 200:
+                page_json = response.json()
 
-    except requests.exceptions.HTTPError as e:
-        msg = "[-] The original wordpress archive has not been found. Search manually !"
-        print_cms("alert", msg, "", 0)
-        return msg, e
+                vulns = page_json[version_core]["vulnerabilities"]
+                print_cms("info", "[+] CVE list" , "", 1)
+                for vuln in vulns:
+                    vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
+                                    "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+                                    }
+                    print_cms("alert", vuln["title"] , "", 1)
+                    print_cms("info", "[+] Fixed in version "+ str(vuln["fixed_in"]) , "", 1)
+                    vulns_details.append(vuln_details)
 
-    dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
-    diff_files(dcmp, alterations, "core")
+        except requests.exceptions.HTTPError as e:
+            msg = "No entry on wpvulndb."
+            print_cms("info", "[+] " + msg , "", 1)
+            return "", e
+        return vulns_details, None
 
-    return alterations, None
+    def check_vulns_plugin(self, plugin_details):
+        cve = ""
+        try:
+            url = "{}plugins/{}".format(self.cve_ref_url,plugin_details["name"])
 
-def check_plugin_alteration(plugin_details, dir_path, temp_directory):
-    plugin_url = "https://downloads.wordpress.org/plugin/{}.{}.zip".format(plugin_details["name"], plugin_details["version"])
+            response = requests.get(url)
+            response.raise_for_status()
 
-    if plugin_details["version"] == "trunk":
-        plugin_url = "https://downloads.wordpress.org/plugin/{}.zip".format(plugin_details["name"])
+            if response.status_code == 200:
+                page_json = response.json()
 
-    print_cms("default", "To download the plugin : " + plugin_url, "", 1)
+                vulns = page_json[plugin_details["name"]]["vulnerabilities"]
+                print_cms("info", "[+] CVE list", "", 1)
+                for vuln in vulns:
+                    fixed_version = vuln["fixed_in"]
+                    try:
+                        if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
+                            print_cms("alert", vuln["title"] , "", 1)
+                            plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
 
-    try:
-        response = requests.get(plugin_url)
-        response.raise_for_status()
+                    except TypeError as e:
+                        print_cms("alert", "Unable to compare version. Please check this \
+                                            vulnerability :" + vuln["title"] , "", 1)
+                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], " To check : ", vuln["title"]])
 
-        if response.status_code == 200:
-            zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
-            zip_file.extractall(temp_directory)
-            zip_file.close()
+                if plugin_details["cve_details"]:
+                    plugin_details["cve"] = "YES"
+                else:
+                    plugin_details["cve"] = "NO"
 
-            project_dir = os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"])
-            project_dir_hash = dirhash(project_dir, 'sha1')
-            ref_dir = os.path.join(temp_directory, plugin_details["name"])
-            ref_dir_hash = dirhash(ref_dir, 'sha1')
+        except requests.exceptions.HTTPError as e:
+            msg = "No entry on wpvulndb."
+            print_cms("info", "[+] " + msg , "", 1)
+            plugin_details["cve"] = "NO"
+            return "", e
+        return cve, None
 
-            if project_dir_hash == ref_dir_hash:
-                altered = "NO"
-                print_cms("good", "Different from sources : " + altered, "", 1)
-            else:
-                altered = "YES"
-                print_cms("alert", "Different from sources : " + altered, "", 1)
+    def core_analysis(self, dir_path):
+        print_cms("info",
+        "#######################################################" \
+        + "\n\t\tCore analysis" \
+        + "\n#######################################################" \
+        , "", 0)
+        # Check current CMS version
+        version_core , err = self.get_core_version(dir_path,
+                                                    re.compile("\$wp_version = '(.*)';"),
+                                                    "wp-includes/version.php")
+        # Get the last released version
+        last_version_core , err = self.get_core_last_version("https://api.wordpress.org/core/version-check/1.7/")
 
-                ignored = ["css", "img", "js", "fonts", "images"]
+        # Get some details on the core
+        self.core_details["infos"] = [version_core, last_version_core]
 
-                dcmp = dircmp(project_dir, ref_dir, ignored)
-                diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
+        # Check for vuln on the CMS version
+        self.core_details["vulns"] , err = self.check_vulns_core(version_core)
 
-            plugin_details["edited"] = altered
+        # Check if the core have been altered
+        self.core_details["alterations"], err = self.check_core_alteration(dir_path, version_core,
+                                                                        self.download_core_url +
+                                                                        version_core + ".zip")
 
-    except requests.exceptions.HTTPError as e:
-        msg = "The download link is not standard. Search manually !"
-        print_cms("alert", msg, "", 1)
-        plugin_details["notes"] = msg
-        return msg, e
-    return altered, None
+        return self.core_details
 
-def check_wpvulndb_core(version_core):
-    vulns_details = []
+    def plugin_analysis(self, dir_path):
+        temp_directory = create_temp_directory()
 
-    version = version_core.replace('.', '')
-    url = "https://wpvulndb.com/api/v2/wordpresses/" + version
-    url_details = "https://wpvulndb.com/vulnerabilities/"
+        print_cms("info",
+        "#######################################################" \
+        + "\n\t\tPlugins analysis" \
+        + "\n#######################################################" \
+        , "", 0)
 
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
+        # Get the list of plugin to work with
+        plugins_name = fetch_plugins(dir_path)
 
-        if response.status_code == 200:
-            page_json = response.json()
+        for plugin_name in plugins_name:
+            plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
+                            "last_release_date":"", "link":"", "edited":"", "cve":"", \
+                            "cve_details":"", "notes":"", "alterations" : [] \
+                            }
+            print_cms("info", "[+] " + plugin_name , "", 0)
+            plugin_details["name"] = plugin_name
 
-            vulns = page_json[version_core]["vulnerabilities"]
-            print_cms("info", "[+] CVE list" , "", 1)
-            for vuln in vulns:
-                vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
-                                "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
-                                }
-                print_cms("alert", vuln["title"] , "", 1)
-                print_cms("info", "[+] Fixed in version "+ str(vuln["fixed_in"]) , "", 1)
-                vulns_details.append(vuln_details)
+            # Get plugin version
+            _ , err = self.get_plugin_version(plugin_details, dir_path,
+                                                plugin_name + "/" + plugin_name +".php",
+                                                re.compile("(?i)Version: (.*)"),
+                                                "wp-content/plugins")
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
 
-    except requests.exceptions.HTTPError as e:
-        msg = "No entry on wpvulndb."
-        print_cms("info", "[+] " + msg , "", 1)
-        return "", e
-    return vulns_details, None
+            # Check plugin last version
+            _ , err = self.get_plugin_last_version(plugin_details)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
 
-def check_wpvulndb_plugin(plugin_details):
-    cve = ""
-    try:
-        url = "https://wpvulndb.com/api/v2/plugins/" + plugin_details["name"]
+            # Check if there are known CVE in wpvulndb
+            _ , err = self.check_vulns_plugin(plugin_details)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
 
-        response = requests.get(url)
-        response.raise_for_status()
+            # Check if the plugin have been altered
+            _ , err = self.check_plugin_alteration(plugin_details, dir_path,
+                                                    temp_directory)
+            if err is not None:
+                self.plugins_details.append(plugin_details)
+                continue
 
-        if response.status_code == 200:
-            page_json = response.json()
+            self.plugins_details.append(plugin_details)
+        shutil.rmtree(temp_directory, ignore_errors=True)
 
-            vulns = page_json[plugin_details["name"]]["vulnerabilities"]
-            print_cms("info", "[+] CVE list", "", 1)
-            for vuln in vulns:
-                fixed_version = vuln["fixed_in"]
-                try:
-                    if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
-                        print_cms("alert", vuln["title"] , "", 1)
-                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
-
-                except TypeError as e:
-                    print_cms("alert", "Unable to compare version. Please check this \
-                                        vulnerability :" + vuln["title"] , "", 1)
-                    plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], " To check : ", vuln["title"]])
-
-            if plugin_details["cve_details"]:
-                plugin_details["cve"] = "YES"
-            else:
-                plugin_details["cve"] = "NO"
-
-    except requests.exceptions.HTTPError as e:
-        msg = "No entry on wpvulndb."
-        print_cms("info", "[+] " + msg , "", 1)
-        plugin_details["cve"] = "NO"
-        return "", e
-    return cve, None
-
-def get_core_details(dir_path):
-    core_details = {"infos": [], "alterations": [], "vulns":[]}
-
-    print_cms("info",
-    "#######################################################" \
-    + "\n\t\tCore analysis" \
-    + "\n#######################################################" \
-    , "", 0)
-    # Check current CMS version
-    version_core , err = get_core_version(dir_path, re.compile("\$wp_version = '(.*)';"), \
-                                            "wp-includes/version.php")
-    last_version_core , err = get_core_last_version("https://api.wordpress.org/core/version-check/1.7/")
-
-    core_details["infos"] = [version_core, last_version_core]
-
-    # Check for vuln on the CMS version
-    core_details["vulns"] , err = check_wpvulndb_core(version_core)
-
-    # Check if the core have been altered
-    core_details["alterations"], err = check_core_alteration(dir_path, version_core, "https://wordpress.org/wordpress-" + version_core + ".zip")
-
-    return core_details
-
-def get_plugins_details(dir_path):
-    plugins_details = []
-    temp_directory = create_temp_directory()
-
-    print_cms("info",
-    "#######################################################" \
-    + "\n\t\tPlugins analysis" \
-    + "\n#######################################################" \
-    , "", 0)
-
-    # Get the list of plugin to work with
-    plugins_name = fetch_plugins(dir_path)
-
-    for plugin_name in plugins_name:
-        plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
-                        "last_release_date":"", "link":"", "edited":"", "cve":"", \
-                        "cve_details":"", "notes":"", "alterations" : [] \
-                        }
-        print_cms("info", "[+] " + plugin_name , "", 0)
-        plugin_details["name"] = plugin_name
-
-        # Get plugin version
-        _ , err = get_plugin_version(plugin_details, dir_path, plugin_name + "/" + plugin_name +".php"
-                                    , re.compile("(?i)Version: (.*)"),
-                                    "wp-content/plugins")
-        if err is not None:
-            plugins_details.append(plugin_details)
-            continue
-
-        # Check plugin last version
-        _ , err = get_plugin_last_version_info(plugin_details)
-        if err is not None:
-            plugins_details.append(plugin_details)
-            continue
-
-        # Check if there are known CVE in wpvulndb
-        _ , err = check_wpvulndb_plugin(plugin_details)
-        if err is not None:
-            plugins_details.append(plugin_details)
-            continue
-
-        # Check if the plugin have been altered
-        _ , err = check_plugin_alteration(plugin_details, dir_path, temp_directory)
-        if err is not None:
-            plugins_details.append(plugin_details)
-            continue
-
-        plugins_details.append(plugin_details)
-    shutil.rmtree(temp_directory, ignore_errors=True)
-
-    return plugins_details
+        return self.plugins_details
 
 
 class ComissionXLSX:
@@ -326,7 +412,7 @@ class ComissionXLSX:
         self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
         self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
         self.plugins_alteration_worksheet = self.workbook.add_worksheet("Plugins Alteration")
-        self.generate_heading(self.workbook)
+        self.generate_heading()
         self.generate_formating(self.workbook)
 
     def add_data(self,core_details,plugins_details):
@@ -385,7 +471,7 @@ class ComissionXLSX:
     def generate_xlsx(self):
         self.workbook.close()
 
-    def generate_heading(self, workbook):
+    def generate_heading(self):
 
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
                         "Type", "Fixed In"
@@ -528,17 +614,25 @@ if __name__ == "__main__":
     dir_path = args.DIR
     verify_path(dir_path)
 
+    if args.CMS == "wordpress":
+        cms = WP()
 
+    elif args.CMS == "drupal":
+        cms = DRUPAL()
+
+    else:
+        print_cms("alert", "CMS unknown or unsupported !", "", 0)
+        sys.exit()
 
     # Analyse the CMS
-    core_details = get_core_details(dir_path)
-    plugins_details = get_plugins_details(dir_path)
-
+    core_details = cms.core_analysis(dir_path)
+    plugins_details = cms.plugin_analysis(dir_path)
 
     # Save results to a file
     if args.output:
+        # Initialize the output file
         result_xlsx = ComissionXLSX(args.output)
+        # Add recovered data
         result_xlsx.add_data(core_details, plugins_details)
-
         # Generate result file
         result_xlsx.generate_xlsx()
