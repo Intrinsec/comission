@@ -534,7 +534,8 @@ class DPL:
             print_cms("alert", msg, "", 0)
             return msg, e
 
-        dcmp = dircmp(os.path.join(temp_directory, "drupal-" + version_core), dir_path, ignored)
+        clean_core_path = os.path.join(temp_directory, "drupal-" + version_core)
+        dcmp = dircmp(clean_core_path, dir_path, ignored)
         diff_files(dcmp, alterations, "core")
 
         return alterations, None
