@@ -9,6 +9,12 @@ CoMisSion is a tool to quickly analyse a wordpress installation. The tool :
 
 A XLSX report can be generated.
 
+## Example
+
+```
+./commision.py -c wordpress -d cms_dir -o comission_report.xlsx
+```
+
 ## Installation
 
 ```
