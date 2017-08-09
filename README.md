@@ -45,7 +45,7 @@ docker build -t intrinsec/comission .
 Then run it with :
 
 ```
-docker run -it --rm intrinsec/comission -v /target_path/:/cms_path/ -d /cms_path/
+docker run -it --rm -v /TARGET_PATH/:/cms_path/ -v /OUTPUT_DIR/:/output/ intrinsec/comission -d /cms_path/ -c drupal -o /output/test_docker.xlsx
 ```
 
 ### Copyright and License
