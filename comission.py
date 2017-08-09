@@ -209,8 +209,10 @@ class WP (CMS):
             print_cms("alert", msg, "", 0)
             return msg, e
 
-        dcmp = dircmp(temp_directory + "/wordpress", dir_path, ignored)
-        diff_files(dcmp, alterations, "core")
+        clean_core_path = os.path.join(temp_directory, "wordpress")
+
+        dcmp = dircmp(clean_core_path, dir_path, ignored)
+        diff_files(dcmp, alterations, dir_path)
 
         return alterations, None
 
@@ -247,8 +249,10 @@ class WP (CMS):
 
                     ignored = ["css", "img", "js", "fonts", "images"]
 
+                    root_path = os.path.join(dir_path, "wp-content", "plugins")
+
                     dcmp = dircmp(project_dir, ref_dir, ignored)
-                    diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
+                    diff_files(dcmp, plugin_details["alterations"], project_dir)
 
                 plugin_details["edited"] = altered
 
@@ -535,8 +539,9 @@ class DPL:
             return msg, e
 
         clean_core_path = os.path.join(temp_directory, "drupal-" + version_core)
-        dcmp = dircmp(dir_path, clean_core_path, ignored)
-        diff_files(dcmp, alterations, "core")
+
+        dcmp = dircmp(clean_core_path, dir_path, ignored)
+        diff_files(dcmp, alterations, dir_path)
 
         return alterations, None
 
@@ -574,8 +579,10 @@ class DPL:
 
                     ignored = ["tests"]
 
+                    root_path = os.path.join(dir_path, "modules")
+
                     dcmp = dircmp(project_dir, ref_dir, ignored)
-                    diff_files(dcmp, plugin_details["alterations"], plugin_details["name"])
+                    diff_files(dcmp, plugin_details["alterations"], project_dir)
 
                 plugin_details["edited"] = altered
 
@@ -706,7 +713,8 @@ class ComissionXLSX:
         # Add core alteration details
         x = 2
         for core_alteration in core_details["alterations"]:
-            core_alterations_list = [core_alteration["file"], core_alteration["status"]]
+            core_alterations_list = [core_alteration["file"], core_alteration["target"], \
+                                    core_alteration["status"]]
             self.add_core_alteration_data('A'+ str(x), core_alterations_list)
             x += 1
 
@@ -727,7 +735,7 @@ class ComissionXLSX:
         for plugin_details in plugins_details:
             for plugin_alteration in plugin_details["alterations"]:
                 plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"], \
-                                            plugin_alteration["status"]]
+                                        plugin_alteration["target"], plugin_alteration["status"]]
                 self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
                 x += 1
 
@@ -751,13 +759,13 @@ class ComissionXLSX:
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
                         "Type", "Fixed In"
                         ]
-        core_alteration_headings = ["File", "Status"
+        core_alteration_headings = ["File", "Path", "Status"
                                     ]
         plugins_headings = ["Status", "Plugin", "Version", "Last version", \
                             "Last release date", "Link", "Code altered", \
                             "CVE", "Vulnerabilities", "Notes"
                             ]
-        plugins_alteration_headings = ["Name","File", "Status"
+        plugins_alteration_headings = ["Plugin Name", "File", "Path", "Status"
                                         ]
 
         headings_list = [core_headings, core_alteration_headings, plugins_headings, \
@@ -837,7 +845,7 @@ class ComissionXLSX:
                                          'value': '"N/A"',
                                          'format': na})
 
-        # Format WordPress Core worksheet
+        # Format CMS Core worksheet
         worksheet = self.core_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:B', 10)
@@ -847,11 +855,12 @@ class ComissionXLSX:
         worksheet.set_column('F:F', 10)
         worksheet.set_column('G:G', 10)
 
-        # Format WordPress Core Alteration worksheet
+        # Format CMS Core Alteration worksheet
         worksheet = self.core_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 40)
-        worksheet.set_column('B:B', 30)
+        worksheet.set_column('B:B', 70)
+        worksheet.set_column('C:C', 30)
 
         # Format Plugins worksheet
         worksheet = self.plugins_worksheet
@@ -866,12 +875,13 @@ class ComissionXLSX:
         worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
 
-        # Format WordPress Plugins Alteration worksheet
+        # Format CMS Plugins Alteration worksheet
         worksheet = self.plugins_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 25)
         worksheet.set_column('B:B', 40)
-        worksheet.set_column('C:C', 30)
+        worksheet.set_column('C:C', 70)
+        worksheet.set_column('D:D', 30)
 
 
 if __name__ == "__main__":

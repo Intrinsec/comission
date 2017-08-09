@@ -55,7 +55,8 @@ def create_temp_directory():
 def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
         alteration = {"target":"", "file":"", "status":""}
-        print_cms("alert", name, " was altered !", 1)
+        altered_file = os.path.join(target, name)
+        print_cms("alert", altered_file, " was altered !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "altered"
@@ -64,15 +65,27 @@ def diff_files(dcmp, alterations, target):
 
     for name in dcmp.right_only:
         alteration = {"target":"", "file":"", "status":""}
-        print_cms("warning", name, " not present in base installation !", 1)
+        altered_file = os.path.join(target, name)
+        print_cms("warning", altered_file, " not present in base installation !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["status"] = "not present in base installation"
 
         alterations.append(alteration)
 
-    for sub_dcmp in dcmp.subdirs.values():
-        diff_files(sub_dcmp, alterations, target)
+    for name in dcmp.left_only:
+        alteration = {"target":"", "file":"", "status":""}
+        altered_file = os.path.join(target, name)
+        print_cms("warning", altered_file, " has been deleted from base installation !", 1)
+        alteration["target"] = target
+        alteration["file"] = name
+        alteration["status"] = "has been deleted from base installation"
+
+        alterations.append(alteration)
+
+    for current_dir, sub_dcmp in zip(dcmp.subdirs.keys(), dcmp.subdirs.values()):
+        current_target = os.path.join(target, current_dir)
+        diff_files(sub_dcmp, alterations, current_target)
 
 def print_cms(type, msg, msg_default, level):
 
