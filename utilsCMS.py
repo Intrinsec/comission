@@ -20,8 +20,10 @@ def log_debug(msg):
 def parse_args():
     parser = argparse.ArgumentParser(description='CoMisSion analyse a CMS \
     and plugins used.')
-    parser.add_argument('-d', '--dir', dest='DIR', help='CMS root directory')
-    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (Drupal, WordPress)')
+    parser.add_argument('-d', '--dir', dest='DIR', help='CMS root directory', \
+                        required=True)
+    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (Drupal, WordPress)', \
+                        required=True)
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
     args = parser.parse_args()
