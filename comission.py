@@ -588,12 +588,12 @@ class DPL:
     def check_vulns_core(self, version_core):
         # TODO
         print_cms("alert","CVE check not yet implemented !" , "", 1)
-        return None, None
+        return [], None
 
     def check_vulns_plugin(self, plugin_details):
         # TODO
         print_cms("alert","CVE check not yet implemented !" , "", 1)
-        return None, None
+        return [], None
 
     def core_analysis(self, dir_path):
         print_cms("info",
@@ -656,7 +656,7 @@ class DPL:
                 self.plugins_details.append(plugin_details)
                 continue
 
-            # Check if there are known CVE in wpvulndb
+            # Check if there are known CVE
             _ , err = self.check_vulns_plugin(plugin_details)
             if err is not None:
                 self.plugins_details.append(plugin_details)

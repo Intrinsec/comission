@@ -31,7 +31,7 @@ def verify_path(dir_path, to_check):
     for directory in to_check:
         if not os.path.exists(os.path.join(dir_path, directory)):
             print_cms("alert", "[-] The path provided does not seem to be a " \
-                        "wordpress directory. Please check the path !", "", 0)
+                        "CMS directory. Please check the path !", "", 0)
             sys.exit()
 
 def fetch_plugins(input):
@@ -53,7 +53,6 @@ def create_temp_directory():
 def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
         alteration = {"target":"", "file":"", "status":""}
-        #print(RED + "\t" + name + DEFAULT + " was altered !")
         print_cms("alert", name, " was altered !", 1)
         alteration["target"] = target
         alteration["file"] = name
@@ -63,11 +62,10 @@ def diff_files(dcmp, alterations, target):
 
     for name in dcmp.right_only:
         alteration = {"target":"", "file":"", "status":""}
-        #print(YELLOW + "\t" + name + DEFAULT + " not present in base wordpress !")
-        print_cms("warning", name, " not present in base wordpress !", 1)
+        print_cms("warning", name, " not present in base installation !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "not present in base wordpress"
+        alteration["status"] = "not present in base installation"
 
         alterations.append(alteration)
 
