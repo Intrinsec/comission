@@ -535,7 +535,7 @@ class DPL:
             return msg, e
 
         clean_core_path = os.path.join(temp_directory, "drupal-" + version_core)
-        dcmp = dircmp(clean_core_path, dir_path, ignored)
+        dcmp = dircmp(dir_path, clean_core_path, ignored)
         diff_files(dcmp, alterations, "core")
 
         return alterations, None
