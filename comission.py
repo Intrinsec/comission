@@ -187,7 +187,6 @@ class WP (CMS):
         return plugin_details["last_version"], None
 
     def check_core_alteration(self, dir_path, version_core, core_url):
-
         alterations = []
         ignored = [".git", "cache", "plugins", "themes", "images", \
                     "license.txt", "readme.html", "version.php"]
@@ -512,12 +511,33 @@ class DPL:
             return "", e
         return plugin_details["last_version"], None
 
-    def check_core_alteration(self):
-        # TODO
-        """
-        Check if the core have been altered
-        """
-        raise NotImplemented
+    def check_core_alteration(self, dir_path, version_core, core_url):
+        alterations = []
+        ignored = ["modules", "CHANGELOG.txt", "COPYRIGHT.txt", "LICENSE.txt", \
+                    "MAINTAINERS.txt", "INSTALL.txt", "README.txt"]
+
+        temp_directory = create_temp_directory()
+
+        print_cms("info", "[+] Checking core alteration", "", 0)
+
+        try:
+            response = requests.get(core_url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                zip_file = zipfile.ZipFile(io.BytesIO(response.content), 'r')
+                zip_file.extractall(temp_directory)
+                zip_file.close()
+
+        except requests.exceptions.HTTPError as e:
+            msg = "[-] The original drupal archive has not been found. Search manually !"
+            print_cms("alert", msg, "", 0)
+            return msg, e
+
+        dcmp = dircmp(os.path.join(temp_directory, "drupal-" + version_core), dir_path, ignored)
+        diff_files(dcmp, alterations, "core")
+
+        return alterations, None
 
     def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
         plugin_url = "{}{}-{}.zip".format(self.download_plugin_url, \
@@ -565,12 +585,10 @@ class DPL:
             return msg, e
         return altered, None
 
-    def check_vulns_core(self):
+    def check_vulns_core(self, version_core):
         # TODO
-        """
-        Check if there are any vulns on the CMS core used
-        """
-        raise NotImplemented
+        print_cms("alert","CVE check not yet implemented !" , "", 1)
+        return None, None
 
     def check_vulns_plugin(self, plugin_details):
         # TODO
