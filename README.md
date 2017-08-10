@@ -9,6 +9,9 @@ CoMisSion is a tool to quickly analyse a CMS installation. The tool:
 
 A XLSX report can be generated.
 
+The tool has been tested on linux only.
+
+
 ## Example
 
 ```
