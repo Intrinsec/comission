@@ -109,11 +109,11 @@ class WP (CMS):
                     version_core_match = version_core_regexp.search(line)
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
-                        print_cms("info", "[+] CMS version used : "+ version_core, "", 0)
+                        print_cms("info", "[+] WordPress version used : "+ version_core, "", 0)
                         break
 
         except FileNotFoundError as e:
-            print_cms("alert", "[-] CMS version not found. Search manually !", 0)
+            print_cms("alert", "[-] WordPress version not found. Search manually !", 0)
             return "", e
         return version_core, None
 
@@ -129,7 +129,7 @@ class WP (CMS):
                         break
 
         except FileNotFoundError as e:
-            msg = "No standard extension file. Search manually !"
+            msg = "No standard extension file found. Search manually !"
             print_cms("alert", "[-] " + msg, "", 1)
             plugin_details["notes"] = msg
             return "", e
@@ -145,10 +145,10 @@ class WP (CMS):
                 page_json = response.json()
 
                 last_version_core = page_json["offers"][0]["version"]
-                print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+                print_cms("info", "[+] Last WordPress version: "+ last_version_core, "", 0)
 
         except requests.exceptions.HTTPError as e:
-            msg = "Unable to retrieve last wordpress version. Search manually !"
+            msg = "Unable to retrieve last WordPress version. Search manually !"
             print_cms("alert", "[-] "+ msg, "", 1)
             return "", e
         return last_version_core, None
@@ -176,11 +176,11 @@ class WP (CMS):
                     if plugin_details["last_version"] == plugin_details["version"]:
                         print_cms("good", "Up to date !", "", 1)
                     else:
-                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] + \
+                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] +
                         "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
-            msg = "Plugin not in wordpress official site. Search manually !"
+            msg = "Plugin not in WordPress official site. Search manually !"
             print_cms("alert", "[-] "+ msg, "", 1)
             plugin_details["notes"] = msg
             return "", e
@@ -188,8 +188,8 @@ class WP (CMS):
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
-        ignored = [".git", "cache", "plugins", "themes", "images", \
-                    "license.txt", "readme.html", "version.php"]
+        ignored = [".git", "cache", "plugins", "themes", "images", "license.txt",
+                    "readme.html", "version.php"]
 
         temp_directory = create_temp_directory()
 
@@ -205,7 +205,7 @@ class WP (CMS):
                 zip_file.close()
 
         except requests.exceptions.HTTPError as e:
-            msg = "[-] The original wordpress archive has not been found. Search manually !"
+            msg = "[-] The original WordPress archive has not been found. Search manually !"
             print_cms("alert", msg, "", 0)
             return msg, e
 
@@ -217,14 +217,15 @@ class WP (CMS):
         return alterations, None
 
     def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
-        plugin_url = "{}{}.{}.zip".format(self.download_plugin_url, \
-                                                plugin_details["name"], \
+        plugin_url = "{}{}.{}.zip".format(self.download_plugin_url,
+                                                plugin_details["name"],
                                                 plugin_details["version"])
 
         if plugin_details["version"] == "trunk":
-            plugin_url = "{}{}.zip".format(self.download_plugin_url, plugin_details["name"])
+            plugin_url = "{}{}.zip".format(self.download_plugin_url,
+                                            plugin_details["name"])
 
-        print_cms("default", "To download the plugin : " + plugin_url, "", 1)
+        print_cms("default", "To download the plugin: " + plugin_url, "", 1)
 
         try:
             response = requests.get(plugin_url)
@@ -235,7 +236,8 @@ class WP (CMS):
                 zip_file.extractall(temp_directory)
                 zip_file.close()
 
-                project_dir = os.path.join(dir_path, "wp-content", "plugins", plugin_details["name"])
+                project_dir = os.path.join(dir_path, "wp-content", "plugins",
+                                            plugin_details["name"])
                 project_dir_hash = dirhash(project_dir, 'sha1')
                 ref_dir = os.path.join(temp_directory, plugin_details["name"])
                 ref_dir_hash = dirhash(ref_dir, 'sha1')
@@ -279,7 +281,7 @@ class WP (CMS):
                 vulns = page_json[version_core]["vulnerabilities"]
                 print_cms("info", "[+] CVE list" , "", 1)
                 for vuln in vulns:
-                    vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]), \
+                    vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]),
                                     "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
                                     }
                     print_cms("alert", vuln["title"] , "", 1)
@@ -310,12 +312,14 @@ class WP (CMS):
                     try:
                         if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
                             print_cms("alert", vuln["title"] , "", 1)
-                            plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], vuln["title"]])
+                            plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"],
+                                                                        vuln["title"]])
 
                     except TypeError as e:
                         print_cms("alert", "Unable to compare version. Please check this \
                                             vulnerability :" + vuln["title"] , "", 1)
-                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"], " To check : ", vuln["title"]])
+                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"],
+                                                        " To check : ", vuln["title"]])
 
                 if plugin_details["cve_details"]:
                     plugin_details["cve"] = "YES"
@@ -368,9 +372,9 @@ class WP (CMS):
         plugins_name = fetch_plugins(os.path.join(dir_path, "wp-content", "plugins"))
 
         for plugin_name in plugins_name:
-            plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
-                            "last_release_date":"", "link":"", "edited":"", "cve":"", \
-                            "cve_details":"", "notes":"", "alterations" : [] \
+            plugin_details = {"status":"todo","name":"", "version":"","last_version":"",
+                            "last_release_date":"", "link":"", "edited":"", "cve":"",
+                            "cve_details":"", "notes":"", "alterations" : []
                             }
             print_cms("info", "[+] " + plugin_name , "", 0)
             plugin_details["name"] = plugin_name
@@ -478,7 +482,7 @@ class DPL:
         version_web_regexp = re.compile("<h2><a href=\"(.*?)\">(.+?) (.+?)</a></h2>")
         date_last_release_regexp = re.compile("<time pubdate datetime=\"(.*?)\">(.+?)</time>")
 
-        releases_url = "https://www.drupal.org/project/{}/releases".format(plugin_details["name"])
+        releases_url = "{}/project/{}/releases".format(self.site_url, plugin_details["name"])
         last_version = "Not found"
 
         if plugin_details["version"] == "VERSION":
@@ -505,8 +509,9 @@ class DPL:
                     if plugin_details["last_version"] == plugin_details["version"]:
                         print_cms("good", "Up to date !", "", 1)
                     else:
-                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] + \
-                        " ( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"]
+                                    + " ( " + plugin_details["last_release_date"]
+                                    + " )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Plugin not in drupal official site. Search manually !"
@@ -546,8 +551,8 @@ class DPL:
         return alterations, None
 
     def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
-        plugin_url = "{}{}-{}.zip".format(self.download_plugin_url, \
-                                                plugin_details["name"], \
+        plugin_url = "{}{}-{}.zip".format(self.download_plugin_url,
+                                                plugin_details["name"],
                                                 plugin_details["version"])
 
         if plugin_details["version"] == "VERSION":
@@ -642,18 +647,18 @@ class DPL:
         plugins_name = fetch_plugins(os.path.join(dir_path,"modules"))
 
         for plugin_name in plugins_name:
-            plugin_details = {"status":"todo","name":"", "version":"","last_version":"", \
-                            "last_release_date":"", "link":"", "edited":"", "cve":"", \
-                            "cve_details":"", "notes":"", "alterations" : [] \
+            plugin_details = {"status":"todo","name":"", "version":"","last_version":"",
+                            "last_release_date":"", "link":"", "edited":"", "cve":"",
+                            "cve_details":"", "notes":"", "alterations" : []
                             }
-            print_cms("info", "[+] " + plugin_name , "", 0)
+            print_cms("info", "[+] " + plugin_name, "", 0)
             plugin_details["name"] = plugin_name
 
             # Get plugin version
             _ , err = self.get_plugin_version(plugin_details, dir_path,
-                                                plugin_name +".info",
+                                                plugin_name + ".info",
                                                 re.compile("version = (.*)"),
-                                                "modules/"+plugin_name)
+                                                "modules/" + plugin_name)
             if err is not None:
                 self.plugins_details.append(plugin_details)
                 continue
@@ -683,7 +688,6 @@ class DPL:
         return self.plugins_details
 
 
-
 class ComissionXLSX:
     """ CoMisSion XLS Generator """
 
@@ -704,8 +708,8 @@ class ComissionXLSX:
         # Add core vulns
         x = 2
         for core_vuln_details in core_details["vulns"]:
-            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"], \
-                                    core_vuln_details["type"],core_vuln_details["fixed_in"] \
+            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
+                                    core_vuln_details["type"],core_vuln_details["fixed_in"]
                                     ]
             self.add_core_data('D'+ str(x), core_vuln_details_list)
             x += 1
@@ -713,19 +717,20 @@ class ComissionXLSX:
         # Add core alteration details
         x = 2
         for core_alteration in core_details["alterations"]:
-            core_alterations_list = [core_alteration["file"], core_alteration["target"], \
-                                    core_alteration["status"]]
+            core_alterations_list = [core_alteration["file"], core_alteration["target"],
+                                    core_alteration["status"]
+                                    ]
             self.add_core_alteration_data('A'+ str(x), core_alterations_list)
             x += 1
 
         # Add plugin details
         x = 2
         for plugin_details in plugins_details:
-            plugin_details_list = [plugin_details["status"], plugin_details["name"], \
-                                plugin_details["version"], plugin_details["last_version"], \
-                                plugin_details["last_release_date"], plugin_details["link"], \
-                                plugin_details["edited"], plugin_details["cve"], \
-                                plugin_details["cve_details"], plugin_details["notes"] \
+            plugin_details_list = [plugin_details["status"], plugin_details["name"],
+                                plugin_details["version"], plugin_details["last_version"],
+                                plugin_details["last_release_date"], plugin_details["link"],
+                                plugin_details["edited"], plugin_details["cve"],
+                                plugin_details["cve_details"], plugin_details["notes"]
                                 ]
             self.add_plugin_data('A'+ str(x), plugin_details_list)
             x += 1
@@ -734,8 +739,9 @@ class ComissionXLSX:
         x = 2
         for plugin_details in plugins_details:
             for plugin_alteration in plugin_details["alterations"]:
-                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"], \
-                                        plugin_alteration["target"], plugin_alteration["status"]]
+                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"],
+                                        plugin_alteration["target"], plugin_alteration["status"]
+                                        ]
                 self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
                 x += 1
 
@@ -756,21 +762,21 @@ class ComissionXLSX:
 
     def generate_heading(self):
 
-        core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link", \
+        core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link",
                         "Type", "Fixed In"
                         ]
         core_alteration_headings = ["File", "Path", "Status"
                                     ]
-        plugins_headings = ["Status", "Plugin", "Version", "Last version", \
-                            "Last release date", "Link", "Code altered", \
+        plugins_headings = ["Status", "Plugin", "Version", "Last version",
+                            "Last release date", "Link", "Code altered",
                             "CVE", "Vulnerabilities", "Notes"
                             ]
         plugins_alteration_headings = ["Plugin Name", "File", "Path", "Status"
                                         ]
 
-        headings_list = [core_headings, core_alteration_headings, plugins_headings, \
+        headings_list = [core_headings, core_alteration_headings, plugins_headings,
                         plugins_alteration_headings]
-        worksheets_list = [self.core_worksheet, self.core_alteration_worksheet, \
+        worksheets_list = [self.core_worksheet, self.core_alteration_worksheet,
                             self.plugins_worksheet, self.plugins_alteration_worksheet]
 
         for target_worksheet, headings in zip(worksheets_list, headings_list):
@@ -782,7 +788,7 @@ class ComissionXLSX:
     def generate_formating(self, workbook):
         # Bad : Light red fill with dark red text.
         bad = workbook.add_format({'bg_color': '#FFC7CE',
-                               'font_color': '#9C0006'})
+                                'font_color': '#9C0006'})
         # Good :  Green fill with dark green text.
         good = workbook.add_format({'bg_color': '#C6EFCE',
                                 'font_color': '#006100'})
@@ -802,48 +808,48 @@ class ComissionXLSX:
         # Write conditionnal formats
         worksheet = self.plugins_worksheet
         worksheet.conditional_format('A1:A300', {'type': 'text',
-                                         'criteria': 'containing',
-                                         'value': 'todo',
-                                         'format': bad})
+                                                'criteria': 'containing',
+                                                'value': 'todo',
+                                                'format': bad})
         worksheet.conditional_format('A1:A300', {'type': 'text',
-                                         'criteria': 'containing',
-                                         'value': 'done',
-                                         'format': good})
+                                                'criteria': 'containing',
+                                                'value': 'done',
+                                                'format': good})
         #Red if the version if "trunk"
         worksheet.conditional_format('C1:C300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"trunk"',
-                                         'format': bad})
+                                                'criteria': '==',
+                                                'value': '"trunk"',
+                                                'format': bad})
 
         # Red if no info have been found by the script
         worksheet.conditional_format('J1:J300', {'type': 'text',
-                                         'criteria': 'containing',
-                                         'value': 'Search',
-                                         'format': bad})
+                                                'criteria': 'containing',
+                                                'value': 'Search',
+                                                'format': bad})
 
         # Red if the plugin have been modified
         worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"YES"',
-                                         'format': bad})
+                                                'criteria': '==',
+                                                'value': '"YES"',
+                                                'format': bad})
         worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"NO"',
-                                         'format': good})
+                                                'criteria': '==',
+                                                'value': '"NO"',
+                                                'format': good})
         # Red if some CVE exist
         worksheet.conditional_format('H1:H300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"YES"',
-                                         'format': bad})
+                                                'criteria': '==',
+                                                'value': '"YES"',
+                                                'format': bad})
         worksheet.conditional_format('H1:H300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"NO"',
-                                         'format': good})
+                                                'criteria': '==',
+                                                'value': '"NO"',
+                                                'format': good})
         # N/A if we don't know for any reason
         worksheet.conditional_format('C1:H300', {'type': 'cell',
-                                         'criteria': '==',
-                                         'value': '"N/A"',
-                                         'format': na})
+                                                'criteria': '==',
+                                                'value': '"N/A"',
+                                                'format': na})
 
         # Format CMS Core worksheet
         worksheet = self.core_worksheet

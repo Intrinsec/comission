@@ -22,7 +22,7 @@ def parse_args():
     and plugins used.')
     parser.add_argument('-d', '--dir', dest='DIR', help='CMS root directory', \
                         required=True)
-    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (Drupal, WordPress)', \
+    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (drupal, wordpress)', \
                         required=True)
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
@@ -97,12 +97,12 @@ def print_cms(type, msg, msg_default, level):
     RED = "\033[91m"
 
     if type == "default":
-        print(DEFAULT + '\t'*level +  msg)
+        print(DEFAULT + '\t'*level + msg)
     if type == "info":
-        print(BLUE + '\t'*level +  msg + DEFAULT + msg_default)
+        print(BLUE + '\t'*level + msg + DEFAULT + msg_default)
     if type == "good":
-        print(GREEN + '\t'*level +  msg + DEFAULT + msg_default)
+        print(GREEN + '\t'*level + msg + DEFAULT + msg_default)
     if type == "warning":
-        print(YELLOW + '\t'*level +  msg + DEFAULT + msg_default)
+        print(YELLOW + '\t'*level + msg + DEFAULT + msg_default)
     if type == "alert" :
-        print(RED + '\t'*level +  msg + DEFAULT + msg_default)
+        print(RED + '\t'*level + msg + DEFAULT + msg_default)
