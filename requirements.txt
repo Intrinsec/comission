@@ -1,0 +1,4 @@
+checksumdir
+requests
+xlsxwriter
+lxml
