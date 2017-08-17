@@ -4,6 +4,7 @@ import re
 import os
 import io
 import sys
+import csv
 import json
 import shutil
 import zipfile
@@ -14,6 +15,7 @@ from utilsCMS import *
 
 from lxml import etree
 from filecmp import dircmp
+from collections import deque
 from checksumdir import dirhash
 from distutils.version import LooseVersion
 
@@ -177,7 +179,7 @@ class WP (CMS):
                         print_cms("good", "Up to date !", "", 1)
                     else:
                         print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] +
-                        "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                        " ( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Plugin not in WordPress official site. Search manually !"
@@ -413,7 +415,7 @@ class WP (CMS):
         return self.plugins_details
 
 
-class DPL:
+class DPL (CMS):
     """ DRUPAL object """
     def __init__(self):
         self.site_url = "https://www.drupal.org"
@@ -890,13 +892,104 @@ class ComissionXLSX:
         worksheet.set_column('D:D', 30)
 
 
+class ComissionCSV:
+    """ CoMisSion CSV Generator """
+
+    def __init__(self, filename="output.csv"):
+        """ Generate CSV """
+        self.filename = filename
+        self.prepare_files()
+        self.core_headings = ["Version", "Last version"]
+        self.core_vulns_headings = ["Vulnerabilities", "Link", "Type", "Fixed In" ]
+        self.core_alteration_headings = ["File", "Path", "Status"]
+        self.plugins_headings = ["Status", "Plugin", "Version", "Last version",
+                                "Last release date", "Link", "Code altered",
+                                "CVE", "Vulnerabilities", "Notes"
+                                ]
+        self.plugins_alteration_headings = ["Plugin Name", "File", "Path", "Status"
+                                            ]
+
+    def prepare_files(self):
+        basename = self.filename.split('.')[0]
+        self.core_filename = basename + ".core.csv"
+        self.core_vulns_filename = basename + ".core_vulns.csv"
+        self.core_alteration_filename = basename + ".core_alterations.csv"
+        self.plugins_filename = basename + ".plugins.csv"
+        self.plugins_alteration_filename = basename + ".plugins_alterations.csv"
+
+    def add_data(self,core_details,plugins_details):
+        # Add core data
+        self.add_core_data_to_file(core_details["infos"], self.core_headings)
+
+        # Add core vulns
+        x = 2
+        core_vuln_details_lists = []
+        for core_vuln_details in core_details["vulns"]:
+            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
+                                    core_vuln_details["type"],core_vuln_details["fixed_in"]
+                                    ]
+            core_vuln_details_lists.append(core_vuln_details_list)
+            x += 1
+        self.add_data_to_file(core_vuln_details_lists, self.core_vulns_filename,
+                                self.core_vulns_headings)
+
+        # Add core alteration details
+        x = 2
+        core_alterations_lists = []
+        for core_alteration in core_details["alterations"]:
+            core_alterations_list = [core_alteration["file"], core_alteration["target"],
+                                    core_alteration["status"]
+                                    ]
+            core_alterations_lists.append(core_alterations_list)
+            x += 1
+        self.add_data_to_file(core_alterations_lists, self.core_alteration_filename,
+                                self.core_alteration_headings)
+
+        # Add plugin details
+        x = 2
+        plugin_details_lists = []
+        for plugin_details in plugins_details:
+            plugin_details_list = [plugin_details["status"], plugin_details["name"],
+                                plugin_details["version"], plugin_details["last_version"],
+                                plugin_details["last_release_date"], plugin_details["link"],
+                                plugin_details["edited"], plugin_details["cve"],
+                                plugin_details["cve_details"], plugin_details["notes"]
+                                ]
+            plugin_details_lists.append(plugin_details_list)
+            x += 1
+        self.add_data_to_file(plugin_details_lists, self.plugins_filename,
+                                self.plugins_headings)
+
+        # Add plugins alteration details
+        x = 2
+        plugin_alteration_lists = []
+        for plugin_details in plugins_details:
+            for plugin_alteration in plugin_details["alterations"]:
+                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"],
+                                        plugin_alteration["target"], plugin_alteration["status"]
+                                        ]
+                plugin_alteration_lists.append(plugin_alteration_list)
+                x += 1
+        self.add_data_to_file(plugin_alteration_lists, self.plugins_alteration_filename,
+                                self.plugins_alteration_headings)
+
+    def add_core_data_to_file(self, data, headers):
+        with open(self.core_filename, 'w', newline='') as csvfile:
+            core_data_writer = csv.writer(csvfile, delimiter=';',
+                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            core_data_writer.writerow(headers)
+            core_data_writer.writerow(data)
+
+    def add_data_to_file(self, data, filename, headers):
+        with open(filename, 'w', newline='') as csvfile:
+            data_writer = csv.writer(csvfile, delimiter=';',
+                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            data_writer.writerow(headers)
+            data_writer.writerows(data)
+
+
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.output:
-        output_file = open(args.output, 'w')
-    else:
-        output_file = None
 
     if not args.DIR:
         print_cms("alert", "No path received !", "", 0)
@@ -923,10 +1016,19 @@ if __name__ == "__main__":
     plugins_details = cms.plugin_analysis(dir_path)
 
     # Save results to a file
-    if args.output:
+    if args.type == "CSV" and args.output:
+        # Initialize the output file
+        result_csv = ComissionCSV(args.output)
+        # Add data
+        result_csv.add_data(core_details, plugins_details)
+
+    elif args.type == "XLSX" and args.output:
         # Initialize the output file
         result_xlsx = ComissionXLSX(args.output)
-        # Add recovered data
+        # Add data
         result_xlsx.add_data(core_details, plugins_details)
         # Generate result file
         result_xlsx.generate_xlsx()
+    else:
+        print_cms("alert", "Output type unknown or missing filename !", "", 0)
+        sys.exit()

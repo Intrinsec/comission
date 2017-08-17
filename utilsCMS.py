@@ -26,6 +26,8 @@ def parse_args():
                         required=True)
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
+    parser.add_argument('-t', '--type', metavar="TYPE", help='Type of output \
+    file (CSV, XLSX). Default to XLSX.')
     args = parser.parse_args()
     return args
 
