@@ -1,21 +1,21 @@
 # CoMisSion - WhiteBox CMS analysis
 
-CoMisSion is a tool to quickly analyse a CMS setup. The tool:
+CoMisSion is a tool to quickly analyze a CMS setup. The tool:
 - checks for the core version;
 - looks for the last core version;
 - looks for vulnerabilities in core version used;
 - checks for plugins version;
 - looks for vulnerabilities in plugins version used;
 
-A XLSX report can be generated.
+A complete report can be generated in XLSX or CSV format.
 
-The tool has been tested on linux only.
+The tool has been tested on Linux only.
 
 
 ## Example
 
 ```
-./commision.py -c wordpress -d /cms_dir -o comission_report.xlsx
+./commision.py -c wordpress -d /cms_dir -o report.xlsx -t XLSX
 ```
 
 ## Installation
@@ -26,6 +26,7 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+
 ```
 usage: comission.py [-h] -d DIR -c CMS [-o FILE]
 
@@ -33,6 +34,7 @@ usage: comission.py [-h] -d DIR -c CMS [-o FILE]
   -d DIR, --dir DIR       CMS root directory
   -c CMS, --cms CMS       CMS type (Drupal, WordPress)
   -o FILE, --output FILE  Path to output file
+  -t TYPE, --type TYPE    Type of output file (CSV, XLSX). Default to XLSX.
 ```
 
 ## CMS supported
@@ -53,7 +55,7 @@ docker build -t isec/comission .
 Then run it with :
 
 ```
-docker run -it --rm -v /TARGET_PATH/:/cms_path/ -v /OUTPUT_DIR/:/output/ isec/comission -d /cms_path/ -c drupal -o /output/test_docker.xlsx
+docker run -it --rm -v /TARGET_PATH/:/cms_path/ -v /OUTPUT_DIR/:/output/ isec/comission -d /cms_path/ -c drupal -o /output/test_docker.xlsx -t XLSX
 ```
 Be careful to change the path "TARGET_PATH" and "OUTPUT_DIR" to match your folders.
 

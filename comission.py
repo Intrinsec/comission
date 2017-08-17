@@ -4,6 +4,7 @@ import re
 import os
 import io
 import sys
+import csv
 import json
 import shutil
 import zipfile
@@ -26,7 +27,7 @@ class CMS:
         self.cve_ref_url = ""
         self.plugin_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
-        self.plugins_details = []
+        self.plugins = []
 
     def get_core_version(self):
         """
@@ -99,7 +100,7 @@ class WP (CMS):
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
         self.plugin_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
-        self.plugins_details = []
+        self.plugins = []
 
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
         try:
@@ -117,21 +118,21 @@ class WP (CMS):
             return "", e
         return version_core, None
 
-    def get_plugin_version(self, plugin_details, dir_path, plugin_main_file, version_file_regexp, plugins_path):
+    def get_plugin_version(self, plugin, dir_path, plugin_main_file, version_file_regexp, plugins_path):
         try:
             with open(os.path.join(dir_path, plugins_path, plugin_main_file)) as plugin_info:
                 version = ''
                 for line in plugin_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        plugin_details["version"] = version.group(1).strip()
-                        print_cms("default", "Version : "+ plugin_details["version"], "", 1)
+                        plugin["version"] = version.group(1).strip()
+                        print_cms("default", "Version : "+ plugin["version"], "", 1)
                         break
 
         except FileNotFoundError as e:
             msg = "No standard extension file found. Search manually !"
             print_cms("alert", "[-] " + msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return "", e
         return version, None
 
@@ -153,10 +154,10 @@ class WP (CMS):
             return "", e
         return last_version_core, None
 
-    def get_plugin_last_version(self, plugin_details):
+    def get_plugin_last_version(self, plugin):
         version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
         date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
-        releases_url = "https://wordpress.org/plugins/{}/".format(plugin_details["name"])
+        releases_url = "https://wordpress.org/plugins/{}/".format(plugin["name"])
         last_version = "Not found"
         try:
             response = requests.get(releases_url, allow_redirects=False)
@@ -169,22 +170,22 @@ class WP (CMS):
                 date_last_release_result = date_last_release_regexp.search(page)
 
                 if last_version_result and date_last_release_result:
-                    plugin_details["last_version"] = last_version_result.group(1)
-                    plugin_details["last_release_date"] = date_last_release_result.group(1).split("T")[0]
-                    plugin_details["link"] = releases_url
+                    plugin["last_version"] = last_version_result.group(1)
+                    plugin["last_release_date"] = date_last_release_result.group(1).split("T")[0]
+                    plugin["link"] = releases_url
 
-                    if plugin_details["last_version"] == plugin_details["version"]:
+                    if plugin["last_version"] == plugin["version"]:
                         print_cms("good", "Up to date !", "", 1)
                     else:
-                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"] +
-                        "( " + plugin_details["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                        print_cms("alert", "Outdated, last version: ", plugin["last_version"] +
+                        " ( " + plugin["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Plugin not in WordPress official site. Search manually !"
             print_cms("alert", "[-] "+ msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return "", e
-        return plugin_details["last_version"], None
+        return plugin["last_version"], None
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
@@ -216,14 +217,14 @@ class WP (CMS):
 
         return alterations, None
 
-    def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
+    def check_plugin_alteration(self, plugin, dir_path, temp_directory):
         plugin_url = "{}{}.{}.zip".format(self.download_plugin_url,
-                                                plugin_details["name"],
-                                                plugin_details["version"])
+                                                plugin["name"],
+                                                plugin["version"])
 
-        if plugin_details["version"] == "trunk":
+        if plugin["version"] == "trunk":
             plugin_url = "{}{}.zip".format(self.download_plugin_url,
-                                            plugin_details["name"])
+                                            plugin["name"])
 
         print_cms("default", "To download the plugin: " + plugin_url, "", 1)
 
@@ -237,9 +238,9 @@ class WP (CMS):
                 zip_file.close()
 
                 project_dir = os.path.join(dir_path, "wp-content", "plugins",
-                                            plugin_details["name"])
+                                            plugin["name"])
                 project_dir_hash = dirhash(project_dir, 'sha1')
-                ref_dir = os.path.join(temp_directory, plugin_details["name"])
+                ref_dir = os.path.join(temp_directory, plugin["name"])
                 ref_dir_hash = dirhash(ref_dir, 'sha1')
 
                 if project_dir_hash == ref_dir_hash:
@@ -254,14 +255,14 @@ class WP (CMS):
                     root_path = os.path.join(dir_path, "wp-content", "plugins")
 
                     dcmp = dircmp(project_dir, ref_dir, ignored)
-                    diff_files(dcmp, plugin_details["alterations"], project_dir)
+                    diff_files(dcmp, plugin["alterations"], project_dir)
 
-                plugin_details["edited"] = altered
+                plugin["edited"] = altered
 
         except requests.exceptions.HTTPError as e:
             msg = "The download link is not standard. Search manually !"
             print_cms("alert", msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return msg, e
         return altered, None
 
@@ -294,10 +295,11 @@ class WP (CMS):
             return "", e
         return vulns_details, None
 
-    def check_vulns_plugin(self, plugin_details):
+    def check_vulns_plugin(self, plugin):
         cve = ""
+        url_details = "https://wpvulndb.com/vulnerabilities/"
         try:
-            url = "{}plugins/{}".format(self.cve_ref_url,plugin_details["name"])
+            url = "{}plugins/{}".format(self.cve_ref_url,plugin["name"])
 
             response = requests.get(url)
             response.raise_for_status()
@@ -305,31 +307,34 @@ class WP (CMS):
             if response.status_code == 200:
                 page_json = response.json()
 
-                vulns = page_json[plugin_details["name"]]["vulnerabilities"]
+                vulns = page_json[plugin["name"]]["vulnerabilities"]
                 print_cms("info", "[+] CVE list", "", 1)
                 for vuln in vulns:
                     fixed_version = vuln["fixed_in"]
                     try:
-                        if LooseVersion(plugin_details["version"]) < LooseVersion(fixed_version):
+                        if LooseVersion(plugin["version"]) < LooseVersion(fixed_version):
                             print_cms("alert", vuln["title"] , "", 1)
-                            plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"],
-                                                                        vuln["title"]])
-
+                            vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]),
+                                            "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+                                            }
+                            plugin["vulns"].append(vuln_details)
                     except TypeError as e:
                         print_cms("alert", "Unable to compare version. Please check this \
                                             vulnerability :" + vuln["title"] , "", 1)
-                        plugin_details["cve_details"] = "\n".join([plugin_details["cve_details"],
-                                                        " To check : ", vuln["title"]])
+                        vuln_details = {"name": " To check : " + vuln["title"], "link": url + str(vuln["id"]),
+                                        "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+                                        }
+                        plugin["vulns"].append(vuln_details)
 
-                if plugin_details["cve_details"]:
-                    plugin_details["cve"] = "YES"
+                if plugin["vulns"]:
+                    plugin["cve"] = "YES"
                 else:
-                    plugin_details["cve"] = "NO"
+                    plugin["cve"] = "NO"
 
         except requests.exceptions.HTTPError as e:
             msg = "No entry on wpvulndb."
             print_cms("info", "[+] " + msg , "", 1)
-            plugin_details["cve"] = "NO"
+            plugin["cve"] = "NO"
             return "", e
         return cve, None
 
@@ -372,57 +377,58 @@ class WP (CMS):
         plugins_name = fetch_plugins(os.path.join(dir_path, "wp-content", "plugins"))
 
         for plugin_name in plugins_name:
-            plugin_details = {"status":"todo","name":"", "version":"","last_version":"",
+            plugin = {"status":"todo","name":"", "version":"","last_version":"",
                             "last_release_date":"", "link":"", "edited":"", "cve":"",
-                            "cve_details":"", "notes":"", "alterations" : []
+                            "vulns":[], "notes":"", "alterations" : []
                             }
             print_cms("info", "[+] " + plugin_name , "", 0)
-            plugin_details["name"] = plugin_name
+            plugin["name"] = plugin_name
 
             # Get plugin version
-            _ , err = self.get_plugin_version(plugin_details, dir_path,
+            _ , err = self.get_plugin_version(plugin, dir_path,
                                                 plugin_name + "/" + plugin_name +".php",
                                                 re.compile("(?i)Version: (.*)"),
                                                 "wp-content/plugins")
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
             # Check plugin last version
-            _ , err = self.get_plugin_last_version(plugin_details)
+            _ , err = self.get_plugin_last_version(plugin)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
-            # Check if there are known CVE in wpvulndb
-            _ , err = self.check_vulns_plugin(plugin_details)
+            # Check known CVE in wpvulndb
+            _ , err = self.check_vulns_plugin(plugin)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
             # Check if the plugin have been altered
-            _ , err = self.check_plugin_alteration(plugin_details, dir_path,
+            _ , err = self.check_plugin_alteration(plugin, dir_path,
                                                     temp_directory)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
-            self.plugins_details.append(plugin_details)
+            self.plugins.append(plugin)
         shutil.rmtree(temp_directory, ignore_errors=True)
 
-        return self.plugins_details
+        return self.plugins
 
 
-class DPL:
+class DPL (CMS):
     """ DRUPAL object """
     def __init__(self):
+        super()
         self.site_url = "https://www.drupal.org"
         self.download_core_url = "https://ftp.drupal.org/files/projects/drupal-"
         self.download_plugin_url = "https://ftp.drupal.org/files/projects/"
         self.cve_ref_url = ""
         self.plugin_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
-        self.plugins_details = []
+        self.plugins = []
 
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
         try:
@@ -440,20 +446,20 @@ class DPL:
             return "", e
         return version_core, None
 
-    def get_plugin_version(self, plugin_details, dir_path, plugin_main_file, version_file_regexp, plugin_path):
+    def get_plugin_version(self, plugin, dir_path, plugin_main_file, version_file_regexp, plugin_path):
         try:
             with open(os.path.join(dir_path, plugin_path, plugin_main_file)) as plugin_info:
                 for line in plugin_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        plugin_details["version"] = version.group(1).strip("\"")
-                        print_cms("default", "Version : "+ plugin_details["version"], "", 1)
+                        plugin["version"] = version.group(1).strip("\"")
+                        print_cms("default", "Version : "+ plugin["version"], "", 1)
                         break
 
         except FileNotFoundError as e:
             msg = "No standard extension file. Search manually !"
             print_cms("alert", "[-] " + msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return "", e
         return version, None
 
@@ -478,17 +484,17 @@ class DPL:
             return "", e
         return last_version_core, None
 
-    def get_plugin_last_version(self, plugin_details):
+    def get_plugin_last_version(self, plugin):
         version_web_regexp = re.compile("<h2><a href=\"(.*?)\">(.+?) (.+?)</a></h2>")
         date_last_release_regexp = re.compile("<time pubdate datetime=\"(.*?)\">(.+?)</time>")
 
-        releases_url = "{}/project/{}/releases".format(self.site_url, plugin_details["name"])
+        releases_url = "{}/project/{}/releases".format(self.site_url, plugin["name"])
         last_version = "Not found"
 
-        if plugin_details["version"] == "VERSION":
+        if plugin["version"] == "VERSION":
             msg = "This is a default plugin. Analysis is not yet implemented !"
             print_cms("alert", msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return "", None
 
         try:
@@ -502,23 +508,23 @@ class DPL:
                 date_last_release_result = date_last_release_regexp.search(page)
 
                 if last_version_result and date_last_release_result:
-                    plugin_details["last_version"] = last_version_result.group(3)
-                    plugin_details["last_release_date"] = date_last_release_result.group(2)
-                    plugin_details["link"] = releases_url
+                    plugin["last_version"] = last_version_result.group(3)
+                    plugin["last_release_date"] = date_last_release_result.group(2)
+                    plugin["link"] = releases_url
 
-                    if plugin_details["last_version"] == plugin_details["version"]:
+                    if plugin["last_version"] == plugin["version"]:
                         print_cms("good", "Up to date !", "", 1)
                     else:
-                        print_cms("alert", "Outdated, last version: ", plugin_details["last_version"]
-                                    + " ( " + plugin_details["last_release_date"]
+                        print_cms("alert", "Outdated, last version: ", plugin["last_version"]
+                                    + " ( " + plugin["last_release_date"]
                                     + " )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Plugin not in drupal official site. Search manually !"
             print_cms("alert", "[-] "+ msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return "", e
-        return plugin_details["last_version"], None
+        return plugin["last_version"], None
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
@@ -550,12 +556,12 @@ class DPL:
 
         return alterations, None
 
-    def check_plugin_alteration(self, plugin_details, dir_path, temp_directory):
+    def check_plugin_alteration(self, plugin, dir_path, temp_directory):
         plugin_url = "{}{}-{}.zip".format(self.download_plugin_url,
-                                                plugin_details["name"],
-                                                plugin_details["version"])
+                                                plugin["name"],
+                                                plugin["version"])
 
-        if plugin_details["version"] == "VERSION":
+        if plugin["version"] == "VERSION":
             # TODO
             return None, None
 
@@ -570,9 +576,9 @@ class DPL:
                 zip_file.extractall(temp_directory)
                 zip_file.close()
 
-                project_dir = os.path.join(dir_path, "modules", plugin_details["name"])
+                project_dir = os.path.join(dir_path, "modules", plugin["name"])
                 project_dir_hash = dirhash(project_dir, 'sha1')
-                ref_dir = os.path.join(temp_directory, plugin_details["name"])
+                ref_dir = os.path.join(temp_directory, plugin["name"])
                 ref_dir_hash = dirhash(ref_dir, 'sha1')
 
                 if project_dir_hash == ref_dir_hash:
@@ -587,14 +593,14 @@ class DPL:
                     root_path = os.path.join(dir_path, "modules")
 
                     dcmp = dircmp(project_dir, ref_dir, ignored)
-                    diff_files(dcmp, plugin_details["alterations"], project_dir)
+                    diff_files(dcmp, plugin["alterations"], project_dir)
 
-                plugin_details["edited"] = altered
+                plugin["edited"] = altered
 
         except requests.exceptions.HTTPError as e:
             msg = "The download link is not standard. Search manually !"
             print_cms("alert", msg, "", 1)
-            plugin_details["notes"] = msg
+            plugin["notes"] = msg
             return msg, e
         return altered, None
 
@@ -603,7 +609,7 @@ class DPL:
         print_cms("alert","CVE check not yet implemented !" , "", 1)
         return [], None
 
-    def check_vulns_plugin(self, plugin_details):
+    def check_vulns_plugin(self, plugin):
         # TODO
         print_cms("alert","CVE check not yet implemented !" , "", 1)
         return [], None
@@ -647,45 +653,45 @@ class DPL:
         plugins_name = fetch_plugins(os.path.join(dir_path,"modules"))
 
         for plugin_name in plugins_name:
-            plugin_details = {"status":"todo","name":"", "version":"","last_version":"",
+            plugin = {"status":"todo","name":"", "version":"","last_version":"",
                             "last_release_date":"", "link":"", "edited":"", "cve":"",
-                            "cve_details":"", "notes":"", "alterations" : []
+                            "vulns_details":"", "notes":"", "alterations" : []
                             }
             print_cms("info", "[+] " + plugin_name, "", 0)
-            plugin_details["name"] = plugin_name
+            plugin["name"] = plugin_name
 
             # Get plugin version
-            _ , err = self.get_plugin_version(plugin_details, dir_path,
+            _ , err = self.get_plugin_version(plugin, dir_path,
                                                 plugin_name + ".info",
                                                 re.compile("version = (.*)"),
                                                 "modules/" + plugin_name)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
             # Check plugin last version
-            _ , err = self.get_plugin_last_version(plugin_details)
+            _ , err = self.get_plugin_last_version(plugin)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
             # Check if there are known CVE
-            _ , err = self.check_vulns_plugin(plugin_details)
+            _ , err = self.check_vulns_plugin(plugin)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
             # Check if the plugin have been altered
-            _ , err = self.check_plugin_alteration(plugin_details, dir_path,
+            _ , err = self.check_plugin_alteration(plugin, dir_path,
                                                     temp_directory)
             if err is not None:
-                self.plugins_details.append(plugin_details)
+                self.plugins.append(plugin)
                 continue
 
-            self.plugins_details.append(plugin_details)
+            self.plugins.append(plugin)
         shutil.rmtree(temp_directory, ignore_errors=True)
 
-        return self.plugins_details
+        return self.plugins
 
 
 class ComissionXLSX:
@@ -697,11 +703,12 @@ class ComissionXLSX:
         self.core_worksheet = self.workbook.add_worksheet("Core")
         self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
         self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
+        self.plugins_vulns_worksheet = self.workbook.add_worksheet("Plugins Vulns")
         self.plugins_alteration_worksheet = self.workbook.add_worksheet("Plugins Alteration")
         self.generate_heading()
         self.generate_formating(self.workbook)
 
-    def add_data(self,core_details,plugins_details):
+    def add_data(self,core_details,plugins):
         # Add core data
         self.add_core_data('A2', core_details["infos"])
 
@@ -709,7 +716,8 @@ class ComissionXLSX:
         x = 2
         for core_vuln_details in core_details["vulns"]:
             core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
-                                    core_vuln_details["type"],core_vuln_details["fixed_in"]
+                                    core_vuln_details["type"],"",
+                                    core_vuln_details["fixed_in"]
                                     ]
             self.add_core_data('D'+ str(x), core_vuln_details_list)
             x += 1
@@ -725,34 +733,47 @@ class ComissionXLSX:
 
         # Add plugin details
         x = 2
-        for plugin_details in plugins_details:
-            plugin_details_list = [plugin_details["status"], plugin_details["name"],
-                                plugin_details["version"], plugin_details["last_version"],
-                                plugin_details["last_release_date"], plugin_details["link"],
-                                plugin_details["edited"], plugin_details["cve"],
-                                plugin_details["cve_details"], plugin_details["notes"]
+        for plugin in plugins:
+            plugin_list = [plugin["status"], plugin["name"],
+                                plugin["version"], plugin["last_version"],
+                                plugin["last_release_date"], plugin["link"],
+                                plugin["edited"], plugin["cve"],
+                                plugin["notes"]
                                 ]
-            self.add_plugin_data('A'+ str(x), plugin_details_list)
+            self.add_plugin_data('A'+ str(x), plugin_list)
             x += 1
+
+        # Add plugins vulns
+        x = 2
+        for plugin in plugins:
+            for vuln in plugin["vulns"]:
+                vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
+                                "todo poc", vuln["fixed_in"]
+                            ]
+                self.add_plugin_vulns_data('A'+ str(x), vuln_list)
+                x += 1
 
         # Add plugins alteration details
         x = 2
-        for plugin_details in plugins_details:
-            for plugin_alteration in plugin_details["alterations"]:
-                plugin_alteration_list = [plugin_details["name"], plugin_alteration["file"],
+        for plugin in plugins:
+            for plugin_alteration in plugin["alterations"]:
+                plugin_alteration_list = [plugin["name"], plugin_alteration["file"],
                                         plugin_alteration["target"], plugin_alteration["status"]
                                         ]
                 self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
                 x += 1
-
-    def add_plugin_data(self, position, plugin = []):
-        self.plugins_worksheet.write_row(position, plugin)
 
     def add_core_data(self, position, data):
         self.core_worksheet.write_row(position, data)
 
     def add_core_alteration_data(self, position, data):
         self.core_alteration_worksheet.write_row(position, data)
+
+    def add_plugin_data(self, position, plugin = []):
+        self.plugins_worksheet.write_row(position, plugin)
+
+    def add_plugin_vulns_data(self, position, vulns = []):
+        self.plugins_vulns_worksheet.write_row(position, vulns)
 
     def add_plugin_alteration_data(self, position, data):
         self.plugins_alteration_worksheet.write_row(position, data)
@@ -763,21 +784,27 @@ class ComissionXLSX:
     def generate_heading(self):
 
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link",
-                        "Type", "Fixed In"
+                        "Type", "PoC", "Fixed In"
                         ]
         core_alteration_headings = ["File", "Path", "Status"
                                     ]
         plugins_headings = ["Status", "Plugin", "Version", "Last version",
-                            "Last release date", "Link", "Code altered",
-                            "CVE", "Vulnerabilities", "Notes"
-                            ]
-        plugins_alteration_headings = ["Plugin Name", "File", "Path", "Status"
+                    "Last release date", "Link", "Code altered",
+                    "CVE", "Notes"
+                    ]
+        plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type",
+                                    "PoC", "Fixed In"
+                                    ]
+        plugins_alteration_headings = ["Plugin", "File", "Path", "Status"
                                         ]
 
         headings_list = [core_headings, core_alteration_headings, plugins_headings,
-                        plugins_alteration_headings]
+                        plugins_vulns_headings, plugins_alteration_headings
+                        ]
         worksheets_list = [self.core_worksheet, self.core_alteration_worksheet,
-                            self.plugins_worksheet, self.plugins_alteration_worksheet]
+                            self.plugins_worksheet, self.plugins_vulns_worksheet,
+                            self.plugins_alteration_worksheet
+                            ]
 
         for target_worksheet, headings in zip(worksheets_list, headings_list):
             y = 0
@@ -821,8 +848,8 @@ class ComissionXLSX:
                                                 'value': '"trunk"',
                                                 'format': bad})
 
-        # Red if no info have been found by the script
-        worksheet.conditional_format('J1:J300', {'type': 'text',
+        # Red if some info are missing
+        worksheet.conditional_format('I1:I300', {'type': 'text',
                                                 'criteria': 'containing',
                                                 'value': 'Search',
                                                 'format': bad})
@@ -860,13 +887,26 @@ class ComissionXLSX:
         worksheet.set_column('E:E', 40)
         worksheet.set_column('F:F', 10)
         worksheet.set_column('G:G', 10)
+        worksheet.set_column('H:H', 10)
 
         # Format CMS Core Alteration worksheet
         worksheet = self.core_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 40)
         worksheet.set_column('B:B', 70)
-        worksheet.set_column('C:C', 30)
+        worksheet.set_column('C:C', 10)
+        worksheet.conditional_format('C1:C300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"altered"',
+                                                'format': bad})
+        worksheet.conditional_format('C1:C300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"added"',
+                                                'format': bad})
+        worksheet.conditional_format('C1:C300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"deleted"',
+                                                'format': na})
 
         # Format Plugins worksheet
         worksheet = self.plugins_worksheet
@@ -876,10 +916,20 @@ class ComissionXLSX:
         worksheet.set_column('C:C', 8)
         worksheet.set_column('D:D', 10)
         worksheet.set_column('E:E', 13)
-        worksheet.set_column('F:F', 20)
+        worksheet.set_column('F:F', 50)
         worksheet.set_column('G:G', 8)
         worksheet.set_column('H:H', 5)
         worksheet.set_column('I:J', 70)
+
+        # Format Plugins Vulnerabilities worksheet
+        worksheet = self.plugins_vulns_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:A', 25)
+        worksheet.set_column('B:B', 100)
+        worksheet.set_column('C:C', 40)
+        worksheet.set_column('D:D', 10)
+        worksheet.set_column('E:E', 10)
+        worksheet.set_column('F:F', 10)
 
         # Format CMS Plugins Alteration worksheet
         worksheet = self.plugins_alteration_worksheet
@@ -887,16 +937,141 @@ class ComissionXLSX:
         worksheet.set_column('A:A', 25)
         worksheet.set_column('B:B', 40)
         worksheet.set_column('C:C', 70)
-        worksheet.set_column('D:D', 30)
+        worksheet.set_column('D:D', 10)
+        worksheet.conditional_format('D1:D300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"altered"',
+                                                'format': bad})
+        worksheet.conditional_format('C1:C300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"added"',
+                                                'format': bad})
+        worksheet.conditional_format('D1:D300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"deleted"',
+                                                'format': na})
+
+
+class ComissionCSV:
+    """ CoMisSion CSV Generator """
+
+    def __init__(self, filename="output.csv"):
+        self.filename = filename
+
+        self.prepare_files()
+
+        self.core_headings = ["Version", "Last version"]
+        self.core_vulns_headings = ["Vulnerabilities", "Link", "Type", "PoC",
+                                    "Fixed In"
+                                    ]
+        self.core_alteration_headings = ["File", "Path", "Status"]
+        self.plugins_headings = ["Status", "Plugin", "Version", "Last version",
+                                "Last release date", "Link", "Code altered",
+                                "CVE", "Notes"
+                                ]
+        self.plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type",
+                                    "PoC", "Fixed In"
+                                    ]
+        self.plugins_alteration_headings = ["Plugin", "File", "Path", "Status"
+                                            ]
+
+    def prepare_files(self):
+        basename = self.filename.split('.')[0]
+
+        self.core_filename = basename + ".core.csv"
+        self.core_vulns_filename = basename + ".core_vulns.csv"
+        self.core_alteration_filename = basename + ".core_alterations.csv"
+        self.plugins_filename = basename + ".plugins.csv"
+        self.plugins_vulns_filename = basename + ".plugins_vulns.csv"
+        self.plugins_alteration_filename = basename + ".plugins_alterations.csv"
+
+    def add_data(self,core_details,plugins):
+        # Add core data
+        self.add_core_data_to_file(core_details["infos"], self.core_headings)
+
+        # Add core vulns
+        x = 2
+        core_vuln_details_lists = []
+        for core_vuln_details in core_details["vulns"]:
+            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
+                                    core_vuln_details["type"],"",
+                                    core_vuln_details["fixed_in"]
+                                    ]
+            core_vuln_details_lists.append(core_vuln_details_list)
+            x += 1
+        self.add_data_to_file(core_vuln_details_lists, self.core_vulns_filename,
+                                self.core_vulns_headings)
+
+        # Add core alteration details
+        x = 2
+        core_alterations_lists = []
+        for core_alteration in core_details["alterations"]:
+            core_alterations_list = [core_alteration["file"], core_alteration["target"],
+                                    core_alteration["status"]
+                                    ]
+            core_alterations_lists.append(core_alterations_list)
+            x += 1
+        self.add_data_to_file(core_alterations_lists, self.core_alteration_filename,
+                                self.core_alteration_headings)
+
+        # Add plugin details
+        x = 2
+        plugin_lists = []
+        for plugin in plugins:
+            plugin_list = [plugin["status"], plugin["name"],
+                                plugin["version"], plugin["last_version"],
+                                plugin["last_release_date"], plugin["link"],
+                                plugin["edited"], plugin["cve"],
+                                plugin["notes"]
+                                ]
+            plugin_lists.append(plugin_list)
+            x += 1
+        self.add_data_to_file(plugin_lists, self.plugins_filename,
+                                self.plugins_headings)
+
+        # Add plugins vulns
+        x = 2
+        vuln_lists = []
+        for plugin in plugins:
+            for vuln in plugin["vulns"]:
+                vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
+                                "todo poc", vuln["fixed_in"]
+                            ]
+                vuln_lists.append(vuln_list)
+                x += 1
+            self.add_data_to_file(vuln_lists, self.plugins_vulns_filename,
+                                    self.plugins_vulns_headings)
+
+        # Add plugins alteration details
+        x = 2
+        plugin_alteration_lists = []
+        for plugin in plugins:
+            for plugin_alteration in plugin["alterations"]:
+                plugin_alteration_list = [plugin["name"], plugin_alteration["file"],
+                                        plugin_alteration["target"], plugin_alteration["status"]
+                                        ]
+                plugin_alteration_lists.append(plugin_alteration_list)
+                x += 1
+        self.add_data_to_file(plugin_alteration_lists, self.plugins_alteration_filename,
+                                self.plugins_alteration_headings)
+
+    def add_core_data_to_file(self, data, headers):
+        with open(self.core_filename, 'w', newline='') as csvfile:
+            core_data_writer = csv.writer(csvfile, delimiter=';',
+                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            core_data_writer.writerow(headers)
+            core_data_writer.writerow(data)
+
+    def add_data_to_file(self, data, filename, headers):
+        with open(filename, 'w', newline='') as csvfile:
+            data_writer = csv.writer(csvfile, delimiter=';',
+                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            data_writer.writerow(headers)
+            data_writer.writerows(data)
 
 
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.output:
-        output_file = open(args.output, 'w')
-    else:
-        output_file = None
 
     if not args.DIR:
         print_cms("alert", "No path received !", "", 0)
@@ -920,13 +1095,23 @@ if __name__ == "__main__":
 
     # Analyse the CMS
     core_details = cms.core_analysis(dir_path)
-    plugins_details = cms.plugin_analysis(dir_path)
+    plugins = cms.plugin_analysis(dir_path)
 
     # Save results to a file
-    if args.output:
+    if args.type == "CSV" and args.output:
+        # Initialize the output file
+        result_csv = ComissionCSV(args.output)
+        # Add data and generate result file
+        result_csv.add_data(core_details, plugins)
+
+    elif args.type == "XLSX" and args.output:
         # Initialize the output file
         result_xlsx = ComissionXLSX(args.output)
-        # Add recovered data
-        result_xlsx.add_data(core_details, plugins_details)
+        # Add data
+        result_xlsx.add_data(core_details, plugins)
         # Generate result file
         result_xlsx.generate_xlsx()
+
+    else:
+        print_cms("alert", "Output type unknown or missing filename !", "", 0)
+        sys.exit()

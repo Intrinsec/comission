@@ -26,6 +26,8 @@ def parse_args():
                         required=True)
     parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
     file')
+    parser.add_argument('-t', '--type', metavar="TYPE", help='Type of output \
+    file (CSV, XLSX). Default to XLSX.')
     args = parser.parse_args()
     return args
 
@@ -66,20 +68,20 @@ def diff_files(dcmp, alterations, target):
     for name in dcmp.right_only:
         alteration = {"target":"", "file":"", "status":""}
         altered_file = os.path.join(target, name)
-        print_cms("warning", altered_file, " not present in base installation !", 1)
+        print_cms("warning", altered_file, " has been added !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "not present in base installation"
+        alteration["status"] = "added"
 
         alterations.append(alteration)
 
     for name in dcmp.left_only:
         alteration = {"target":"", "file":"", "status":""}
         altered_file = os.path.join(target, name)
-        print_cms("warning", altered_file, " has been deleted from base installation !", 1)
+        print_cms("warning", altered_file, " deleted !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "has been deleted from base installation"
+        alteration["status"] = "deleted"
 
         alterations.append(alteration)
 
