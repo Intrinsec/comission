@@ -92,6 +92,7 @@ class CMS:
 
 class WP (CMS):
     """ WordPress object """
+
     def __init__(self):
         super()
         self.site_url = "https://wordpress.org/"
@@ -281,12 +282,27 @@ class WP (CMS):
 
                 vulns = page_json[version_core]["vulnerabilities"]
                 print_cms("info", "[+] CVE list" , "", 1)
+
                 for vuln in vulns:
-                    vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]),
-                                    "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
+
+                    vuln_details = {"name": "", "link": "", "type": "",
+                                    "poc": "",  "fixed_in": ""
                                     }
+
+                    vuln_url = url_details + str(vuln["id"])
+
+                    vuln_details["name"] = vuln["title"]
+                    vuln_details["link"] = vuln_url
+                    vuln_details["type"] = vuln["vuln_type"]
+                    vuln_details["poc"] = "CHECK"
+                    vuln_details["fixed_in"] = vuln["fixed_in"]
+
+                    if get_poc(vuln_url):
+                        vuln_details["poc"] = "YES"
+
                     print_cms("alert", vuln["title"] , "", 1)
                     print_cms("info", "[+] Fixed in version "+ str(vuln["fixed_in"]) , "", 1)
+
                     vulns_details.append(vuln_details)
 
         except requests.exceptions.HTTPError as e:
@@ -309,21 +325,42 @@ class WP (CMS):
 
                 vulns = page_json[plugin["name"]]["vulnerabilities"]
                 print_cms("info", "[+] CVE list", "", 1)
+
                 for vuln in vulns:
-                    fixed_version = vuln["fixed_in"]
+
+                    vuln_url = url_details + str(vuln["id"])
+                    vuln_details = {"name": "", "link": "", "type": "",
+                                    "poc": "",  "fixed_in": ""
+                                    }
+
                     try:
-                        if LooseVersion(plugin["version"]) < LooseVersion(fixed_version):
+                        if LooseVersion(plugin["version"]) < LooseVersion(vuln["fixed_in"]):
                             print_cms("alert", vuln["title"] , "", 1)
-                            vuln_details = {"name": vuln["title"], "link": url_details + str(vuln["id"]),
-                                            "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
-                                            }
+
+                            vuln_details["name"] = vuln["title"]
+                            vuln_details["link"] = vuln_url
+                            vuln_details["type"] = vuln["vuln_type"]
+                            vuln_details["fixed_in"] = vuln["fixed_in"]
+                            vuln_details["poc"] = "CHECK"
+
+                            if get_poc(vuln_url):
+                                vuln_details["poc"] = "YES"
+
                             plugin["vulns"].append(vuln_details)
+
                     except TypeError as e:
                         print_cms("alert", "Unable to compare version. Please check this \
                                             vulnerability :" + vuln["title"] , "", 1)
-                        vuln_details = {"name": " To check : " + vuln["title"], "link": url + str(vuln["id"]),
-                                        "type": vuln["vuln_type"], "fixed_in": vuln["fixed_in"]
-                                        }
+
+                        vuln_details["name"] = " To check : " + vuln["title"]
+                        vuln_details["link"] = vuln_url
+                        vuln_details["type"] = vuln["vuln_type"]
+                        vuln_details["fixed_in"] = vuln["fixed_in"]
+                        vuln_details["poc"] = "CHECK"
+
+                        if get_poc(vuln_url):
+                            vuln_details["poc"] = "YES"
+
                         plugin["vulns"].append(vuln_details)
 
                 if plugin["vulns"]:
@@ -420,6 +457,7 @@ class WP (CMS):
 
 class DPL (CMS):
     """ DRUPAL object """
+
     def __init__(self):
         super()
         self.site_url = "https://www.drupal.org"
@@ -714,12 +752,12 @@ class ComissionXLSX:
 
         # Add core vulns
         x = 2
-        for core_vuln_details in core_details["vulns"]:
-            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
-                                    core_vuln_details["type"],"",
-                                    core_vuln_details["fixed_in"]
+        for core_vuln in core_details["vulns"]:
+            core_vuln_list = [core_vuln["name"],core_vuln["link"],
+                                    core_vuln["type"],core_vuln["poc"],
+                                    core_vuln["fixed_in"]
                                     ]
-            self.add_core_data('D'+ str(x), core_vuln_details_list)
+            self.add_core_data('D'+ str(x), core_vuln_list)
             x += 1
 
         # Add core alteration details
@@ -748,7 +786,7 @@ class ComissionXLSX:
         for plugin in plugins:
             for vuln in plugin["vulns"]:
                 vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
-                                "todo poc", vuln["fixed_in"]
+                                vuln["poc"], vuln["fixed_in"]
                             ]
                 self.add_plugin_vulns_data('A'+ str(x), vuln_list)
                 x += 1
@@ -786,7 +824,7 @@ class ComissionXLSX:
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link",
                         "Type", "PoC", "Fixed In"
                         ]
-        core_alteration_headings = ["File", "Path", "Status"
+        core_alteration_headings = ["File/Folder", "Path", "Status"
                                     ]
         plugins_headings = ["Status", "Plugin", "Version", "Last version",
                     "Last release date", "Link", "Code altered",
@@ -795,7 +833,7 @@ class ComissionXLSX:
         plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type",
                                     "PoC", "Fixed In"
                                     ]
-        plugins_alteration_headings = ["Plugin", "File", "Path", "Status"
+        plugins_alteration_headings = ["Plugin", "File/Folder", "Path", "Status"
                                         ]
 
         headings_list = [core_headings, core_alteration_headings, plugins_headings,
@@ -878,7 +916,7 @@ class ComissionXLSX:
                                                 'value': '"N/A"',
                                                 'format': na})
 
-        # Format CMS Core worksheet
+        # Format Core worksheet
         worksheet = self.core_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:B', 10)
@@ -886,15 +924,27 @@ class ComissionXLSX:
         worksheet.set_column('D:D', 100)
         worksheet.set_column('E:E', 40)
         worksheet.set_column('F:F', 10)
-        worksheet.set_column('G:G', 10)
+        worksheet.set_column('G:G', 7)
         worksheet.set_column('H:H', 10)
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"CHECK"',
+                                                'format': na})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"YES"',
+                                                'format': bad})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"NO"',
+                                                'format': good})
 
         # Format CMS Core Alteration worksheet
         worksheet = self.core_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 40)
         worksheet.set_column('B:B', 70)
-        worksheet.set_column('C:C', 10)
+        worksheet.set_column('C:C', 7)
         worksheet.conditional_format('C1:C300', {'type': 'cell',
                                                 'criteria': '==',
                                                 'value': '"altered"',
@@ -928,8 +978,20 @@ class ComissionXLSX:
         worksheet.set_column('B:B', 100)
         worksheet.set_column('C:C', 40)
         worksheet.set_column('D:D', 10)
-        worksheet.set_column('E:E', 10)
+        worksheet.set_column('E:E', 7)
         worksheet.set_column('F:F', 10)
+        worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"CHECK"',
+                                                'format': na})
+        worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"YES"',
+                                                'format': bad})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"NO"',
+                                                'format': good})
 
         # Format CMS Plugins Alteration worksheet
         worksheet = self.plugins_alteration_worksheet
@@ -937,7 +999,7 @@ class ComissionXLSX:
         worksheet.set_column('A:A', 25)
         worksheet.set_column('B:B', 40)
         worksheet.set_column('C:C', 70)
-        worksheet.set_column('D:D', 10)
+        worksheet.set_column('D:D', 7)
         worksheet.conditional_format('D1:D300', {'type': 'cell',
                                                 'criteria': '==',
                                                 'value': '"altered"',
@@ -991,15 +1053,15 @@ class ComissionCSV:
 
         # Add core vulns
         x = 2
-        core_vuln_details_lists = []
-        for core_vuln_details in core_details["vulns"]:
-            core_vuln_details_list = [core_vuln_details["name"],core_vuln_details["link"],
-                                    core_vuln_details["type"],"",
-                                    core_vuln_details["fixed_in"]
+        core_vuln_lists = []
+        for core_vuln in core_details["vulns"]:
+            core_vuln_list = [core_vuln["name"],core_vuln["link"],
+                                    core_vuln["type"],core_vuln["poc"],
+                                    core_vuln["fixed_in"]
                                     ]
-            core_vuln_details_lists.append(core_vuln_details_list)
+            core_vuln_lists.append(core_vuln_list)
             x += 1
-        self.add_data_to_file(core_vuln_details_lists, self.core_vulns_filename,
+        self.add_data_to_file(core_vuln_lists, self.core_vulns_filename,
                                 self.core_vulns_headings)
 
         # Add core alteration details
@@ -1035,7 +1097,7 @@ class ComissionCSV:
         for plugin in plugins:
             for vuln in plugin["vulns"]:
                 vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
-                                "todo poc", vuln["fixed_in"]
+                                vuln["poc"], vuln["fixed_in"]
                             ]
                 vuln_lists.append(vuln_list)
                 x += 1
