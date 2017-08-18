@@ -2,3 +2,4 @@ checksumdir
 requests
 xlsxwriter
 lxml
+bs4

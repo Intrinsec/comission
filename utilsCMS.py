@@ -4,9 +4,12 @@ import os
 import sys
 import random
 import string
+import requests
 import datetime
 import argparse
 import tempfile
+
+from bs4 import BeautifulSoup
 
 debug = True
 quiet = False
@@ -108,3 +111,8 @@ def print_cms(type, msg, msg_default, level):
         print(YELLOW + '\t'*level + msg + DEFAULT + msg_default)
     if type == "alert" :
         print(RED + '\t'*level + msg + DEFAULT + msg_default)
+
+def get_poc(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r.text, "lxml")
+    return [el.get_text() for el in soup.findAll("pre", { "class":"poc"})]
