@@ -1170,7 +1170,7 @@ if __name__ == "__main__":
     dir_path = args.DIR
 
     if args.CMS == "wordpress":
-        to_check = ["wp-content", "wp-includes", "wp-admin"]
+        to_check = ["wp-includes", "wp-admin"]
         verify_path(dir_path, to_check)
         cms = WP()
 
