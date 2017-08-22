@@ -763,8 +763,8 @@ class ComissionXLSX:
         # Add core alteration details
         x = 2
         for core_alteration in core_details["alterations"]:
-            core_alterations_list = [core_alteration["file"], core_alteration["target"],
-                                    core_alteration["status"]
+            core_alterations_list = [core_alteration["status"], core_alteration["file"],
+                                    core_alteration["target"], core_alteration["type"]
                                     ]
             self.add_core_alteration_data('A'+ str(x), core_alterations_list)
             x += 1
@@ -795,8 +795,10 @@ class ComissionXLSX:
         x = 2
         for plugin in plugins:
             for plugin_alteration in plugin["alterations"]:
-                plugin_alteration_list = [plugin["name"], plugin_alteration["file"],
-                                        plugin_alteration["target"], plugin_alteration["status"]
+                plugin_alteration_list = [plugin["status"],plugin["name"],
+                                            plugin_alteration["file"],
+                                            plugin_alteration["target"],
+                                            plugin_alteration["type"]
                                         ]
                 self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
                 x += 1
@@ -822,18 +824,20 @@ class ComissionXLSX:
     def generate_heading(self):
 
         core_headings = ["Version", "Last version", "", "Vulnerabilities", "Link",
-                        "Type", "PoC", "Fixed In"
+                        "Type", "PoC", "Fixed In", "Notes"
                         ]
-        core_alteration_headings = ["File/Folder", "Path", "Status"
+        core_alteration_headings = ["Status", "File/Folder", "Path",
+                                    "Alteration", "Notes"
                                     ]
         plugins_headings = ["Status", "Plugin", "Version", "Last version",
                     "Last release date", "Link", "Code altered",
                     "CVE", "Notes"
                     ]
         plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type",
-                                    "PoC", "Fixed In"
+                                    "PoC", "Fixed In", "Notes"
                                     ]
-        plugins_alteration_headings = ["Plugin", "File/Folder", "Path", "Status"
+        plugins_alteration_headings = ["Status", "Plugin", "File/Folder",
+                                        "Path", "Alteration", "Notes"
                                         ]
 
         headings_list = [core_headings, core_alteration_headings, plugins_headings,
@@ -869,9 +873,72 @@ class ComissionXLSX:
                                 'font_color': '#44546A',
                                 'text_wrap': True})
 
+        # Format Core worksheet
+        worksheet = self.core_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:B', 10)
+        worksheet.set_column('C:C', 3)
+        worksheet.set_column('D:D', 100)
+        worksheet.set_column('E:E', 40)
+        worksheet.set_column('F:F', 10)
+        worksheet.set_column('G:G', 7)
+        worksheet.set_column('H:H', 10)
+        worksheet.set_column('I:I', 60)
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"CHECK"',
+                                                'format': na})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"YES"',
+                                                'format': bad})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"NO"',
+                                                'format': good})
 
-        # Write conditionnal formats
+        # Format Core Alteration worksheet
+        worksheet = self.core_alteration_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:A', 7)
+        worksheet.set_column('B:B', 30)
+        worksheet.set_column('C:C', 70)
+        worksheet.set_column('D:D', 10)
+        worksheet.set_column('E:E', 60)
+        worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                'criteria': 'containing',
+                                                'value': 'todo',
+                                                'format': bad})
+        worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                'criteria': 'containing',
+                                                'value': 'done',
+                                                'format': good})
+        worksheet.conditional_format('D1:D300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"altered"',
+                                                'format': bad})
+        worksheet.conditional_format('D1:D300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"added"',
+                                                'format': bad})
+        worksheet.conditional_format('D1:D300', {'type': 'cell',
+                                                'criteria': '==',
+                                                'value': '"deleted"',
+                                                'format': na})
+
+        # Format Plugins worksheet
         worksheet = self.plugins_worksheet
+        worksheet.set_row(0, 15, heading_format)
+        worksheet.set_column('A:A', 7)
+        worksheet.set_column('B:B', 25)
+        worksheet.set_column('C:C', 8)
+        worksheet.set_column('D:D', 10)
+        worksheet.set_column('E:E', 13)
+        worksheet.set_column('F:F', 50)
+        worksheet.set_column('G:G', 8)
+        worksheet.set_column('H:H', 5)
+        worksheet.set_column('I:I', 60)
+        worksheet.set_column('J:J', 3)
         worksheet.conditional_format('A1:A300', {'type': 'text',
                                                 'criteria': 'containing',
                                                 'value': 'todo',
@@ -916,66 +983,11 @@ class ComissionXLSX:
                                                 'value': '"N/A"',
                                                 'format': na})
 
-        # Format Core worksheet
-        worksheet = self.core_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:B', 10)
-        worksheet.set_column('C:C', 5)
-        worksheet.set_column('D:D', 100)
-        worksheet.set_column('E:E', 40)
-        worksheet.set_column('F:F', 10)
-        worksheet.set_column('G:G', 7)
-        worksheet.set_column('H:H', 10)
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"CHECK"',
-                                                'format': na})
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"YES"',
-                                                'format': bad})
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"NO"',
-                                                'format': good})
-
-        # Format CMS Core Alteration worksheet
-        worksheet = self.core_alteration_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 40)
-        worksheet.set_column('B:B', 70)
-        worksheet.set_column('C:C', 7)
-        worksheet.conditional_format('C1:C300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"altered"',
-                                                'format': bad})
-        worksheet.conditional_format('C1:C300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"added"',
-                                                'format': bad})
-        worksheet.conditional_format('C1:C300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"deleted"',
-                                                'format': na})
-
-        # Format Plugins worksheet
-        worksheet = self.plugins_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 7)
-        worksheet.set_column('B:B', 25)
-        worksheet.set_column('C:C', 8)
-        worksheet.set_column('D:D', 10)
-        worksheet.set_column('E:E', 13)
-        worksheet.set_column('F:F', 50)
-        worksheet.set_column('G:G', 8)
-        worksheet.set_column('H:H', 5)
-        worksheet.set_column('I:J', 70)
-
         # Format Plugins Vulnerabilities worksheet
         worksheet = self.plugins_vulns_worksheet
         worksheet.set_row(0, 15, heading_format)
         worksheet.set_column('A:A', 25)
-        worksheet.set_column('B:B', 100)
+        worksheet.set_column('B:B', 80)
         worksheet.set_column('C:C', 40)
         worksheet.set_column('D:D', 10)
         worksheet.set_column('E:E', 7)
@@ -996,19 +1008,29 @@ class ComissionXLSX:
         # Format CMS Plugins Alteration worksheet
         worksheet = self.plugins_alteration_worksheet
         worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 25)
-        worksheet.set_column('B:B', 40)
-        worksheet.set_column('C:C', 70)
-        worksheet.set_column('D:D', 7)
-        worksheet.conditional_format('D1:D300', {'type': 'cell',
+        worksheet.set_column('A:A', 7)
+        worksheet.set_column('B:B', 25)
+        worksheet.set_column('C:C', 40)
+        worksheet.set_column('D:D', 70)
+        worksheet.set_column('E:E', 10)
+        worksheet.set_column('F:F', 60)
+        worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                'criteria': 'containing',
+                                                'value': 'todo',
+                                                'format': bad})
+        worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                'criteria': 'containing',
+                                                'value': 'done',
+                                                'format': good})
+        worksheet.conditional_format('E1:E300', {'type': 'cell',
                                                 'criteria': '==',
                                                 'value': '"altered"',
                                                 'format': bad})
-        worksheet.conditional_format('C1:C300', {'type': 'cell',
+        worksheet.conditional_format('E1:E300', {'type': 'cell',
                                                 'criteria': '==',
                                                 'value': '"added"',
                                                 'format': bad})
-        worksheet.conditional_format('D1:D300', {'type': 'cell',
+        worksheet.conditional_format('E1:E300', {'type': 'cell',
                                                 'criteria': '==',
                                                 'value': '"deleted"',
                                                 'format': na})
@@ -1024,17 +1046,20 @@ class ComissionCSV:
 
         self.core_headings = ["Version", "Last version"]
         self.core_vulns_headings = ["Vulnerabilities", "Link", "Type", "PoC",
-                                    "Fixed In"
+                                    "Fixed In", "Notes"
                                     ]
-        self.core_alteration_headings = ["File", "Path", "Status"]
+        self.core_alteration_headings = ["Status", "File", "Path", "Alteration",
+                                        "Notes"
+                                        ]
         self.plugins_headings = ["Status", "Plugin", "Version", "Last version",
                                 "Last release date", "Link", "Code altered",
                                 "CVE", "Notes"
                                 ]
         self.plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type",
-                                    "PoC", "Fixed In"
-                                    ]
-        self.plugins_alteration_headings = ["Plugin", "File", "Path", "Status"
+                                        "PoC", "Fixed In", "Notes"
+                                        ]
+        self.plugins_alteration_headings = ["Status", "Plugin", "File", "Path",
+                                            "Alteration", "Notes"
                                             ]
 
     def prepare_files(self):
@@ -1068,8 +1093,9 @@ class ComissionCSV:
         x = 2
         core_alterations_lists = []
         for core_alteration in core_details["alterations"]:
-            core_alterations_list = [core_alteration["file"], core_alteration["target"],
-                                    core_alteration["status"]
+            core_alterations_list = [core_alteration["status"],core_alteration["file"],
+                                        core_alteration["target"],
+                                        core_alteration["type"]
                                     ]
             core_alterations_lists.append(core_alterations_list)
             x += 1
@@ -1109,8 +1135,10 @@ class ComissionCSV:
         plugin_alteration_lists = []
         for plugin in plugins:
             for plugin_alteration in plugin["alterations"]:
-                plugin_alteration_list = [plugin["name"], plugin_alteration["file"],
-                                        plugin_alteration["target"], plugin_alteration["status"]
+                plugin_alteration_list = [plugin["status"], plugin["name"],
+                                        plugin_alteration["file"],
+                                        plugin_alteration["target"],
+                                        plugin_alteration["type"]
                                         ]
                 plugin_alteration_lists.append(plugin_alteration_list)
                 x += 1
