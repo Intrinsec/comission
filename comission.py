@@ -112,6 +112,20 @@ class WP (CMS):
                 suspects.append(dirname)
         return suspects
 
+    def get_plugin_main_file(self, plugin, plugin_path):
+        main_file = []
+
+        for filename in [plugin["name"] + ".php", "plugin.php"]:
+            if os.path.isfile(os.path.join(plugin_path, filename)):
+                main_file.append(filename)
+
+        if main_file:
+            # If the two files exist, the one named as the plugin is more likely to
+            # be the main one
+            plugin["filename"] = main_file[0]
+
+        return filename, None
+
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
         try:
             with open(os.path.join(dir_path, cms_path)) as version_file:
@@ -130,13 +144,15 @@ class WP (CMS):
 
     def get_plugin_version(self, plugin, plugin_path, version_file_regexp):
         try:
-            with open(plugin_path) as plugin_info:
+            path = os.path.join(plugin_path, plugin["filename"])
+            with open(path) as plugin_info:
                 version = ''
                 for line in plugin_info:
                     version = version_file_regexp.search(line)
                     if version:
                         plugin["version"] = version.group(1).strip()
-                        print_cms("default", "Version : "+ plugin["version"], "", 1)
+                        print_cms("default", "Version : "+ plugin["version"],
+                                    "", 1)
                         break
 
         except FileNotFoundError as e:
@@ -427,14 +443,20 @@ class WP (CMS):
         for plugin_name in plugins_name:
             plugin = {"status":"todo","name":"", "version":"","last_version":"",
                             "last_release_date":"", "link":"", "edited":"", "cve":"",
-                            "vulns":[], "notes":"", "alterations" : []
+                            "vulns":[], "notes":"", "alterations" : [], "filename":""
                             }
             print_cms("info", "[+] " + plugin_name , "", 0)
             plugin["name"] = plugin_name
 
+            plugin_path = os.path.join(dir_path, self.plugins_path, plugin_name)
+
+            # Check plugin last version
+            _ , err = self.get_plugin_main_file(plugin, plugin_path)
+            if err is not None:
+                self.plugins.append(plugin)
+                continue
+
             # Get plugin version
-            plugin_path = os.path.join(dir_path, self.plugins_path, plugin_name,
-                                        plugin_name +".php")
             _ , err = self.get_plugin_version(plugin, plugin_path,
                                                 re.compile("(?i)Version: (.*)"))
 
@@ -870,13 +892,12 @@ class ComissionXLSX:
         # Bad : Light red fill with dark red text.
         bad = workbook.add_format({'bg_color': '#FFC7CE',
                                 'font_color': '#9C0006'})
-        # Good :  Green fill with dark green text.
+        # Good : Green fill with dark green text.
         good = workbook.add_format({'bg_color': '#C6EFCE',
                                 'font_color': '#006100'})
         # N/A : When we don't know
         na = workbook.add_format({'bg_color': '#FCD5B4',
                                 'font_color': '#974706'})
-
         #Title of columns
         heading_format = workbook.add_format({'bold': True,
                                 'font_size': '13',
@@ -1196,7 +1217,7 @@ if __name__ == "__main__":
         sys.exit()
 
     # Analyse the CMS
-    core_details = cms.core_analysis(dir_path)
+    #core_details = cms.core_analysis(dir_path)
     plugins = cms.plugin_analysis(dir_path)
 
     # Save results to a file
