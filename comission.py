@@ -96,12 +96,21 @@ class WP (CMS):
     def __init__(self):
         super()
         self.site_url = "https://wordpress.org/"
+        self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_plugin_url = "https://downloads.wordpress.org/plugin/"
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
         self.plugin_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
         self.plugins = []
+
+    def get_wp_content(self, dir_path):
+        tocheck = ["plugins", "themes"]
+        suspects = []
+        for dirname in next(os.walk(dir_path))[1]:
+            if set(tocheck).issubset(next(os.walk(os.path.join(dir_path,dirname)))[1]):
+                suspects.append(dirname)
+        return suspects
 
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
         try:
@@ -119,9 +128,9 @@ class WP (CMS):
             return "", e
         return version_core, None
 
-    def get_plugin_version(self, plugin, dir_path, plugin_main_file, version_file_regexp, plugins_path):
+    def get_plugin_version(self, plugin, plugin_path, version_file_regexp):
         try:
-            with open(os.path.join(dir_path, plugins_path, plugin_main_file)) as plugin_info:
+            with open(plugin_path) as plugin_info:
                 version = ''
                 for line in plugin_info:
                     version = version_file_regexp.search(line)
@@ -386,7 +395,7 @@ class WP (CMS):
                                                     re.compile("\$wp_version = '(.*)';"),
                                                     "wp-includes/version.php")
         # Get the last released version
-        last_version_core , err = self.get_core_last_version("https://api.wordpress.org/core/version-check/1.7/")
+        last_version_core , err = self.get_core_last_version(self.site_api)
 
         # Get some details on the core
         self.core_details["infos"] = [version_core, last_version_core]
@@ -411,7 +420,9 @@ class WP (CMS):
         , "", 0)
 
         # Get the list of plugin to work with
-        plugins_name = fetch_plugins(os.path.join(dir_path, "wp-content", "plugins"))
+        wp_content_path = self.get_wp_content(dir_path)[0]
+        self.plugins_path = os.path.join(wp_content_path, "plugins")
+        plugins_name = fetch_plugins(os.path.join(dir_path, self.plugins_path))
 
         for plugin_name in plugins_name:
             plugin = {"status":"todo","name":"", "version":"","last_version":"",
@@ -422,10 +433,11 @@ class WP (CMS):
             plugin["name"] = plugin_name
 
             # Get plugin version
-            _ , err = self.get_plugin_version(plugin, dir_path,
-                                                plugin_name + "/" + plugin_name +".php",
-                                                re.compile("(?i)Version: (.*)"),
-                                                "wp-content/plugins")
+            plugin_path = os.path.join(dir_path, self.plugins_path, plugin_name,
+                                        plugin_name +".php")
+            _ , err = self.get_plugin_version(plugin, plugin_path,
+                                                re.compile("(?i)Version: (.*)"))
+
             if err is not None:
                 self.plugins.append(plugin)
                 continue
