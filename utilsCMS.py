@@ -59,32 +59,32 @@ def create_temp_directory():
 
 def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
-        alteration = {"target":"", "file":"", "status":""}
+        alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
         print_cms("alert", altered_file, " was altered !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "altered"
+        alteration["type"] = "altered"
 
         alterations.append(alteration)
 
     for name in dcmp.right_only:
-        alteration = {"target":"", "file":"", "status":""}
+        alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
         print_cms("warning", altered_file, " has been added !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "added"
+        alteration["type"] = "added"
 
         alterations.append(alteration)
 
     for name in dcmp.left_only:
-        alteration = {"target":"", "file":"", "status":""}
+        alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
         print_cms("warning", altered_file, " deleted !", 1)
         alteration["target"] = target
         alteration["file"] = name
-        alteration["status"] = "deleted"
+        alteration["type"] = "deleted"
 
         alterations.append(alteration)
 
