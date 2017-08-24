@@ -1154,6 +1154,7 @@ class ComissionCSV:
         self.themes_alteration_headings = ["Status", "Theme", "File", "Path",
                                             "Alteration", "Notes"
                                             ]
+
     def prepare_files(self):
         basename = self.filename.split('.')[0]
 
@@ -1169,7 +1170,7 @@ class ComissionCSV:
         self.themes_vulns_filename = basename + ".themes_vulns.csv"
         self.themes_alteration_filename = basename + ".themes_alterations.csv"
 
-    def add_data(self,core_details,plugins):
+    def add_data(self, core_details, plugins, themes):
         # Add core data
         self.add_core_data_to_file(core_details["infos"], self.core_headings)
 
@@ -1199,48 +1200,65 @@ class ComissionCSV:
         self.add_data_to_file(core_alterations_lists, self.core_alteration_filename,
                                 self.core_alteration_headings)
 
-        # Add plugin details
-        x = 2
-        plugin_lists = []
-        for plugin in plugins:
-            plugin_list = [plugin["status"], plugin["name"],
-                                plugin["version"], plugin["last_version"],
-                                plugin["last_release_date"], plugin["link"],
-                                plugin["edited"], plugin["cve"],
-                                plugin["notes"]
+        for elements in [plugins, themes]:
+            # Add elements details
+            x = 2
+            addon_lists = []
+            for addon in elements:
+                addon_list = [addon["status"], addon["name"],
+                                    addon["version"], addon["last_version"],
+                                    addon["last_release_date"], addon["link"],
+                                    addon["edited"], addon["cve"],
+                                    addon["notes"]
+                                    ]
+                addon_lists.append(addon_list)
+                x += 1
+            if addon["type"] == "plugins":
+                self.add_data_to_file(addon_lists,
+                                        self.plugins_filename,
+                                        self.plugins_headings)
+            elif addon["type"] == "themes":
+                self.add_data_to_file(addon_lists,
+                                        self.themes_filename,
+                                        self.themes_headings)
+            # Add elements vulns
+            x = 2
+            vuln_lists = []
+            for addon in elements:
+                for vuln in addon["vulns"]:
+                    vuln_list = [addon["name"],vuln["name"], vuln["link"], vuln["type"],
+                                    vuln["poc"], vuln["fixed_in"]
                                 ]
-            plugin_lists.append(plugin_list)
-            x += 1
-        self.add_data_to_file(plugin_lists, self.plugins_filename,
-                                self.plugins_headings)
-
-        # Add plugins vulns
-        x = 2
-        vuln_lists = []
-        for plugin in plugins:
-            for vuln in plugin["vulns"]:
-                vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
-                                vuln["poc"], vuln["fixed_in"]
-                            ]
-                vuln_lists.append(vuln_list)
-                x += 1
-            self.add_data_to_file(vuln_lists, self.plugins_vulns_filename,
-                                    self.plugins_vulns_headings)
-
-        # Add plugins alteration details
-        x = 2
-        plugin_alteration_lists = []
-        for plugin in plugins:
-            for plugin_alteration in plugin["alterations"]:
-                plugin_alteration_list = [plugin["status"], plugin["name"],
-                                        plugin_alteration["file"],
-                                        plugin_alteration["target"],
-                                        plugin_alteration["type"]
-                                        ]
-                plugin_alteration_lists.append(plugin_alteration_list)
-                x += 1
-        self.add_data_to_file(plugin_alteration_lists, self.plugins_alteration_filename,
-                                self.plugins_alteration_headings)
+                    vuln_lists.append(vuln_list)
+                    x += 1
+            if addon["type"] == "plugins":
+                self.add_data_to_file(vuln_lists,
+                                        self.plugins_vulns_filename,
+                                        self.plugins_vulns_headings)
+            elif addon["type"] == "themes":
+                self.add_data_to_file(vuln_lists,
+                                        self.themes_vulns_filename,
+                                        self.themes_vulns_headings)
+            # Add elements alteration details
+            x = 2
+            addon_alteration_lists = []
+            for addon in elements:
+                for addon_alteration in addon["alterations"]:
+                    addon_alteration_list = [addon["status"], addon["name"],
+                                            addon_alteration["file"],
+                                            addon_alteration["target"],
+                                            addon_alteration["type"]
+                                            ]
+                    addon_alteration_lists.append(addon_alteration_list)
+                    x += 1
+            if addon["type"] == "plugins":
+                self.add_data_to_file(addon_alteration_lists,
+                                        self.plugins_alteration_filename,
+                                        self.plugins_alteration_headings)
+            elif addon["type"] == "themes":
+                self.add_data_to_file(addon_alteration_lists,
+                                        self.themes_alteration_filename,
+                                        self.themes_alteration_headings)
 
     def add_core_data_to_file(self, data, headers):
         with open(self.core_filename, 'w', newline='') as csvfile:
