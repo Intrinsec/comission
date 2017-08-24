@@ -1,5 +1,11 @@
+# Python stuff
 *.py[co]
 __pycache__
-test.xlsx
+
+# Dev stuff
 dev-build.sh
 .idea
+
+# Tests stuff
+test.*
+test-data-set
