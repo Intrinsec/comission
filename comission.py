@@ -35,7 +35,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def get_plugin_version(self):
+    def get_addon_version(self):
         """
         Get a plugin version
         """
@@ -47,7 +47,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def get_plugin_last_version(self):
+    def get_addon_last_version(self):
         """
         Get the last released of the plugin and the date
         """
@@ -59,7 +59,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def check_plugin_alteration(self):
+    def check_addon_alteration(self):
         """
         Check if the plugin have been altered
         """
@@ -71,7 +71,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def check_vulns_plugin(self):
+    def check_vulns_addon(self):
         """
         Check if there are any vulns on the plugin
         """
@@ -83,7 +83,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def plugin_analysis(self):
+    def addon_analysis(self):
         """
         CMS plugin analysis, return a list of dict
         """
@@ -98,11 +98,13 @@ class WP (CMS):
         self.site_url = "https://wordpress.org/"
         self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
-        self.download_plugin_url = "https://downloads.wordpress.org/plugin/"
+        self.download_addon_url = "https://downloads.wordpress.org/plugin/"
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
         self.plugin_path = ""
+        self.theme_path = ""
         self.core_details = {"infos": [], "alterations": [], "vulns":[]}
         self.plugins = []
+        self.themes = []
 
     def get_wp_content(self, dir_path):
         tocheck = ["plugins", "themes"]
@@ -112,19 +114,25 @@ class WP (CMS):
                 suspects.append(dirname)
         return suspects
 
-    def get_plugin_main_file(self, plugin, plugin_path):
-        main_file = []
+    def get_addon_main_file(self, addon, addon_path):
+        if addon["type"] == "themes":
+            addon["filename"] = "style.css"
 
-        for filename in [plugin["name"] + ".php", "plugin.php"]:
-            if os.path.isfile(os.path.join(plugin_path, filename)):
-                main_file.append(filename)
+        elif addon["type"] == "plugins":
+            main_file = []
 
-        if main_file:
-            # If the two files exist, the one named as the plugin is more likely to
-            # be the main one
-            plugin["filename"] = main_file[0]
+            for filename in [addon["name"] + ".php", "plugin.php"]:
+                if os.path.isfile(os.path.join(addon_path, filename)):
+                    main_file.append(filename)
+            if main_file:
+                # If the two files exist, the one named as the plugin is more likely to
+                # be the main one
+                addon["filename"] = main_file[0]
+            else:
+                # If no file found, put a random name to trigger an error
+                addon["filename"] = "nofile"
 
-        return filename, None
+        return addon["filename"], None
 
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
         try:
@@ -142,23 +150,23 @@ class WP (CMS):
             return "", e
         return version_core, None
 
-    def get_plugin_version(self, plugin, plugin_path, version_file_regexp):
+    def get_addon_version(self, addon, addon_path, version_file_regexp):
         try:
-            path = os.path.join(plugin_path, plugin["filename"])
-            with open(path) as plugin_info:
+            path = os.path.join(addon_path, addon["filename"])
+            with open(path) as addon_info:
                 version = ''
-                for line in plugin_info:
+                for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        plugin["version"] = version.group(1).strip()
-                        print_cms("default", "Version : "+ plugin["version"],
+                        addon["version"] = version.group(1).strip()
+                        print_cms("default", "Version : "+ addon["version"],
                                     "", 1)
                         break
 
         except FileNotFoundError as e:
-            msg = "No standard extension file found. Search manually !"
+            msg = "No standard addon file found. Search manually !"
             print_cms("alert", "[-] " + msg, "", 1)
-            plugin["notes"] = msg
+            addon["notes"] = msg
             return "", e
         return version, None
 
@@ -180,10 +188,16 @@ class WP (CMS):
             return "", e
         return last_version_core, None
 
-    def get_plugin_last_version(self, plugin):
-        version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
-        date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
-        releases_url = "https://wordpress.org/plugins/{}/".format(plugin["name"])
+    def get_addon_last_version(self, addon):
+        if addon["type"] == "plugins":
+            releases_url = "https://wordpress.org/plugins/{}/".format(addon["name"])
+            version_web_regexp = re.compile("\"softwareVersion\": \"(.*)\"")
+            date_last_release_regexp = re.compile("\"dateModified\": \"(.*)\"")
+        elif addon["type"] == "themes":
+            releases_url = "https://wordpress.org/themes/{}/".format(addon["name"])
+            version_web_regexp = re.compile("Version: <strong>(.*)</strong>")
+            date_last_release_regexp = re.compile("Last updated: <strong>(.*)</strong>")
+
         last_version = "Not found"
         try:
             response = requests.get(releases_url, allow_redirects=False)
@@ -196,22 +210,22 @@ class WP (CMS):
                 date_last_release_result = date_last_release_regexp.search(page)
 
                 if last_version_result and date_last_release_result:
-                    plugin["last_version"] = last_version_result.group(1)
-                    plugin["last_release_date"] = date_last_release_result.group(1).split("T")[0]
-                    plugin["link"] = releases_url
+                    addon["last_version"] = last_version_result.group(1)
+                    addon["last_release_date"] = date_last_release_result.group(1).split("T")[0]
+                    addon["link"] = releases_url
 
-                    if plugin["last_version"] == plugin["version"]:
+                    if addon["last_version"] == addon["version"]:
                         print_cms("good", "Up to date !", "", 1)
                     else:
-                        print_cms("alert", "Outdated, last version: ", plugin["last_version"] +
-                        " ( " + plugin["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                        print_cms("alert", "Outdated, last version: ", addon["last_version"] +
+                        " ( " + addon["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
-            msg = "Plugin not in WordPress official site. Search manually !"
+            msg = "Addon not in WordPress official site. Search manually !"
             print_cms("alert", "[-] "+ msg, "", 1)
-            plugin["notes"] = msg
+            addon["notes"] = msg
             return "", e
-        return plugin["last_version"], None
+        return addon["last_version"], None
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
@@ -243,13 +257,13 @@ class WP (CMS):
 
         return alterations, None
 
-    def check_plugin_alteration(self, plugin, dir_path, temp_directory):
-        plugin_url = "{}{}.{}.zip".format(self.download_plugin_url,
+    def check_addon_alteration(self, plugin, dir_path, temp_directory):
+        plugin_url = "{}{}.{}.zip".format(self.download_addon_url,
                                                 plugin["name"],
                                                 plugin["version"])
 
         if plugin["version"] == "trunk":
-            plugin_url = "{}{}.zip".format(self.download_plugin_url,
+            plugin_url = "{}{}.zip".format(self.download_addon_url,
                                             plugin["name"])
 
         print_cms("default", "To download the plugin: " + plugin_url, "", 1)
@@ -336,7 +350,7 @@ class WP (CMS):
             return "", e
         return vulns_details, None
 
-    def check_vulns_plugin(self, plugin):
+    def check_vulns_addon(self, plugin):
         cve = ""
         url_details = "https://wpvulndb.com/vulnerabilities/"
         try:
@@ -426,67 +440,75 @@ class WP (CMS):
 
         return self.core_details
 
-    def plugin_analysis(self, dir_path):
+    def addon_analysis(self, dir_path, addon_type):
         temp_directory = create_temp_directory()
+        addons = []
 
         print_cms("info",
         "#######################################################" \
-        + "\n\t\tPlugins analysis" \
+        + "\n\t\t" + addon_type + " analysis" \
         + "\n#######################################################" \
         , "", 0)
 
-        # Get the list of plugin to work with
+        # Get the list of addon to work with
         wp_content_path = self.get_wp_content(dir_path)[0]
-        self.plugins_path = os.path.join(wp_content_path, "plugins")
-        plugins_name = fetch_plugins(os.path.join(dir_path, self.plugins_path))
+        addons_path = os.path.join(wp_content_path, addon_type)
 
-        for plugin_name in plugins_name:
-            plugin = {"status":"todo","name":"", "version":"","last_version":"",
-                            "last_release_date":"", "link":"", "edited":"", "cve":"",
-                            "vulns":[], "notes":"", "alterations" : [], "filename":""
-                            }
-            print_cms("info", "[+] " + plugin_name , "", 0)
-            plugin["name"] = plugin_name
+        addons_name = fetch_addons(os.path.join(dir_path, addons_path))
 
-            plugin_path = os.path.join(dir_path, self.plugins_path, plugin_name)
+        for addon_name in addons_name:
+            addon = {"type":"", "status":"todo", "name":"", "version":"",
+                    "last_version":"", "last_release_date":"", "link":"",
+                    "edited":"", "cve":"", "vulns":[], "notes":"",
+                    "alterations" : [], "filename":""
+                    }
+            print_cms("info", "[+] " + addon_name , "", 0)
+            addon["name"] = addon_name
+            addon["type"] = addon_type
 
-            # Check plugin last version
-            _ , err = self.get_plugin_main_file(plugin, plugin_path)
+            addon_path = os.path.join(dir_path, addons_path, addon_name)
+
+            # Check addon main file
+            _ , err = self.get_addon_main_file(addon, addon_path)
             if err is not None:
-                self.plugins.append(plugin)
+                addons.append(addon)
                 continue
 
-            # Get plugin version
-            _ , err = self.get_plugin_version(plugin, plugin_path,
+            # Get addon version
+            _ , err = self.get_addon_version(addon, addon_path,
                                                 re.compile("(?i)Version: (.*)"))
-
             if err is not None:
-                self.plugins.append(plugin)
+                addons.append(addon)
                 continue
 
-            # Check plugin last version
-            _ , err = self.get_plugin_last_version(plugin)
+            # Check addon last version
+            _ , err = self.get_addon_last_version(addon)
             if err is not None:
-                self.plugins.append(plugin)
+                addons.append(addon)
                 continue
 
             # Check known CVE in wpvulndb
-            _ , err = self.check_vulns_plugin(plugin)
+            _ , err = self.check_vulns_addon(addon)
             if err is not None:
-                self.plugins.append(plugin)
+                addons.append(addon)
                 continue
 
-            # Check if the plugin have been altered
-            _ , err = self.check_plugin_alteration(plugin, dir_path,
+            # Check if the addon have been altered
+            _ , err = self.check_addon_alteration(addon, dir_path,
                                                     temp_directory)
             if err is not None:
-                self.plugins.append(plugin)
+                addons.append(addon)
                 continue
 
-            self.plugins.append(plugin)
+            addons.append(addon)
         shutil.rmtree(temp_directory, ignore_errors=True)
 
-        return self.plugins
+        if addon_type == "plugins":
+            self.plugins = addons
+        elif addon_type == "themes":
+            self.themes = addons
+
+        return addons
 
 
 class DPL (CMS):
@@ -518,7 +540,7 @@ class DPL (CMS):
             return "", e
         return version_core, None
 
-    def get_plugin_version(self, plugin, dir_path, plugin_main_file, version_file_regexp, plugin_path):
+    def get_addon_version(self, plugin, dir_path, plugin_main_file, version_file_regexp, plugin_path):
         try:
             with open(os.path.join(dir_path, plugin_path, plugin_main_file)) as plugin_info:
                 for line in plugin_info:
@@ -556,7 +578,7 @@ class DPL (CMS):
             return "", e
         return last_version_core, None
 
-    def get_plugin_last_version(self, plugin):
+    def get_addon_last_version(self, plugin):
         version_web_regexp = re.compile("<h2><a href=\"(.*?)\">(.+?) (.+?)</a></h2>")
         date_last_release_regexp = re.compile("<time pubdate datetime=\"(.*?)\">(.+?)</time>")
 
@@ -628,7 +650,7 @@ class DPL (CMS):
 
         return alterations, None
 
-    def check_plugin_alteration(self, plugin, dir_path, temp_directory):
+    def check_addon_alteration(self, plugin, dir_path, temp_directory):
         plugin_url = "{}{}-{}.zip".format(self.download_plugin_url,
                                                 plugin["name"],
                                                 plugin["version"])
@@ -681,7 +703,7 @@ class DPL (CMS):
         print_cms("alert","CVE check not yet implemented !" , "", 1)
         return [], None
 
-    def check_vulns_plugin(self, plugin):
+    def check_vulns_addon(self, plugin):
         # TODO
         print_cms("alert","CVE check not yet implemented !" , "", 1)
         return [], None
@@ -712,7 +734,7 @@ class DPL (CMS):
 
         return self.core_details
 
-    def plugin_analysis(self, dir_path):
+    def addon_analysis(self, dir_path):
         temp_directory = create_temp_directory()
 
         print_cms("info",
@@ -722,39 +744,39 @@ class DPL (CMS):
         , "", 0)
 
         # Get the list of plugin to work with
-        plugins_name = fetch_plugins(os.path.join(dir_path,"modules"))
+        addons_name = fetch_addons(os.path.join(dir_path,"modules"))
 
-        for plugin_name in plugins_name:
+        for addon_name in addons_name:
             plugin = {"status":"todo","name":"", "version":"","last_version":"",
                             "last_release_date":"", "link":"", "edited":"", "cve":"",
                             "vulns_details":"", "notes":"", "alterations" : []
                             }
-            print_cms("info", "[+] " + plugin_name, "", 0)
-            plugin["name"] = plugin_name
+            print_cms("info", "[+] " + addon_name, "", 0)
+            plugin["name"] = addon_name
 
             # Get plugin version
-            _ , err = self.get_plugin_version(plugin, dir_path,
-                                                plugin_name + ".info",
+            _ , err = self.get_addon_version(plugin, dir_path,
+                                                addon_name + ".info",
                                                 re.compile("version = (.*)"),
-                                                "modules/" + plugin_name)
+                                                "modules/" + addon_name)
             if err is not None:
                 self.plugins.append(plugin)
                 continue
 
             # Check plugin last version
-            _ , err = self.get_plugin_last_version(plugin)
+            _ , err = self.get_addon_last_version(plugin)
             if err is not None:
                 self.plugins.append(plugin)
                 continue
 
             # Check if there are known CVE
-            _ , err = self.check_vulns_plugin(plugin)
+            _ , err = self.check_vulns_addon(plugin)
             if err is not None:
                 self.plugins.append(plugin)
                 continue
 
             # Check if the plugin have been altered
-            _ , err = self.check_plugin_alteration(plugin, dir_path,
+            _ , err = self.check_addon_alteration(plugin, dir_path,
                                                     temp_directory)
             if err is not None:
                 self.plugins.append(plugin)
@@ -774,13 +796,19 @@ class ComissionXLSX:
         self.workbook = xlsxwriter.Workbook(output_filename)
         self.core_worksheet = self.workbook.add_worksheet("Core")
         self.core_alteration_worksheet = self.workbook.add_worksheet("Core Alteration")
+
         self.plugins_worksheet = self.workbook.add_worksheet("Plugins")
         self.plugins_vulns_worksheet = self.workbook.add_worksheet("Plugins Vulns")
         self.plugins_alteration_worksheet = self.workbook.add_worksheet("Plugins Alteration")
+
+        self.themes_worksheet = self.workbook.add_worksheet("Themes")
+        self.themes_vulns_worksheet = self.workbook.add_worksheet("Themes Vulns")
+        self.themes_alteration_worksheet = self.workbook.add_worksheet("Themes Alteration")
+
         self.generate_heading()
         self.generate_formating(self.workbook)
 
-    def add_data(self,core_details,plugins):
+    def add_data(self, core_details, plugins, themes):
         # Add core data
         self.add_core_data('A2', core_details["infos"])
 
@@ -802,40 +830,41 @@ class ComissionXLSX:
                                     ]
             self.add_core_alteration_data('A'+ str(x), core_alterations_list)
             x += 1
+        for elements in [plugins, themes]:
+            # Add elements details
+            x = 2
+            for addon in elements:
+                addon_list = [addon["status"], addon["name"],
+                                    addon["version"], addon["last_version"],
+                                    addon["last_release_date"], addon["link"],
+                                    addon["edited"], addon["cve"],
+                                    addon["notes"]
+                                    ]
+                self.add_addon_data('A'+ str(x), addon["type"], addon_list)
+                x += 1
 
-        # Add plugin details
-        x = 2
-        for plugin in plugins:
-            plugin_list = [plugin["status"], plugin["name"],
-                                plugin["version"], plugin["last_version"],
-                                plugin["last_release_date"], plugin["link"],
-                                plugin["edited"], plugin["cve"],
-                                plugin["notes"]
+            # Add elements vulns
+            x = 2
+            for addon in elements:
+                for vuln in addon["vulns"]:
+                    vuln_list = [addon["name"],vuln["name"], vuln["link"],
+                                    vuln["type"], vuln["poc"], vuln["fixed_in"]
                                 ]
-            self.add_plugin_data('A'+ str(x), plugin_list)
-            x += 1
+                    self.add_addon_vulns_data('A'+ str(x), addon["type"], vuln_list)
+                    x += 1
 
-        # Add plugins vulns
-        x = 2
-        for plugin in plugins:
-            for vuln in plugin["vulns"]:
-                vuln_list = [plugin["name"],vuln["name"], vuln["link"], vuln["type"],
-                                vuln["poc"], vuln["fixed_in"]
-                            ]
-                self.add_plugin_vulns_data('A'+ str(x), vuln_list)
-                x += 1
-
-        # Add plugins alteration details
-        x = 2
-        for plugin in plugins:
-            for plugin_alteration in plugin["alterations"]:
-                plugin_alteration_list = [plugin["status"],plugin["name"],
-                                            plugin_alteration["file"],
-                                            plugin_alteration["target"],
-                                            plugin_alteration["type"]
-                                        ]
-                self.add_plugin_alteration_data('A'+ str(x), plugin_alteration_list)
-                x += 1
+            # Add elements alteration details
+            x = 2
+            for addon in elements:
+                for addon_alteration in addon["alterations"]:
+                    addon_alteration_list = [addon["status"],addon["name"],
+                                                addon_alteration["file"],
+                                                addon_alteration["target"],
+                                                addon_alteration["type"]
+                                            ]
+                    self.add_addon_alteration_data('A'+ str(x), addon["type"],
+                                                    addon_alteration_list)
+                    x += 1
 
     def add_core_data(self, position, data):
         self.core_worksheet.write_row(position, data)
@@ -843,14 +872,23 @@ class ComissionXLSX:
     def add_core_alteration_data(self, position, data):
         self.core_alteration_worksheet.write_row(position, data)
 
-    def add_plugin_data(self, position, plugin = []):
-        self.plugins_worksheet.write_row(position, plugin)
+    def add_addon_data(self, position, addon_type, addon = []):
+        if addon_type == "plugins":
+            self.plugins_worksheet.write_row(position, addon)
+        elif addon_type == "themes":
+            self.themes_worksheet.write_row(position, addon)
 
-    def add_plugin_vulns_data(self, position, vulns = []):
-        self.plugins_vulns_worksheet.write_row(position, vulns)
+    def add_addon_vulns_data(self, position, addon_type, vulns = []):
+        if addon_type == "plugins":
+            self.plugins_vulns_worksheet.write_row(position, vulns)
+        elif addon_type == "themes":
+            self.themes_vulns_worksheet.write_row(position, vulns)
 
-    def add_plugin_alteration_data(self, position, data):
-        self.plugins_alteration_worksheet.write_row(position, data)
+    def add_addon_alteration_data(self, position, addon_type, data):
+        if addon_type == "plugins":
+            self.plugins_alteration_worksheet.write_row(position, data)
+        elif addon_type == "themes":
+            self.themes_alteration_worksheet.write_row(position, data)
 
     def generate_xlsx(self):
         self.workbook.close()
@@ -873,13 +911,25 @@ class ComissionXLSX:
         plugins_alteration_headings = ["Status", "Plugin", "File/Folder",
                                         "Path", "Alteration", "Notes"
                                         ]
-
+        themes_headings = ["Status", "Theme", "Version", "Last version",
+                    "Last release date", "Link", "Code altered",
+                    "CVE", "Notes"
+                    ]
+        themes_vulns_headings = ["Theme", "Vulnerabilities", "Link", "Type",
+                                    "PoC", "Fixed In", "Notes"
+                                    ]
+        themes_alteration_headings = ["Status", "Theme", "File/Folder",
+                                        "Path", "Alteration", "Notes"
+                                        ]
         headings_list = [core_headings, core_alteration_headings, plugins_headings,
-                        plugins_vulns_headings, plugins_alteration_headings
+                        plugins_vulns_headings, plugins_alteration_headings,
+                        themes_headings, themes_vulns_headings,
+                        themes_alteration_headings
                         ]
         worksheets_list = [self.core_worksheet, self.core_alteration_worksheet,
                             self.plugins_worksheet, self.plugins_vulns_worksheet,
-                            self.plugins_alteration_worksheet
+                            self.plugins_alteration_worksheet, self.themes_worksheet,
+                            self.themes_vulns_worksheet, self.themes_alteration_worksheet
                             ]
 
         for target_worksheet, headings in zip(worksheets_list, headings_list):
@@ -936,7 +986,7 @@ class ComissionXLSX:
         worksheet.set_column('A:A', 7)
         worksheet.set_column('B:B', 30)
         worksheet.set_column('C:C', 70)
-        worksheet.set_column('D:D', 10)
+        worksheet.set_column('D:D', 12)
         worksheet.set_column('E:E', 60)
         worksheet.conditional_format('A1:A300', {'type': 'text',
                                                 'criteria': 'containing',
@@ -959,114 +1009,114 @@ class ComissionXLSX:
                                                 'value': '"deleted"',
                                                 'format': na})
 
-        # Format Plugins worksheet
-        worksheet = self.plugins_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 7)
-        worksheet.set_column('B:B', 25)
-        worksheet.set_column('C:C', 8)
-        worksheet.set_column('D:D', 10)
-        worksheet.set_column('E:E', 13)
-        worksheet.set_column('F:F', 50)
-        worksheet.set_column('G:G', 8)
-        worksheet.set_column('H:H', 5)
-        worksheet.set_column('I:I', 60)
-        worksheet.set_column('J:J', 3)
-        worksheet.conditional_format('A1:A300', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value': 'todo',
-                                                'format': bad})
-        worksheet.conditional_format('A1:A300', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value': 'done',
-                                                'format': good})
-        #Red if the version if "trunk"
-        worksheet.conditional_format('C1:C300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"trunk"',
-                                                'format': bad})
+        for worksheet in [self.plugins_worksheet, self.themes_worksheet]:
+            # Format Plugins worksheet
+            worksheet.set_row(0, 15, heading_format)
+            worksheet.set_column('A:A', 7)
+            worksheet.set_column('B:B', 25)
+            worksheet.set_column('C:C', 8)
+            worksheet.set_column('D:D', 10)
+            worksheet.set_column('E:E', 13)
+            worksheet.set_column('F:F', 50)
+            worksheet.set_column('G:G', 8)
+            worksheet.set_column('H:H', 5)
+            worksheet.set_column('I:I', 60)
+            worksheet.set_column('J:J', 3)
+            worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                    'criteria': 'containing',
+                                                    'value': 'todo',
+                                                    'format': bad})
+            worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                    'criteria': 'containing',
+                                                    'value': 'done',
+                                                    'format': good})
+            #Red if the version if "trunk"
+            worksheet.conditional_format('C1:C300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"trunk"',
+                                                    'format': bad})
 
-        # Red if some info are missing
-        worksheet.conditional_format('I1:I300', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value': 'Search',
-                                                'format': bad})
+            # Red if some info are missing
+            worksheet.conditional_format('I1:I300', {'type': 'text',
+                                                    'criteria': 'containing',
+                                                    'value': 'Search',
+                                                    'format': bad})
 
-        # Red if the plugin have been modified
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"YES"',
-                                                'format': bad})
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"NO"',
-                                                'format': good})
-        # Red if some CVE exist
-        worksheet.conditional_format('H1:H300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"YES"',
-                                                'format': bad})
-        worksheet.conditional_format('H1:H300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"NO"',
-                                                'format': good})
-        # N/A if we don't know for any reason
-        worksheet.conditional_format('C1:H300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"N/A"',
-                                                'format': na})
+            # Red if the plugin have been modified
+            worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"YES"',
+                                                    'format': bad})
+            worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"NO"',
+                                                    'format': good})
+            # Red if some CVE exist
+            worksheet.conditional_format('H1:H300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"YES"',
+                                                    'format': bad})
+            worksheet.conditional_format('H1:H300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"NO"',
+                                                    'format': good})
+            # N/A if we don't know for any reason
+            worksheet.conditional_format('C1:H300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"N/A"',
+                                                    'format': na})
 
-        # Format Plugins Vulnerabilities worksheet
-        worksheet = self.plugins_vulns_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 25)
-        worksheet.set_column('B:B', 80)
-        worksheet.set_column('C:C', 40)
-        worksheet.set_column('D:D', 10)
-        worksheet.set_column('E:E', 7)
-        worksheet.set_column('F:F', 10)
-        worksheet.conditional_format('E1:E300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"CHECK"',
-                                                'format': na})
-        worksheet.conditional_format('E1:E300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"YES"',
-                                                'format': bad})
-        worksheet.conditional_format('G1:G300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"NO"',
-                                                'format': good})
+        for worksheet in [self.plugins_vulns_worksheet, self.themes_vulns_worksheet]:
+            # Format Plugins Vulnerabilities worksheet
+            worksheet.set_row(0, 15, heading_format)
+            worksheet.set_column('A:A', 25)
+            worksheet.set_column('B:B', 80)
+            worksheet.set_column('C:C', 40)
+            worksheet.set_column('D:D', 10)
+            worksheet.set_column('E:E', 7)
+            worksheet.set_column('F:F', 10)
+            worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"CHECK"',
+                                                    'format': na})
+            worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"YES"',
+                                                    'format': bad})
+            worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"NO"',
+                                                    'format': good})
 
-        # Format CMS Plugins Alteration worksheet
-        worksheet = self.plugins_alteration_worksheet
-        worksheet.set_row(0, 15, heading_format)
-        worksheet.set_column('A:A', 7)
-        worksheet.set_column('B:B', 25)
-        worksheet.set_column('C:C', 40)
-        worksheet.set_column('D:D', 70)
-        worksheet.set_column('E:E', 10)
-        worksheet.set_column('F:F', 60)
-        worksheet.conditional_format('A1:A300', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value': 'todo',
-                                                'format': bad})
-        worksheet.conditional_format('A1:A300', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value': 'done',
-                                                'format': good})
-        worksheet.conditional_format('E1:E300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"altered"',
-                                                'format': bad})
-        worksheet.conditional_format('E1:E300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"added"',
-                                                'format': bad})
-        worksheet.conditional_format('E1:E300', {'type': 'cell',
-                                                'criteria': '==',
-                                                'value': '"deleted"',
-                                                'format': na})
+        for worksheet in [self.plugins_alteration_worksheet, self.themes_alteration_worksheet]:
+            # Format CMS Plugins Alteration worksheet
+            worksheet.set_row(0, 15, heading_format)
+            worksheet.set_column('A:A', 7)
+            worksheet.set_column('B:B', 25)
+            worksheet.set_column('C:C', 40)
+            worksheet.set_column('D:D', 70)
+            worksheet.set_column('E:E', 12)
+            worksheet.set_column('F:F', 60)
+            worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                    'criteria': 'containing',
+                                                    'value': 'todo',
+                                                    'format': bad})
+            worksheet.conditional_format('A1:A300', {'type': 'text',
+                                                    'criteria': 'containing',
+                                                    'value': 'done',
+                                                    'format': good})
+            worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"altered"',
+                                                    'format': bad})
+            worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"added"',
+                                                    'format': bad})
+            worksheet.conditional_format('E1:E300', {'type': 'cell',
+                                                    'criteria': '==',
+                                                    'value': '"deleted"',
+                                                    'format': na})
 
 
 class ComissionCSV:
@@ -1094,16 +1144,30 @@ class ComissionCSV:
         self.plugins_alteration_headings = ["Status", "Plugin", "File", "Path",
                                             "Alteration", "Notes"
                                             ]
-
+        self.themes_headings = ["Status", "Theme", "Version", "Last version",
+                                "Last release date", "Link", "Code altered",
+                                "CVE", "Notes"
+                                ]
+        self.themes_vulns_headings = ["Theme", "Vulnerabilities", "Link", "Type",
+                                        "PoC", "Fixed In", "Notes"
+                                        ]
+        self.themes_alteration_headings = ["Status", "Theme", "File", "Path",
+                                            "Alteration", "Notes"
+                                            ]
     def prepare_files(self):
         basename = self.filename.split('.')[0]
 
         self.core_filename = basename + ".core.csv"
         self.core_vulns_filename = basename + ".core_vulns.csv"
         self.core_alteration_filename = basename + ".core_alterations.csv"
+
         self.plugins_filename = basename + ".plugins.csv"
         self.plugins_vulns_filename = basename + ".plugins_vulns.csv"
         self.plugins_alteration_filename = basename + ".plugins_alterations.csv"
+
+        self.themes_filename = basename + ".themes.csv"
+        self.themes_vulns_filename = basename + ".themes_vulns.csv"
+        self.themes_alteration_filename = basename + ".themes_alterations.csv"
 
     def add_data(self,core_details,plugins):
         # Add core data
@@ -1217,21 +1281,22 @@ if __name__ == "__main__":
         sys.exit()
 
     # Analyse the CMS
-    #core_details = cms.core_analysis(dir_path)
-    plugins = cms.plugin_analysis(dir_path)
+    core_details = cms.core_analysis(dir_path)
+    for addon_type in ["plugins", "themes"]:
+        cms.addon_analysis(dir_path, addon_type)
 
     # Save results to a file
     if args.type == "CSV" and args.output:
         # Initialize the output file
         result_csv = ComissionCSV(args.output)
         # Add data and generate result file
-        result_csv.add_data(core_details, plugins)
+        result_csv.add_data(core_details, cms.plugins, cms.themes)
 
     elif args.type == "XLSX" and args.output:
         # Initialize the output file
         result_xlsx = ComissionXLSX(args.output)
         # Add data
-        result_xlsx.add_data(core_details, plugins)
+        result_xlsx.add_data(core_details, cms.plugins, cms.themes)
         # Generate result file
         result_xlsx.generate_xlsx()
 

@@ -41,7 +41,7 @@ def verify_path(dir_path, to_check):
                         "CMS directory. Please check the path !", "", 0)
             sys.exit()
 
-def fetch_plugins(input):
+def fetch_addons(input):
     if not os.path.exists(input):
         print_cms("alert", "Plugins path does not exist !", "", 0)
         exit(-1)
