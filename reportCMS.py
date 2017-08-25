@@ -26,15 +26,17 @@ class ComissionXLSX:
 
     def add_data(self, core_details, plugins, themes):
         # Add core data
-        self.add_core_data('A2', core_details["infos"])
+        self.add_core_data('A2', [core_details["infos"]["version"],
+                                core_details["infos"]["last_version"]
+                                ])
 
         # Add core vulns
         x = 2
         for core_vuln in core_details["vulns"]:
             core_vuln_list = [core_vuln["name"],core_vuln["link"],
-                                    core_vuln["type"],core_vuln["poc"],
-                                    core_vuln["fixed_in"]
-                                    ]
+                                core_vuln["type"],core_vuln["poc"],
+                                core_vuln["fixed_in"]
+                                ]
             self.add_core_data('D'+ str(x), core_vuln_list)
             x += 1
 
@@ -388,7 +390,9 @@ class ComissionCSV:
 
     def add_data(self, core_details, plugins, themes):
         # Add core data
-        self.add_core_data_to_file(core_details["infos"], self.core_headings)
+        self.add_core_data_to_file([core_details["infos"]["version"],
+                                    core_details["infos"]["last_version"]
+                                    ], self.core_headings)
 
         # Add core vulns
         x = 2
