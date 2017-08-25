@@ -18,6 +18,7 @@ RUN set -e; \
 RUN rm requirements.txt
 
 COPY utilsCMS.py /opt/app/
+COPY reportCMS.py /opt/app/
 COPY comission.py /opt/app/
 
 
