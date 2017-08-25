@@ -99,9 +99,11 @@ class WP (CMS):
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_addon_url = "https://downloads.wordpress.org/plugin/"
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
+        self.wp_content = ""
         self.plugin_path = ""
         self.theme_path = ""
-        self.core_details = {"infos": [], "alterations": [], "vulns":[]}
+        self.core_details = {"infos": {"version":"", "last_version":""},
+                            "alterations": [], "vulns":[]}
         self.plugins = []
         self.themes = []
 
@@ -142,6 +144,7 @@ class WP (CMS):
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
                         print_cms("info", "[+] WordPress version used : "+ version_core, "", 0)
+                        self.core_details["infos"]["version"] = version_core
                         break
 
         except FileNotFoundError as e:
@@ -180,6 +183,7 @@ class WP (CMS):
 
                 last_version_core = page_json["offers"][0]["version"]
                 print_cms("info", "[+] Last WordPress version: "+ last_version_core, "", 0)
+                self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
             msg = "Unable to retrieve last WordPress version. Search manually !"
@@ -276,7 +280,7 @@ class WP (CMS):
                 zip_file.extractall(temp_directory)
                 zip_file.close()
 
-                project_dir = os.path.join(dir_path, "wp-content", "plugins",
+                project_dir = os.path.join(dir_path, self.wp_content, "plugins",
                                             plugin["name"])
                 project_dir_hash = dirhash(project_dir, 'sha1')
                 ref_dir = os.path.join(temp_directory, plugin["name"])
@@ -291,7 +295,7 @@ class WP (CMS):
 
                     ignored = ["css", "img", "js", "fonts", "images"]
 
-                    root_path = os.path.join(dir_path, "wp-content", "plugins")
+                    root_path = os.path.join(dir_path, self.wp_content, "plugins")
 
                     dcmp = dircmp(project_dir, ref_dir, ignored)
                     diff_files(dcmp, plugin["alterations"], project_dir)
@@ -420,14 +424,11 @@ class WP (CMS):
         + "\n#######################################################" \
         , "", 0)
         # Check current CMS version
-        version_core , err = self.get_core_version(dir_path,
-                                                    re.compile("\$wp_version = '(.*)';"),
-                                                    "wp-includes/version.php")
+        _ , err = self.get_core_version(dir_path,
+                                        re.compile("\$wp_version = '(.*)';"),
+                                        "wp-includes/version.php")
         # Get the last released version
-        last_version_core , err = self.get_core_last_version(self.site_api)
-
-        # Get some details on the core
-        self.core_details["infos"] = [version_core, last_version_core]
+        _ , err = self.get_core_last_version(self.site_api)
 
         # Check for vuln on the CMS version
         self.core_details["vulns"] , err = self.check_vulns_core(version_core)
@@ -450,8 +451,8 @@ class WP (CMS):
         , "", 0)
 
         # Get the list of addon to work with
-        wp_content_path = self.get_wp_content(dir_path)[0]
-        addons_path = os.path.join(wp_content_path, addon_type)
+        self.wp_content = self.get_wp_content(dir_path)[0]
+        addons_path = os.path.join(self.wp_content, addon_type)
 
         addons_name = fetch_addons(os.path.join(dir_path, addons_path))
 
@@ -520,7 +521,8 @@ class DPL (CMS):
         self.download_plugin_url = "https://ftp.drupal.org/files/projects/"
         self.cve_ref_url = ""
         self.plugin_path = ""
-        self.core_details = {"infos": [], "alterations": [], "vulns":[]}
+        self.core_details = {"infos": {"version":"", "last_version":""},
+                            "alterations": [], "vulns":[]}
         self.plugins = []
 
     def get_core_version(self, dir_path, version_core_regexp, cms_path):
@@ -532,6 +534,7 @@ class DPL (CMS):
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
                         print_cms("info", "[+] DRUPAL version used : "+ version_core, "", 0)
+                        self.core_details["infos"]["version"] = version_core
                         break
 
         except FileNotFoundError as e:
@@ -568,8 +571,8 @@ class DPL (CMS):
             if response.status_code == 200:
                 tree = etree.fromstring(response.content)
                 last_version_core = tree.xpath("/project/releases/release/tag")[0].text
-
                 print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+                self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
             msg = "Unable to retrieve last wordpress version. Search manually !"
@@ -714,14 +717,11 @@ class DPL (CMS):
         + "\n#######################################################" \
         , "", 0)
         # Check current CMS version
-        version_core , err = self.get_core_version(dir_path,
+        _ , err = self.get_core_version(dir_path,
                                                     re.compile("define\('VERSION', '(.*)'\);"),
                                                     "includes/bootstrap.inc")
         # Get the last released version
-        last_version_core , err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/", version_core)
-
-        # Get some details on the core
-        self.core_details["infos"] = [version_core, last_version_core]
+        _ , err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/", version_core)
 
         # Check for vuln on the CMS version
         self.core_details["vulns"] , err = self.check_vulns_core(version_core)
@@ -812,7 +812,7 @@ if __name__ == "__main__":
 
     # Analyse the CMS
     core_details = cms.core_analysis(dir_path)
-    
+
     for addon_type in ["plugins", "themes"]:
         cms.addon_analysis(dir_path, addon_type)
 
