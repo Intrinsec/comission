@@ -811,24 +811,30 @@ if __name__ == "__main__":
         print_cms("alert", "CMS unknown or unsupported !", "", 0)
         sys.exit()
 
-    # Analyse the CMS
-    core_details = cms.core_analysis(dir_path)
+    # Analyse the core
+    if not args.skip_core:
+        core_details = cms.core_analysis(dir_path)
 
-    for addon_type in ["plugins", "themes"]:
-        cms.addon_analysis(dir_path, addon_type)
+    # Analyse plugins
+    if not args.skip_plugins:
+        cms.addon_analysis(dir_path, "plugins")
+
+    # Analyse themes
+    if not args.skip_themes:
+        cms.addon_analysis(dir_path, "themes")
 
     # Save results to a file
     if args.type == "CSV" and args.output:
         # Initialize the output file
         result_csv = ComissionCSV(args.output)
         # Add data and generate result file
-        result_csv.add_data(core_details, cms.plugins, cms.themes)
+        result_csv.add_data(cms.core_details, cms.plugins, cms.themes)
 
     elif args.type == "XLSX" and args.output:
         # Initialize the output file
         result_xlsx = ComissionXLSX(args.output)
         # Add data
-        result_xlsx.add_data(core_details, cms.plugins, cms.themes)
+        result_xlsx.add_data(cms.core_details, cms.plugins, cms.themes)
         # Generate result file
         result_xlsx.generate_xlsx()
 
@@ -836,10 +842,10 @@ if __name__ == "__main__":
         # Initialize the output file
         result_json = ComissionJSON(args.output)
         # Add data
-        result_json.add_data(core_details, cms.plugins, cms.themes)
+        result_json.add_data(cms.core_details, cms.plugins, cms.themes)
         # Generate result file
         result_json.generate_json()
-        
+
     else:
         print_cms("alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
