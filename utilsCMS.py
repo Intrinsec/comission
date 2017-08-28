@@ -31,6 +31,12 @@ def parse_args():
                         help="Path to output file")
     parser.add_argument("-t", "--type", metavar="TYPE", default="XLSX",
                         help="Type of output file (CSV, XLSX, JSON). Default to XLSX.")
+    parser.add_argument("--skip-core", dest="skip_core", action="store_true",
+                        help="Set this to skip core analysis")
+    parser.add_argument("--skip-plugins", dest="skip_plugins", action="store_true",
+                        help="Set this to skip plugins analysis")
+    parser.add_argument("--skip-themes", dest="skip_themes", action="store_true",
+                        help="Set this to skip themes analysis")
     args = parser.parse_args()
     return args
 
