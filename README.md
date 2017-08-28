@@ -7,7 +7,7 @@ CoMisSion is a tool to quickly analyze a CMS setup. The tool:
 - checks for plugins version;
 - looks for vulnerabilities in plugins version used;
 
-:fire: Attention : CoMisSion is not looking for vulnerabilities by analysing source code. Vulnerabilities are gatheredd from public databases like wpvulndb. Finding new vulnerabilities is not the purpose of this tool.
+:fire: Attention : CoMisSion is not looking for vulnerabilities by analysing source code. Vulnerabilities are gathered from public databases like wpvulndb. Finding new vulnerabilities is not the purpose of this tool.
 
 
 A complete report can be generated in XLSX or CSV format.
