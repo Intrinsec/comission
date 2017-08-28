@@ -34,13 +34,16 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE]
+usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip-plugins] [--skip-themes]
 
   -h, --help              show this help message and exit
   -d DIR, --dir DIR       CMS root directory
-  -c CMS, --cms CMS       CMS type (Drupal, WordPress)
+  -c CMS, --cms CMS       CMS type (drupal, wordpress)
   -o FILE, --output FILE  Path to output file
   -t TYPE, --type TYPE    Type of output file (CSV, XLSX, JSON). Default to XLSX.
+  --skip-core             Set this to skip core analysis
+  --skip-plugins          Set this to skip plugins analysis
+  --skip-themes           Set this to skip themes analysis
 ```
 
 ## CMS supported
