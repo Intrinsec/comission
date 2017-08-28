@@ -10,7 +10,10 @@ CoMisSion is a tool to quickly analyze a CMS setup. The tool:
 :fire: Attention : CoMisSion is not looking for vulnerabilities by analysing source code. Vulnerabilities are gathered from public databases like wpvulndb. Finding new vulnerabilities is not the purpose of this tool.
 
 
-A complete report can be generated in XLSX or CSV format.
+A complete report can be generated in following format :
+- XLSX
+- CSV
+- JSON (to allow the tool to be used in a CI process)
 
 The tool has been tested on Linux only. Colored output plus some other things should not work. Feel free to provide feedback on this topic if you try :).
 
@@ -31,13 +34,13 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-usage: comission.py [-h] -d DIR -c CMS [-o FILE]
+usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE]
 
   -h, --help              show this help message and exit
   -d DIR, --dir DIR       CMS root directory
   -c CMS, --cms CMS       CMS type (Drupal, WordPress)
   -o FILE, --output FILE  Path to output file
-  -t TYPE, --type TYPE    Type of output file (CSV, XLSX). Default to XLSX.
+  -t TYPE, --type TYPE    Type of output file (CSV, XLSX, JSON). Default to XLSX.
 ```
 
 ## CMS supported

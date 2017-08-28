@@ -134,7 +134,7 @@ class TestReportXLSX(unittest.TestCase):
                 }
         core_details = {
                         "infos": {
-                                    "version":"4.5", "last_version":"4.8"
+                                    "version":"4.5.1", "last_version":"4.8"
                                 },
                         "alterations": [alteration, alteration, alteration],
                         "vulns": [vuln, vuln, vuln]
@@ -175,6 +175,50 @@ class TestReportXLSX(unittest.TestCase):
 
 #class TestReportCSV(unittest.TestCase):
 
+class TestReportJSON(unittest.TestCase):
+    def setUp(self):
+        report_name = "test-data-set/test.json"
+        self.report = ComissionJSON(report_name)
+
+    def test_add_data(self):
+        alteration = {
+                        "status":"todo","target":"", "file":"", "type":""
+                    }
+        vuln = {
+                "name": "Vuln name", "link": "", "type": "",
+                "poc": "",  "fixed_in": ""
+                }
+        core_details = {
+                        "infos": {
+                                    "version":"4.5.1", "last_version":"4.8"
+                                },
+                        "alterations": [alteration, alteration, alteration],
+                        "vulns": [vuln, vuln, vuln]
+                        }
+        plugin = {
+                    "type":"plugins", "status":"todo", "name":"Name plugin",
+                    "version":"1.0", "last_version":"2.0",
+                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
+                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
+                    "notes":"", "alterations" : [alteration, alteration, alteration],
+                    "filename":""
+                }
+        theme = {
+                    "type":"themes", "status":"todo", "name":"Name theme",
+                    "version":"1.0", "last_version":"2.0",
+                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
+                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
+                    "notes":"", "alterations" : [alteration, alteration, alteration],
+                    "filename":""
+                }
+        plugins = [plugin, plugin, plugin]
+        themes = [theme, theme, theme]
+
+        self.report.add_data(core_details, plugins, themes)
+        self.assertEqual(self.report.data['core']["infos"]["version"], "4.5.1")
+
+    def test_generate_json(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
