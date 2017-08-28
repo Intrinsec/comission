@@ -21,16 +21,16 @@ def log_debug(msg):
         print("{}: {}".format(time, msg))
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='CoMisSion analyse a CMS \
-    and plugins used.')
-    parser.add_argument('-d', '--dir', dest='DIR', help='CMS root directory', \
+    parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS \
+    and plugins used.")
+    parser.add_argument("-d", "--dir", dest="DIR", help="CMS root directory",
                         required=True)
-    parser.add_argument('-c', '--cms', dest='CMS', help='CMS type (drupal, wordpress)', \
+    parser.add_argument("-c", "--cms", dest="CMS", help="CMS type (drupal, wordpress)",
                         required=True)
-    parser.add_argument('-o', '--output', metavar="FILE", help='Path to output \
-    file')
-    parser.add_argument('-t', '--type', metavar="TYPE", help='Type of output \
-    file (CSV, XLSX). Default to XLSX.')
+    parser.add_argument("-o", "--output", metavar="FILE", default="output.XLSX",
+                        help="Path to output file")
+    parser.add_argument("-t", "--type", metavar="TYPE", default="XLSX",
+                        help="Type of output file (CSV, XLSX, JSON). Default to XLSX.")
     args = parser.parse_args()
     return args
 

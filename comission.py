@@ -832,6 +832,14 @@ if __name__ == "__main__":
         # Generate result file
         result_xlsx.generate_xlsx()
 
+    elif args.type == "JSON" and args.output:
+        # Initialize the output file
+        result_json = ComissionJSON(args.output)
+        # Add data
+        result_json.add_data(core_details, cms.plugins, cms.themes)
+        # Generate result file
+        result_json.generate_json()
+        
     else:
         print_cms("alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+import json
 import xlsxwriter
 
 
@@ -493,3 +494,18 @@ class ComissionCSV:
                                         quotechar='|', quoting=csv.QUOTE_MINIMAL)
             data_writer.writerow(headers)
             data_writer.writerows(data)
+
+
+class ComissionJSON:
+    def __init__(self, filename="output.json"):
+        self.filename = filename
+        self.data = {}
+
+    def add_data(self, core_details, plugins, themes):
+        self.data['core'] = core_details
+        self.data['plugins'] = plugins
+        self.data['themes'] = themes
+
+    def generate_json(self):
+        with open(self.filename, 'w') as outfile:
+            json.dump(self.data, outfile)
