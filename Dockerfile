@@ -1,5 +1,5 @@
 FROM python:3-alpine
-LABEL description "CoMisSion - WhiteBox CMS analysis" version="0.1"
+LABEL description "CoMisSion - WhiteBox CMS analysis" version "0.1"
 
 WORKDIR /opt/app/
 
@@ -17,8 +17,7 @@ RUN set -e; \
 
 RUN rm requirements.txt
 
-COPY utilsCMS.py /opt/app/
-COPY reportCMS.py /opt/app/
+COPY comission /opt/app/comission
 COPY comission.py /opt/app/
 
 
