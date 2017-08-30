@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import unittest
 
-from comission import *
+from context import comission
+
+import comission.defineCMS as dCMS
+import comission.utilsCMS as uCMS
+import comission.reportCMS as rCMS
 
 from openpyxl import load_workbook
 
 class TestWordPressAnalysis(unittest.TestCase):
     def setUp(self):
-        self.cms = WP()
+        self.cms = dCMS.WP()
         self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                        "test-data-set", "wordpress")
+                                        "../test-data-set", "wordpress")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)
@@ -123,8 +128,8 @@ class TestDrupalAnalysis(unittest.TestCase):
 
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
-        report_name = "test-data-set/test.xlsx"
-        self.report = ComissionXLSX(report_name)
+        report_name = "../test-data-set/test.xlsx"
+        self.report = rCMS.ComissionXLSX(report_name)
         alteration = {
                         "status":"todo","target":"", "file":"", "type":""
                     }
@@ -178,7 +183,7 @@ class TestReportXLSX(unittest.TestCase):
 class TestReportJSON(unittest.TestCase):
     def setUp(self):
         report_name = "test-data-set/test.json"
-        self.report = ComissionJSON(report_name)
+        self.report = rCMS.ComissionJSON(report_name)
 
     def test_add_data(self):
         alteration = {
