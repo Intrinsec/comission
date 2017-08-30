@@ -37,6 +37,8 @@ def parse_args():
                         help="Set this to skip plugins analysis")
     parser.add_argument("--skip-themes", dest="skip_themes", action="store_true",
                         help="Set this to skip themes analysis")
+    parser.add_argument("--no-color", dest="no_color", default=False, action="store_true",
+                        help="Do not use colors in the output.")
     args = parser.parse_args()
     return args
 
@@ -67,7 +69,7 @@ def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
         alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
-        print_cms("alert", altered_file, " was altered !", 1)
+        Log.print_cms("alert", altered_file, " was altered !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["type"] = "altered"
@@ -77,7 +79,7 @@ def diff_files(dcmp, alterations, target):
     for name in dcmp.right_only:
         alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
-        print_cms("warning", altered_file, " has been added !", 1)
+        Log.print_cms("warning", altered_file, " has been added !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["type"] = "added"
@@ -87,7 +89,7 @@ def diff_files(dcmp, alterations, target):
     for name in dcmp.left_only:
         alteration = {"status":"todo","target":"", "file":"", "type":""}
         altered_file = os.path.join(target, name)
-        print_cms("warning", altered_file, " deleted !", 1)
+        Log.print_cms("warning", altered_file, " deleted !", 1)
         alteration["target"] = target
         alteration["file"] = name
         alteration["type"] = "deleted"
@@ -98,27 +100,43 @@ def diff_files(dcmp, alterations, target):
         current_target = os.path.join(target, current_dir)
         diff_files(sub_dcmp, alterations, current_target)
 
-def print_cms(type, msg, msg_default, level):
-
-    # Define color for output
-    DEFAULT = "\033[0m"
-    BLUE = "\033[34m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[33m"
-    RED = "\033[91m"
-
-    if type == "default":
-        print(DEFAULT + '\t'*level + msg)
-    if type == "info":
-        print(BLUE + '\t'*level + msg + DEFAULT + msg_default)
-    if type == "good":
-        print(GREEN + '\t'*level + msg + DEFAULT + msg_default)
-    if type == "warning":
-        print(YELLOW + '\t'*level + msg + DEFAULT + msg_default)
-    if type == "alert" :
-        print(RED + '\t'*level + msg + DEFAULT + msg_default)
-
 def get_poc(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.text, "lxml")
     return [el.get_text() for el in soup.findAll("pre", { "class":"poc"})]
+
+
+class Log:
+    NO_COLOR = False
+
+    @classmethod
+    def set_nocolor_policy(cls, no_color):
+        cls.NO_COLOR = no_color
+
+    @classmethod
+    def print_cms(cls, type, msg, msg_default, level, no_color=None):
+        # Define color for output
+        DEFAULT = "\033[0m"
+        BLUE = "\033[34m"
+        GREEN = "\033[92m"
+        YELLOW = "\033[33m"
+        RED = "\033[91m"
+
+        # If the dev really wants to display with color, it can be forced with no_color at False
+        if no_color is None:
+            no_color = cls.NO_COLOR
+
+        if no_color:
+            print('\t'*level + msg + msg_default)
+
+        else:
+            if type == "default":
+                print(DEFAULT + '\t'*level + msg)
+            if type == "info":
+                print(BLUE + '\t'*level + msg + DEFAULT + msg_default)
+            if type == "good":
+                print(GREEN + '\t'*level + msg + DEFAULT + msg_default)
+            if type == "warning":
+                print(YELLOW + '\t'*level + msg + DEFAULT + msg_default)
+            if type == "alert" :
+                print(RED + '\t'*level + msg + DEFAULT + msg_default)
