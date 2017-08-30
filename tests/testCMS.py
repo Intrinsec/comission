@@ -15,8 +15,8 @@ from openpyxl import load_workbook
 class TestWordPressAnalysis(unittest.TestCase):
     def setUp(self):
         self.cms = dCMS.WP()
-        self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                        "../test-data-set", "wordpress")
+        self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
+                                     "wordpress")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)
@@ -34,11 +34,12 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_get_addon_version(self):
         regex = re.compile("(?i)Version: (.*)")
-        addon = {"name":"w3-total-cache", "filename":"w3-total-cache.php",
-                    "version":"", "notes":""
+        addon = {
+                    "name":"w3-total-cache", "filename":"w3-total-cache.php", "version":"",
+                    "notes":""
                 }
         addons_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins",
-                                    "w3-total-cache")
+                                   "w3-total-cache")
         self.cms.get_addon_version(addon, addons_path, regex)
 
         self.assertEqual(addon["version"], "0.9.4.1")
@@ -49,7 +50,8 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.1")
 
     def test_get_addon_last_version(self):
-        addon = {"type":"plugins","name":"w3-total-cache", "last_version":"",
+        addon = {
+                    "type":"plugins","name":"w3-total-cache", "last_version":"",
                     "last_release_date":"", "link":"", "version":"0.9.4.1",
                     "notes":""
                 }
@@ -63,7 +65,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
         version_core = "4.5.1"
         alterations, err = self.cms.check_core_alteration(self.dir_path, version_core,
-                                                        download_core_url)
+                                                          download_core_url)
 
         self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
 
@@ -175,7 +177,7 @@ class TestReportXLSX(unittest.TestCase):
         self.workbook.get_sheet_names()
         pass
 
-    def test_generate_formating(self):
+    def test_generate_formatting(self):
         pass
 
 #class TestReportCSV(unittest.TestCase):
@@ -213,7 +215,7 @@ class TestReportJSON(unittest.TestCase):
                     "version":"1.0", "last_version":"2.0",
                     "last_release_date":"2017-08-25", "link":"https://test.link.addon",
                     "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
-                    "notes":"", "alterations" : [alteration, alteration, alteration],
+                    "notes":"", "alterations": [alteration, alteration, alteration],
                     "filename":""
                 }
         plugins = [plugin, plugin, plugin]

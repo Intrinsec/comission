@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 debug = True
 quiet = False
 
+
 def log_debug(msg):
     global debug
     if debug and not quiet:
@@ -21,8 +22,7 @@ def log_debug(msg):
         print("{}: {}".format(time, msg))
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS \
-    and plugins used.")
+    parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS and plugins used.")
     parser.add_argument("-d", "--dir", dest="DIR", help="CMS root directory",
                         required=True)
     parser.add_argument("-c", "--cms", dest="CMS", help="CMS type (drupal, wordpress)",
@@ -45,13 +45,13 @@ def parse_args():
 def verify_path(dir_path, to_check):
     for directory in to_check:
         if not os.path.exists(os.path.join(dir_path, directory)):
-            print_cms("alert", "[-] The path provided does not seem to be a " \
-                        "CMS directory. Please check the path !", "", 0)
+            Log.print_cms("alert", "[-] The path provided does not seem to be a CMS directory. " \
+                          "Please check the path !", "", 0)
             sys.exit()
 
 def fetch_addons(input):
     if not os.path.exists(input):
-        print_cms("alert", "Plugins path does not exist !", "", 0)
+        Log.print_cms("alert", "Plugins path does not exist !", "", 0)
         exit(-1)
     plugins_name = next(os.walk(input))[1]
     return plugins_name
@@ -103,7 +103,7 @@ def diff_files(dcmp, alterations, target):
 def get_poc(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.text, "lxml")
-    return [el.get_text() for el in soup.findAll("pre", { "class":"poc"})]
+    return [el.get_text() for el in soup.findAll("pre", {"class":"poc"})]
 
 
 class Log:

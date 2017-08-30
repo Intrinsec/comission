@@ -3,8 +3,6 @@
 import re
 import os
 import io
-import sys
-import json
 import shutil
 import zipfile
 import requests
@@ -94,15 +92,21 @@ class WP (CMS):
     """ WordPress object """
 
     def __init__(self):
-        super()
+        super().__init__()
         self.site_url = "https://wordpress.org/"
         self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_addon_url = "https://downloads.wordpress.org/plugin/"
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
         self.wp_content = ""
-        self.core_details = {"infos": {"version":"", "last_version":""},
-                            "alterations": [], "vulns":[]}
+        self.core_details = {
+                                "infos": {
+                                            "version":"",
+                                            "last_version":""
+                                         },
+                                "alterations":[],
+                                "vulns":[]
+                            }
         self.plugins = []
         self.themes = []
 
@@ -110,7 +114,7 @@ class WP (CMS):
         tocheck = ["plugins", "themes"]
         suspects = []
         for dirname in next(os.walk(dir_path))[1]:
-            if set(tocheck).issubset(next(os.walk(os.path.join(dir_path,dirname)))[1]):
+            if set(tocheck).issubset(next(os.walk(os.path.join(dir_path, dirname)))[1]):
                 suspects.append(dirname)
         return suspects
 
@@ -125,8 +129,8 @@ class WP (CMS):
                 if os.path.isfile(os.path.join(addon_path, filename)):
                     main_file.append(filename)
             if main_file:
-                # If the two files exist, the one named as the plugin is more likely to
-                # be the main one
+                # If the two files exist, the one named as the plugin is more
+                # likely to be the main one
                 addon["filename"] = main_file[0]
             else:
                 # If no file found, put a random name to trigger an error
@@ -142,7 +146,7 @@ class WP (CMS):
                     version_core_match = version_core_regexp.search(line)
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
-                        log.print_cms("info", "[+] WordPress version used : "+ version_core, "", 0)
+                        log.print_cms("info", "[+] WordPress version used : " + version_core, "", 0)
                         self.core_details["infos"]["version"] = version_core
                         break
 
@@ -160,8 +164,7 @@ class WP (CMS):
                     version = version_file_regexp.search(line)
                     if version:
                         addon["version"] = version.group(1).strip()
-                        log.print_cms("default", "Version : "+ addon["version"],
-                                    "", 1)
+                        log.print_cms("default", "Version : " + addon["version"], "", 1)
                         break
 
         except FileNotFoundError as e:
@@ -181,12 +184,12 @@ class WP (CMS):
                 page_json = response.json()
 
                 last_version_core = page_json["offers"][0]["version"]
-                log.print_cms("info", "[+] Last WordPress version: "+ last_version_core, "", 0)
+                log.print_cms("info", "[+] Last WordPress version: " + last_version_core, "", 0)
                 self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
             msg = "Unable to retrieve last WordPress version. Search manually !"
-            log.print_cms("alert", "[-] "+ msg, "", 1)
+            log.print_cms("alert", "[-] " + msg, "", 1)
             return "", e
         return last_version_core, None
 
@@ -200,7 +203,7 @@ class WP (CMS):
             version_web_regexp = re.compile("Version: <strong>(.*)</strong>")
             date_last_release_regexp = re.compile("Last updated: <strong>(.*)</strong>")
 
-        last_version = "Not found"
+        addon["last_version"] = "Not found"
         try:
             response = requests.get(releases_url, allow_redirects=False)
             response.raise_for_status()
@@ -220,19 +223,20 @@ class WP (CMS):
                         log.print_cms("good", "Up to date !", "", 1)
                     else:
                         log.print_cms("alert", "Outdated, last version: ", addon["last_version"] +
-                        " ( " + addon["last_release_date"] +" )\n\tCheck : " + releases_url, 1)
+                                      " ( " + addon["last_release_date"] + " )\n\tCheck : " +
+                                      releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Addon not in WordPress official site. Search manually !"
-            log.print_cms("alert", "[-] "+ msg, "", 1)
+            log.print_cms("alert", "[-] " + msg, "", 1)
             addon["notes"] = msg
             return "", e
         return addon["last_version"], None
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
-        ignored = [".git", "cache", "plugins", "themes", "images", "license.txt",
-                    "readme.html", "version.php"]
+        ignored = [".git", "cache", "plugins", "themes", "images", "license.txt", "readme.html",
+                   "version.php"]
 
         temp_directory = uCMS.create_temp_directory()
 
@@ -248,7 +252,7 @@ class WP (CMS):
                 zip_file.close()
 
         except requests.exceptions.HTTPError as e:
-            msg = "[-] The original WordPress archive has not been found. Search manually !"
+            msg = "[-] The original WordPress archive has not been found. Search manually ! "
             log.print_cms("alert", msg, "", 0)
             return msg, e
 
@@ -260,13 +264,10 @@ class WP (CMS):
         return alterations, None
 
     def check_addon_alteration(self, addon, dir_path, temp_directory):
-        addon_url = "{}{}.{}.zip".format(self.download_addon_url,
-                                                addon["name"],
-                                                addon["version"])
+        addon_url = "{}{}.{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
 
         if addon["version"] == "trunk":
-            addon_url = "{}{}.zip".format(self.download_addon_url,
-                                            addon["name"])
+            addon_url = "{}{}.zip".format(self.download_addon_url, addon["name"])
 
         log.print_cms("default", "To download the addon: " + addon_url, "", 1)
 
@@ -279,8 +280,7 @@ class WP (CMS):
                 zip_file.extractall(temp_directory)
                 zip_file.close()
 
-                project_dir = os.path.join(dir_path, self.wp_content, "plugins",
-                                            addon["name"])
+                project_dir = os.path.join(dir_path, self.wp_content, "plugins", addon["name"])
                 project_dir_hash = dirhash(project_dir, 'sha1')
                 ref_dir = os.path.join(temp_directory, addon["name"])
                 ref_dir_hash = dirhash(ref_dir, 'sha1')
@@ -293,8 +293,6 @@ class WP (CMS):
                     log.print_cms("alert", "Different from sources : " + altered, "", 1)
 
                     ignored = ["css", "img", "js", "fonts", "images"]
-
-                    root_path = os.path.join(dir_path, self.wp_content, "plugins")
 
                     dcmp = dircmp(project_dir, ref_dir, ignored)
                     uCMS.diff_files(dcmp, addon["alterations"], project_dir)
@@ -326,8 +324,8 @@ class WP (CMS):
 
                 for vuln in vulns:
 
-                    vuln_details = {"name": "", "link": "", "type": "",
-                                    "poc": "",  "fixed_in": ""
+                    vuln_details = {
+                                    "name": "", "link": "", "type": "", "poc": "",  "fixed_in": ""
                                     }
 
                     vuln_url = url_details + str(vuln["id"])
@@ -341,14 +339,14 @@ class WP (CMS):
                     if uCMS.get_poc(vuln_url):
                         vuln_details["poc"] = "YES"
 
-                    log.print_cms("alert", vuln["title"] , "", 1)
-                    log.print_cms("info", "[+] Fixed in version "+ str(vuln["fixed_in"]) , "", 1)
+                    log.print_cms("alert", vuln["title"], "", 1)
+                    log.print_cms("info", "[+] Fixed in version " + str(vuln["fixed_in"]), "", 1)
 
                     vulns_details.append(vuln_details)
 
         except requests.exceptions.HTTPError as e:
             msg = "No entry on wpvulndb."
-            log.print_cms("info", "[+] " + msg , "", 1)
+            log.print_cms("info", "[+] " + msg, "", 1)
             return "", e
         return vulns_details, None
 
@@ -356,7 +354,7 @@ class WP (CMS):
         cve = ""
         url_details = "https://wpvulndb.com/vulnerabilities/"
         try:
-            url = "{}plugins/{}".format(self.cve_ref_url,addon["name"])
+            url = "{}plugins/{}".format(self.cve_ref_url, addon["name"])
 
             response = requests.get(url)
             response.raise_for_status()
@@ -370,13 +368,13 @@ class WP (CMS):
                 for vuln in vulns:
 
                     vuln_url = url_details + str(vuln["id"])
-                    vuln_details = {"name": "", "link": "", "type": "",
-                                    "poc": "",  "fixed_in": ""
+                    vuln_details = {
+                                    "name": "", "link": "", "type": "", "poc": "",  "fixed_in": ""
                                     }
 
                     try:
                         if LooseVersion(addon["version"]) < LooseVersion(vuln["fixed_in"]):
-                            log.print_cms("alert", vuln["title"] , "", 1)
+                            log.print_cms("alert", vuln["title"], "", 1)
 
                             vuln_details["name"] = vuln["title"]
                             vuln_details["link"] = vuln_url
@@ -390,8 +388,8 @@ class WP (CMS):
                             addon["vulns"].append(vuln_details)
 
                     except TypeError as e:
-                        log.print_cms("alert", "Unable to compare version. Please check this \
-                                            vulnerability :" + vuln["title"] , "", 1)
+                        log.print_cms("alert", "Unable to compare version. Please check this " \
+                                      "vulnerability :" + vuln["title"], "", 1)
 
                         vuln_details["name"] = " To check : " + vuln["title"]
                         vuln_details["link"] = vuln_url
@@ -423,11 +421,10 @@ class WP (CMS):
         + "\n#######################################################" \
         , "", 0)
         # Check current CMS version
-        _ , err = self.get_core_version(dir_path,
-                                        re.compile("\$wp_version = '(.*)';"),
-                                        "wp-includes/version.php")
+        _, err = self.get_core_version(dir_path, re.compile("\$wp_version = '(.*)';"),
+                                       "wp-includes/version.php")
         # Get the last released version
-        _ , err = self.get_core_last_version(self.site_api)
+        _, err = self.get_core_last_version(self.site_api)
 
         # Check for vuln on the CMS version
         self.core_details["vulns"] , err = self.check_vulns_core(self.core_details["infos"]["version"])
@@ -435,8 +432,9 @@ class WP (CMS):
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
 
-        self.core_details["alterations"], err = self.check_core_alteration(dir_path, self.core_details["infos"]["version"],
-                                                                        download_url)
+        self.core_details["alterations"], err = self.check_core_alteration(dir_path,
+                                                                           self.core_details["infos"]["version"],
+                                                                           download_url)
 
         return self.core_details
 
@@ -457,45 +455,44 @@ class WP (CMS):
         addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path))
 
         for addon_name in addons_name:
-            addon = {"type":"", "status":"todo", "name":"", "version":"",
-                    "last_version":"", "last_release_date":"", "link":"",
-                    "edited":"", "cve":"", "vulns":[], "notes":"",
-                    "alterations" : [], "filename":""
+            addon = {
+                    "type":"", "status":"todo", "name":"", "version":"", "last_version":"",
+                    "last_release_date":"", "link":"", "edited":"", "cve":"", "vulns":[],
+                    "notes":"", "alterations":[], "filename":""
                     }
             log.print_cms("info", "[+] " + addon_name , "", 0)
+
             addon["name"] = addon_name
             addon["type"] = addon_type
 
             addon_path = os.path.join(dir_path, addons_path, addon_name)
 
             # Check addon main file
-            _ , err = self.get_addon_main_file(addon, addon_path)
+            _, err = self.get_addon_main_file(addon, addon_path)
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Get addon version
-            _ , err = self.get_addon_version(addon, addon_path,
-                                                re.compile("(?i)Version: (.*)"))
+            _, err = self.get_addon_version(addon, addon_path, re.compile("(?i)Version: (.*)"))
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check addon last version
-            _ , err = self.get_addon_last_version(addon)
+            _, err = self.get_addon_last_version(addon)
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check known CVE in wpvulndb
-            _ , err = self.check_vulns_addon(addon)
+            _, err = self.check_vulns_addon(addon)
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check if the addon have been altered
-            _ , err = self.check_addon_alteration(addon, dir_path,
-                                                    temp_directory)
+            _, err = self.check_addon_alteration(addon, dir_path, temp_directory)
             if err is not None:
                 addons.append(addon)
                 continue
@@ -515,7 +512,7 @@ class DPL (CMS):
     """ DRUPAL object """
 
     def __init__(self):
-        super()
+        super().__init__()
         self.site_url = "https://www.drupal.org"
         self.download_core_url = "https://ftp.drupal.org/files/projects/drupal-"
         self.download_addon_url = "https://ftp.drupal.org/files/projects/"
@@ -524,8 +521,12 @@ class DPL (CMS):
         self.plugins_path = os.path.join(self.addons_path + "modules")
         self.themes_path = os.path.join(self.addons_path + "themes")
         self.plugin_path = ""
-        self.core_details = {"infos": {"version":"", "last_version":""},
-                            "alterations": [], "vulns":[]}
+        self.core_details = {
+                                "infos": {
+                                            "version":"", "last_version":""
+                                         },
+                                "alterations": [], "vulns":[]
+                            }
         self.plugins = []
         self.themes = []
 
@@ -537,16 +538,19 @@ class DPL (CMS):
                     version_core_match = version_core_regexp.search(line)
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
-                        log.print_cms("info", "[+] DRUPAL version used : "+ version_core, "", 0)
+                        log.print_cms("info", "[+] DRUPAL version used : " +
+                                      version_core, "", 0)
                         self.core_details["infos"]["version"] = version_core
                         break
 
         except FileNotFoundError as e:
-            log.print_cms("alert", "[-] DRUPAL version not found. Search manually !", "", 0)
+            log.print_cms("alert", "[-] DRUPAL version not found. Search "
+                                   "manually !", "", 0)
             return "", e
         return version_core, None
 
     def get_addon_version(self, addon, addon_path, version_file_regexp):
+        version = ""
         try:
             path = os.path.join(addon_path, addon["filename"])
             with open(path) as addon_info:
@@ -554,7 +558,8 @@ class DPL (CMS):
                     version = version_file_regexp.search(line)
                     if version:
                         addon["version"] = version.group(1).strip("\"")
-                        log.print_cms("default", "Version : "+ addon["version"], "", 1)
+                        log.print_cms("default", "Version : " + addon["version"],
+                                      "", 1)
                         break
 
         except FileNotFoundError as e:
@@ -576,12 +581,13 @@ class DPL (CMS):
             if response.status_code == 200:
                 tree = etree.fromstring(response.content)
                 last_version_core = tree.xpath("/project/releases/release/tag")[0].text
-                log.print_cms("info", "[+] Last CMS version: "+ last_version_core, "", 0)
+                log.print_cms("info", "[+] Last CMS version: " + last_version_core,
+                              "", 0)
                 self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
             msg = "Unable to retrieve last wordpress version. Search manually !"
-            log.print_cms("alert", "[-] "+ msg, "", 1)
+            log.print_cms("alert", "[-] " + msg, "", 1)
             return "", e
         return last_version_core, None
 
@@ -590,7 +596,7 @@ class DPL (CMS):
         date_last_release_regexp = re.compile("<time pubdate datetime=\"(.*?)\">(.+?)</time>")
 
         releases_url = "{}/project/{}/releases".format(self.site_url, addon["name"])
-        last_version = "Not found"
+        addon["last_version"] = "Not found"
 
         if addon["version"] == "VERSION":
             msg = "This is a default addon. Analysis is not yet implemented !"
@@ -617,8 +623,8 @@ class DPL (CMS):
                         log.print_cms("good", "Up to date !", "", 1)
                     else:
                         log.print_cms("alert", "Outdated, last version: ", addon["last_version"]
-                                    + " ( " + addon["last_release_date"]
-                                    + " )\n\tCheck : " + releases_url, 1)
+                                      + " ( " + addon["last_release_date"]
+                                      + " )\n\tCheck : " + releases_url, 1)
 
         except requests.exceptions.HTTPError as e:
             msg = "Addon not in drupal official site. Search manually !"
@@ -629,8 +635,8 @@ class DPL (CMS):
 
     def check_core_alteration(self, dir_path, version_core, core_url):
         alterations = []
-        ignored = ["modules", "CHANGELOG.txt", "COPYRIGHT.txt", "LICENSE.txt", \
-                    "MAINTAINERS.txt", "INSTALL.txt", "README.txt"]
+        ignored = ["modules", "CHANGELOG.txt", "COPYRIGHT.txt", "LICENSE.txt", "MAINTAINERS.txt",
+                   "INSTALL.txt", "README.txt"]
 
         temp_directory = uCMS.create_temp_directory()
 
@@ -646,7 +652,8 @@ class DPL (CMS):
                 zip_file.close()
 
         except requests.exceptions.HTTPError as e:
-            msg = "[-] The original drupal archive has not been found. Search manually !"
+            msg = "[-] The original drupal archive has not been found. Search " \
+                  "manually ! "
             log.print_cms("alert", msg, "", 0)
             return msg, e
 
@@ -658,15 +665,15 @@ class DPL (CMS):
         return alterations, None
 
     def check_addon_alteration(self, addon, addon_path, temp_directory):
-        addon_url = "{}{}-{}.zip".format(self.download_addon_url,
-                                                addon["name"],
-                                                addon["version"])
+        addon_url = "{}{}-{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
 
         if addon["version"] == "VERSION":
             # TODO
             return None, None
 
         log.print_cms("default", "To download the addon : " + addon_url, "", 1)
+
+        altered = ""
 
         try:
             response = requests.get(addon_url)
@@ -684,16 +691,15 @@ class DPL (CMS):
                 if project_dir_hash == ref_dir_hash:
                     altered = "NO"
                     log.print_cms("good", "Different from sources : " + altered, "", 1)
+
                 else:
                     altered = "YES"
                     log.print_cms("alert", "Different from sources : " + altered, "", 1)
 
                     ignored = ["tests"]
 
-                    root_path = os.path.join(dir_path, "modules")
-
                     dcmp = dircmp(addon_path, ref_dir, ignored)
-                    diff_files(dcmp, addon["alterations"], addon_path)
+                    uCMS.diff_files(dcmp, addon["alterations"], addon_path)
 
                 addon["edited"] = altered
 
@@ -706,35 +712,35 @@ class DPL (CMS):
 
     def check_vulns_core(self, version_core):
         # TODO
-        log.print_cms("alert","CVE check not yet implemented !" , "", 1)
+        log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
 
     def check_vulns_addon(self, addon):
         # TODO
-        log.print_cms("alert","CVE check not yet implemented !" , "", 1)
+        log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
 
     def core_analysis(self, dir_path):
         log.print_cms("info",
-        "#######################################################" \
-        + "\n\t\tCore analysis" \
-        + "\n#######################################################" \
-        , "", 0)
+                      "#######################################################"
+                      + "\n\t\tCore analysis"
+                      + "\n#######################################################"
+                      , "", 0)
 
         # Check current CMS version
-        _ , err = self.get_core_version(dir_path,
-                                        re.compile("define\('VERSION', '(.*)'\);"),
-                                        "includes/bootstrap.inc")
+        _, err = self.get_core_version(dir_path, re.compile("define\('VERSION', '(.*)'\);"),
+                                       "includes/bootstrap.inc")
         # Get the last released version
-        _ , err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/", self.core_details["infos"]["version"])
+        _, err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/",
+                                            self.core_details["infos"]["version"])
 
         # Check for vuln on the CMS version
-        self.core_details["vulns"] , err = self.check_vulns_core(self.core_details["infos"]["version"])
+        self.core_details["vulns"], err = self.check_vulns_core(self.core_details["infos"]["version"])
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
         self.core_details["alterations"], err = self.check_core_alteration(dir_path, self.core_details["infos"]["version"],
-                                                                        download_url)
+                                                                           download_url)
 
         return self.core_details
 
@@ -743,10 +749,10 @@ class DPL (CMS):
         addons = []
 
         log.print_cms("info",
-        "#######################################################" \
-        + "\n\t\t" + addon_type + " analysis" \
-        + "\n#######################################################" \
-        , "", 0)
+                      "#######################################################"
+                      + "\n\t\t" + addon_type + " analysis"
+                      + "\n#######################################################"
+                      , "", 0)
 
         # Get the list of addon to work with
         if addon_type == "plugins":
@@ -758,11 +764,13 @@ class DPL (CMS):
         addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path))
 
         for addon_name in addons_name:
-            addon = {"status":"todo","name":"", "version":"","last_version":"",
-                            "last_release_date":"", "link":"", "edited":"", "cve":"",
-                            "vulns_details":"", "notes":"", "alterations" : []
-                            }
+            addon = {
+                        "status":"todo","name":"", "version":"","last_version":"",
+                        "last_release_date":"", "link":"", "edited":"", "cve":"",
+                        "vulns_details":"", "notes":"", "alterations":[]
+                    }
             log.print_cms("info", "[+] " + addon_name, "", 0)
+
             addon["name"] = addon_name
             addon["type"] = addon_type
             addon["filename"] = addon["name"] + ".info"
@@ -770,26 +778,25 @@ class DPL (CMS):
             addon_path = os.path.join(dir_path, addons_path, addon_name)
 
             # Get addon version
-            _ , err = self.get_addon_version(addon, addon_path,
-                                                re.compile("version = (.*)"))
+            _, err = self.get_addon_version(addon, addon_path, re.compile("version = (.*)"))
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check addon last version
-            _ , err = self.get_addon_last_version(addon)
+            _, err = self.get_addon_last_version(addon)
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check if there are known CVE
-            _ , err = self.check_vulns_addon(addon)
+            _, err = self.check_vulns_addon(addon)
             if err is not None:
                 addons.append(addon)
                 continue
 
             # Check if the addon have been altered
-            _ , err = self.check_addon_alteration(addon, addon_path, temp_directory)
+            _, err = self.check_addon_alteration(addon, addon_path, temp_directory)
             if err is not None:
                 addons.append(addon)
                 continue

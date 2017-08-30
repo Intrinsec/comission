@@ -36,7 +36,7 @@ def main():
 
     # Analyse the core
     if not args.skip_core:
-        core_details = cms.core_analysis(dir_path)
+        cms.core_analysis(dir_path)
 
     # Analyse plugins
     if not args.skip_plugins:
@@ -70,7 +70,7 @@ def main():
         result_json.generate_json()
 
     else:
-        comission.uCMS.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
+        log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
 
 if __name__ == "__main__":
