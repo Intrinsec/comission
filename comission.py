@@ -6,12 +6,16 @@ import comission.defineCMS as dCMS
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
+from comission.utilsCMS import Log as log
+
 
 def main():
     args = uCMS.parse_args()
 
+    log.set_nocolor_policy(args.no_color)
+
     if not args.DIR:
-        uCMS.print_cms("alert", "No path received !", "", 0)
+        log.print_cms("alert", "No path received !", "", 0)
         sys.exit()
 
     dir_path = args.DIR
@@ -27,7 +31,7 @@ def main():
         cms = dCMS.DPL()
 
     else:
-        print_cms("alert", "CMS unknown or unsupported !", "", 0)
+        log.print_cms("alert", "CMS unknown or unsupported !", "", 0)
         sys.exit()
 
     # Analyse the core
@@ -66,7 +70,7 @@ def main():
         result_json.generate_json()
 
     else:
-        comission.uCMS.print_cms("alert", "Output type unknown or missing filename !", "", 0)
+        comission.uCMS.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
 
 if __name__ == "__main__":
