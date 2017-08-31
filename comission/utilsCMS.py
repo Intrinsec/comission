@@ -49,11 +49,15 @@ def verify_path(dir_path, to_check):
                           "Please check the path !", "", 0)
             sys.exit()
 
-def fetch_addons(input):
+def fetch_addons(input, type):
     if not os.path.exists(input):
         Log.print_cms("alert", "Plugins path does not exist !", "", 0)
         exit(-1)
-    plugins_name = next(os.walk(input))[1]
+    if type == "standard":
+        plugins_name = next(os.walk(input))[1]
+    elif type == "mu":
+        plugins_name = [name.split('.php')[0] for name in next(os.walk(input))[2]]
+
     return plugins_name
 
 def create_temp_directory():

@@ -49,14 +49,16 @@ class ComissionXLSX:
                                      ]
             self.add_core_alteration_data('A' + str(x), core_alterations_list)
             x += 1
+
+        # Add plugins and themes data
         for elements in [plugins, themes]:
             # Add elements details
             x = 2
+            fields = ("status", "name", "version", "last_version", "last_release_date", "link",
+                      "edited", "mu", "cve", "notes")
             for addon in elements:
-                addon_list = [addon["status"], addon["name"], addon["version"],
-                              addon["last_version"], addon["last_release_date"], addon["link"],
-                              addon["edited"], addon["cve"], addon["notes"]
-                              ]
+                # Plugins and Themes or similar except for the field "mu"
+                addon_list = [addon[i] for i in fields if addon.get(i) is not None]
                 self.add_addon_data('A' + str(x), addon["type"], addon_list)
                 x += 1
 
@@ -119,7 +121,7 @@ class ComissionXLSX:
                                     "Alteration", "Notes"
                                     ]
         plugins_headings = ["Status", "Plugin", "Version", "Last version", "Last release date",
-                            "Link", "Code altered", "CVE", "Notes"
+                            "Link", "MU", "Code altered", "CVE", "Notes"
                             ]
         plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type", "PoC", "Fixed In",
                                   "Notes"
@@ -345,9 +347,8 @@ class ComissionCSV:
         self.core_headings = ["Version", "Last version"]
         self.core_vulns_headings = ["Vulnerabilities", "Link", "Type", "PoC", "Fixed In", "Notes"]
         self.core_alteration_headings = ["Status", "File", "Path", "Alteration", "Notes"]
-        self.plugins_headings = ["Status", "Plugin", "Version", "Last version",
-                                 "Last release date", "Link", "Code altered",
-                                 "CVE", "Notes"
+        self.plugins_headings = ["Status", "Plugin", "Version", "Last version", "Last release date",
+                                 "Link", "MU", "Code altered", "CVE", "Notes"
                                  ]
         self.plugins_vulns_headings = ["Plugin", "Vulnerabilities", "Link", "Type", "PoC",
                                        "Fixed In", "Notes"
@@ -366,15 +367,15 @@ class ComissionCSV:
 
     def prepare_files(self):
         basename = self.filename.split('.')[0]
-
+        # Core files
         self.core_filename = basename + ".core.csv"
         self.core_vulns_filename = basename + ".core_vulns.csv"
         self.core_alteration_filename = basename + ".core_alterations.csv"
-
+        # Plugins files
         self.plugins_filename = basename + ".plugins.csv"
         self.plugins_vulns_filename = basename + ".plugins_vulns.csv"
         self.plugins_alteration_filename = basename + ".plugins_alterations.csv"
-
+        # Themes files
         self.themes_filename = basename + ".themes.csv"
         self.themes_vulns_filename = basename + ".themes_vulns.csv"
         self.themes_alteration_filename = basename + ".themes_alterations.csv"
@@ -408,15 +409,16 @@ class ComissionCSV:
         self.add_data_to_file(core_alterations_lists, self.core_alteration_filename,
                               self.core_alteration_headings)
 
+        # Add plugins or themes data
         for elements in [plugins, themes]:
             # Add elements details
             x = 2
             addon_lists = []
+            fields = ("status", "name", "version", "last_version", "last_release_date", "link",
+                      "edited", "mu", "cve", "notes")
             for addon in elements:
-                addon_list = [addon["status"], addon["name"], addon["version"],
-                              addon["last_version"], addon["last_release_date"], addon["link"],
-                              addon["edited"], addon["cve"], addon["notes"]
-                              ]
+                # Plugins and Themes or similar except for the field "mu"
+                addon_list = [addon[i] for i in fields if addon.get(i) is not None]
                 addon_lists.append(addon_list)
                 x += 1
 
