@@ -125,7 +125,12 @@ class WP (CMS):
         elif addon["type"] == "plugins":
             main_file = []
 
-            for filename in [addon["name"] + ".php", "plugin.php"]:
+            filename_list = [addon["name"] + ".php", "plugin.php"]
+
+            if addon.get("mu") == "YES":
+                filename_list = [addon["name"] + ".php"]
+
+            for filename in filename_list:
                 if os.path.isfile(os.path.join(addon_path, filename)):
                     main_file.append(filename)
             if main_file:
@@ -133,7 +138,7 @@ class WP (CMS):
                 # likely to be the main one
                 addon["filename"] = main_file[0]
             else:
-                # If no file found, put a random name to trigger an error
+                # If no file found, put a random name to trigger an error later
                 addon["filename"] = "nofile"
 
         return addon["filename"], None
@@ -450,54 +455,66 @@ class WP (CMS):
 
         # Get the list of addon to work with
         self.wp_content = self.get_wp_content(dir_path)[0]
-        addons_path = os.path.join(self.wp_content, addon_type)
 
-        addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path))
+        addons_paths = {
+                       "standard": os.path.join(self.wp_content, addon_type)
+                      }
 
-        for addon_name in addons_name:
-            addon = {
-                    "type":"", "status":"todo", "name":"", "version":"", "last_version":"",
-                    "last_release_date":"", "link":"", "edited":"", "cve":"", "vulns":[],
-                    "notes":"", "alterations":[], "filename":""
-                    }
-            log.print_cms("info", "[+] " + addon_name , "", 0)
+        if addon_type == "plugins":
+            addons_paths["mu"] = os.path.join(self.wp_content, "mu-plugins")
 
-            addon["name"] = addon_name
-            addon["type"] = addon_type
+        for key, addons_path in addons_paths.items():
+            addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path), key)
 
-            addon_path = os.path.join(dir_path, addons_path, addon_name)
+            for addon_name in addons_name:
+                addon = {
+                        "type":addon_type, "status":"todo", "name":addon_name, "version":"",
+                        "last_version":"", "last_release_date":"", "link":"", "edited":"", "cve":"",
+                        "vulns":[], "notes":"", "alterations":[], "filename":"", "path":""
+                        }
 
-            # Check addon main file
-            _, err = self.get_addon_main_file(addon, addon_path)
-            if err is not None:
+                addon_path = os.path.join(dir_path, addons_path, addon_name)
+
+                if addon_type == "plugins":
+                    if key == "mu":
+                        addon["mu"] = "YES"
+                        addon_path = os.path.join(dir_path, addons_path)
+                    else:
+                        addon["mu"] = "NO"
+
+                log.print_cms("info", "[+] " + addon_name, "", 0)
+
+                # Check addon main file
+                _, err = self.get_addon_main_file(addon, addon_path)
+                if err is not None:
+                    addons.append(addon)
+                    continue
+
+                # Get addon version
+                _, err = self.get_addon_version(addon, addon_path, re.compile("(?i)Version: (.*)"))
+                if err is not None:
+                    addons.append(addon)
+                    continue
+
+                # Check addon last version
+                _, err = self.get_addon_last_version(addon)
+                if err is not None:
+                    addons.append(addon)
+                    continue
+
+                # Check known CVE in wpvulndb
+                _, err = self.check_vulns_addon(addon)
+                if err is not None:
+                    addons.append(addon)
+                    continue
+
+                # Check if the addon have been altered
+                _, err = self.check_addon_alteration(addon, dir_path, temp_directory)
+                if err is not None:
+                    addons.append(addon)
+                    continue
+
                 addons.append(addon)
-                continue
-
-            # Get addon version
-            _, err = self.get_addon_version(addon, addon_path, re.compile("(?i)Version: (.*)"))
-            if err is not None:
-                addons.append(addon)
-                continue
-
-            # Check addon last version
-            _, err = self.get_addon_last_version(addon)
-            if err is not None:
-                addons.append(addon)
-                continue
-
-            # Check known CVE in wpvulndb
-            _, err = self.check_vulns_addon(addon)
-            if err is not None:
-                addons.append(addon)
-                continue
-
-            # Check if the addon have been altered
-            _, err = self.check_addon_alteration(addon, dir_path, temp_directory)
-            if err is not None:
-                addons.append(addon)
-                continue
-
-            addons.append(addon)
         shutil.rmtree(temp_directory, ignore_errors=True)
 
         if addon_type == "plugins":
