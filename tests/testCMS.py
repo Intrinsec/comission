@@ -7,10 +7,64 @@ import unittest
 from context import comission
 
 import comission.defineCMS as dCMS
-import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
 from openpyxl import load_workbook
+
+
+class DataSet:
+    def __init__(self):
+
+        self.addon_stage1 = {
+                    "name":"w3-total-cache", "filename":"w3-total-cache.php", "version":"",
+                    "notes":""
+                }
+        self.addon_stage2 = {
+                             "type":"plugins","name":"w3-total-cache", "last_version":"",
+                             "last_release_date":"", "link":"", "version":"0.9.4.1",
+                             "notes":""
+                            }
+        self.alteration = {
+                        "status":"todo","target":"", "file":"", "type":""
+                    }
+        self.vuln = {
+                "name": "Vuln name", "link": "", "type": "",
+                "poc": "",  "fixed_in": ""
+                }
+        self.core_details = {
+                        "infos": {
+                                    "version":"4.5.1", "last_version":"4.8"
+                                },
+                        "alterations": [self.alteration, self.alteration, self.alteration],
+                        "vulns": [self.vuln, self.vuln, self.vuln]
+                        }
+        self.plugin = {
+                    "type":"plugins", "status":"todo", "name":"Name plugin",
+                    "version":"1.0", "last_version":"2.0",
+                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
+                    "edited":"YES", "mu":"NO", "cve":"YES", "vulns":[self.vuln, self.vuln, self.vuln],
+                    "notes":"", "alterations": [self.alteration, self.alteration, self.alteration],
+                    "filename":""
+                }
+        self.muplugin = {
+                         "type":"plugins", "status":"todo", "name":"Name plugin",
+                         "version":"1.0", "last_version":"2.0",
+                         "last_release_date":"2017-08-25", "link":"https://test.link.addon",
+                         "edited":"YES",  "mu":"NO","cve":"YES", "vulns":[self.vuln, self.vuln, self.vuln],
+                         "notes":"", "alterations":[self.alteration, self.alteration, self.alteration],
+                         "filename":""
+        }
+        self.theme = {
+                    "type":"themes", "status":"todo", "name":"Name theme",
+                    "version":"1.0", "last_version":"2.0",
+                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
+                    "edited":"YES", "cve":"YES", "vulns":[self.vuln, self.vuln, self.vuln],
+                    "notes":"", "alterations": [self.alteration, self.alteration, self.alteration],
+                    "filename":""
+                }
+        self.plugins = [self.plugin, self.plugin, self.muplugin]
+        self.themes = [self.theme for i in range(3)]
+
 
 class TestWordPressAnalysis(unittest.TestCase):
     def setUp(self):
@@ -34,15 +88,13 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_get_addon_version(self):
         regex = re.compile("(?i)Version: (.*)")
-        addon = {
-                    "name":"w3-total-cache", "filename":"w3-total-cache.php", "version":"",
-                    "notes":""
-                }
+        dataset = DataSet()
+
         addons_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins",
                                    "w3-total-cache")
-        self.cms.get_addon_version(addon, addons_path, regex)
+        self.cms.get_addon_version(dataset.addon_stage1, addons_path, regex)
 
-        self.assertEqual(addon["version"], "0.9.4.1")
+        self.assertEqual(dataset.addon_stage1["version"], "0.9.4.1")
 
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
@@ -50,16 +102,14 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.1")
 
     def test_get_addon_last_version(self):
-        addon = {
-                    "type":"plugins","name":"w3-total-cache", "last_version":"",
-                    "last_release_date":"", "link":"", "version":"0.9.4.1",
-                    "notes":""
-                }
-        self.cms.get_addon_last_version(addon)
 
-        self.assertEqual(addon["last_version"], "0.9.5.4")
-        self.assertEqual(addon["last_release_date"], "2017-04-26")
-        self.assertEqual(addon["link"], "https://wordpress.org/plugins/w3-total-cache/")
+        dataset = DataSet()
+
+        self.cms.get_addon_last_version(dataset.addon_stage2)
+
+        self.assertEqual(dataset.addon_stage2["last_version"], "0.9.5.4")
+        self.assertEqual(dataset.addon_stage2["last_release_date"], "2017-04-26")
+        self.assertEqual(dataset.addon_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
@@ -132,40 +182,10 @@ class TestReportXLSX(unittest.TestCase):
     def setUp(self):
         report_name = "../test-data-set/test.xlsx"
         self.report = rCMS.ComissionXLSX(report_name)
-        alteration = {
-                        "status":"todo","target":"", "file":"", "type":""
-                    }
-        vuln = {
-                "name": "Vuln name", "link": "", "type": "",
-                "poc": "",  "fixed_in": ""
-                }
-        core_details = {
-                        "infos": {
-                                    "version":"4.5.1", "last_version":"4.8"
-                                },
-                        "alterations": [alteration, alteration, alteration],
-                        "vulns": [vuln, vuln, vuln]
-                        }
-        plugin = {
-                    "type":"plugins", "status":"todo", "name":"Name plugin",
-                    "version":"1.0", "last_version":"2.0",
-                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
-                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
-                    "notes":"", "alterations" : [alteration, alteration, alteration],
-                    "filename":""
-                }
-        theme = {
-                    "type":"themes", "status":"todo", "name":"Name theme",
-                    "version":"1.0", "last_version":"2.0",
-                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
-                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
-                    "notes":"", "alterations" : [alteration, alteration, alteration],
-                    "filename":""
-                }
-        plugins = [plugin, plugin, plugin]
-        themes = [theme, theme, theme]
 
-        self.report.add_data(core_details, plugins, themes)
+        dataset = DataSet()
+
+        self.report.add_data(dataset.core_details, dataset.plugins, dataset.themes)
         self.report.generate_xlsx()
 
         self.workbook = load_workbook(report_name)
@@ -188,40 +208,9 @@ class TestReportJSON(unittest.TestCase):
         self.report = rCMS.ComissionJSON(report_name)
 
     def test_add_data(self):
-        alteration = {
-                        "status":"todo","target":"", "file":"", "type":""
-                    }
-        vuln = {
-                "name": "Vuln name", "link": "", "type": "",
-                "poc": "",  "fixed_in": ""
-                }
-        core_details = {
-                        "infos": {
-                                    "version":"4.5.1", "last_version":"4.8"
-                                },
-                        "alterations": [alteration, alteration, alteration],
-                        "vulns": [vuln, vuln, vuln]
-                        }
-        plugin = {
-                    "type":"plugins", "status":"todo", "name":"Name plugin",
-                    "version":"1.0", "last_version":"2.0",
-                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
-                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
-                    "notes":"", "alterations" : [alteration, alteration, alteration],
-                    "filename":""
-                }
-        theme = {
-                    "type":"themes", "status":"todo", "name":"Name theme",
-                    "version":"1.0", "last_version":"2.0",
-                    "last_release_date":"2017-08-25", "link":"https://test.link.addon",
-                    "edited":"YES", "cve":"YES", "vulns":[vuln, vuln, vuln],
-                    "notes":"", "alterations": [alteration, alteration, alteration],
-                    "filename":""
-                }
-        plugins = [plugin, plugin, plugin]
-        themes = [theme, theme, theme]
+        dataset = DataSet()
 
-        self.report.add_data(core_details, plugins, themes)
+        self.report.add_data(dataset.core_details, dataset.plugins, dataset.themes)
         self.assertEqual(self.report.data['core']["infos"]["version"], "4.5.1")
 
     def test_generate_json(self):
