@@ -55,7 +55,8 @@ class ComissionXLSX:
             # Add elements details
             x = 2
             fields = ("status", "name", "version", "last_version", "last_release_date", "link",
-                      "edited", "mu", "cve", "notes")
+                      "mu", "edited", "cve", "notes")
+
             for addon in elements:
                 # Plugins and Themes or similar except for the field "mu"
                 addon_list = [addon[i] for i in fields if addon.get(i) is not None]
