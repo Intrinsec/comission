@@ -266,6 +266,10 @@ class WP (CMS):
         dcmp = dircmp(clean_core_path, dir_path, ignored)
         uCMS.diff_files(dcmp, alterations, dir_path)
 
+        if alterations is not None:
+            msg = "[+] For further analysis, archive downloaded here : " + clean_core_path
+            log.print_cms("info", msg, "", 1)
+
         return alterations, None
 
     def check_addon_alteration(self, addon, dir_path, temp_directory):
@@ -304,11 +308,16 @@ class WP (CMS):
 
                 addon["edited"] = altered
 
+                if addon["alterations"] is not None:
+                    msg = "[+] For further analysis, archive downloaded here : " + ref_dir
+                    log.print_cms("info", msg, "", 1)
+
         except requests.exceptions.HTTPError as e:
             msg = "The download link is not standard. Search manually !"
             log.print_cms("alert", msg, "", 1)
             addon["notes"] = msg
             return msg, e
+
         return altered, None
 
     def check_vulns_core(self, version_core):
