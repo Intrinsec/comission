@@ -8,6 +8,7 @@ from context import comission
 
 import comission.defineCMS as dCMS
 import comission.reportCMS as rCMS
+import comission.utilsCMS as uCMS
 
 from openpyxl import load_workbook
 
@@ -15,15 +16,32 @@ from openpyxl import load_workbook
 class DataSet:
     def __init__(self):
 
-        self.addon_stage1 = {
-                    "name":"w3-total-cache", "filename":"w3-total-cache.php", "version":"",
-                    "notes":""
-                }
-        self.addon_stage2 = {
+        # Dataset specific to WordPress
+        self.addon_wp_stage0 = {
+                                "type":"plugins", "name":"w3-total-cache", "filename":"", "version":"",
+                                "notes":"", "mu":"NO"
+                                }
+        self.addon_wp_stage1 = {
+                                "type":"plugins", "name":"w3-total-cache", "filename":"w3-total-cache.php",
+                                "version":"", "notes":"", "mu":"NO"
+                               }
+        self.addon_wp_stage2 = {
                              "type":"plugins","name":"w3-total-cache", "last_version":"",
                              "last_release_date":"", "link":"", "version":"0.9.4.1",
-                             "notes":""
+                             "notes":"", "mu":"NO", "alterations": []
                             }
+
+        # Dataset specific to Drupal analysis
+        self.addon_dpl_stage1 = {
+                                 "name":"xmlsitemap", "filename":"xmlsitemap.info", "version":"",
+                                 "notes":""
+                                }
+        self.addon_dpl_stage2 = {
+                             "type":"plugins","name":"media_youtube", "last_version":"",
+                             "last_release_date":"", "link":"", "version":"7.x-3.4",
+                             "notes":"", "alterations": []
+                            }
+
         self.alteration = {
                         "status":"todo","target":"", "file":"", "type":""
                     }
@@ -63,7 +81,7 @@ class DataSet:
                     "filename":""
                 }
         self.plugins = [self.plugin, self.plugin, self.muplugin]
-        self.themes = [self.theme for i in range(3)]
+        self.themes = [self.theme for _ in range(3)]
 
 
 class TestWordPressAnalysis(unittest.TestCase):
@@ -78,7 +96,10 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(retrieve_wp_content[0], "renamed-wp-content")
 
     def test_get_addon_main_file(self):
-        pass
+        dataset = DataSet()
+        addon_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins", "w3-total-cache")
+        self.cms.get_addon_main_file(dataset.addon_wp_stage0, addon_path)
+        self.assertEqual(dataset.addon_wp_stage0["filename"], "w3-total-cache.php")
 
     def test_get_core_version(self):
         regex = re.compile("\$wp_version = '(.*)';")
@@ -92,9 +113,9 @@ class TestWordPressAnalysis(unittest.TestCase):
 
         addons_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins",
                                    "w3-total-cache")
-        self.cms.get_addon_version(dataset.addon_stage1, addons_path, regex)
+        self.cms.get_addon_version(dataset.addon_wp_stage1, addons_path, regex)
 
-        self.assertEqual(dataset.addon_stage1["version"], "0.9.4.1")
+        self.assertEqual(dataset.addon_wp_stage1["version"], "0.9.4.1")
 
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
@@ -102,25 +123,31 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.1")
 
     def test_get_addon_last_version(self):
-
         dataset = DataSet()
 
-        self.cms.get_addon_last_version(dataset.addon_stage2)
+        self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_stage2["last_version"], "0.9.5.4")
-        self.assertEqual(dataset.addon_stage2["last_release_date"], "2017-04-26")
-        self.assertEqual(dataset.addon_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
+        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.5.4")
+        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2017-04-26")
+        self.assertEqual(dataset.addon_wp_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-        version_core = "4.5.1"
-        alterations, err = self.cms.check_core_alteration(self.dir_path, version_core,
-                                                          download_core_url)
+        alterations, err = self.cms.check_core_alteration(self.dir_path, download_core_url)
 
         self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
 
     def test_check_addon_alteration(self):
-        pass
+        dataset = DataSet()
+        temp_directory = uCMS.TempDir.create()
+        self.cms.wp_content = "renamed-wp-content"
+
+        _, _ = self.cms.check_addon_alteration(dataset.addon_wp_stage2, self.dir_path,
+                                               temp_directory)
+
+        uCMS.TempDir.delete_all()
+
+        self.assertIn(dataset.addon_wp_stage2["alterations"][0]["file"], "readme.txt")
 
     def test_check_vulns_core(self):
         pass
@@ -142,28 +169,57 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(self.cms.plugins[0]["version"], "2.6")
 
 class TestDrupalAnalysis(unittest.TestCase):
-    #def setUp(self):
-    #    self.cms = DPL()
-    #    self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                    "test-data-set", "drupal")
+    def setUp(self):
+        self.cms = dCMS.DPL()
+        self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
+                                     "drupal")
 
     def test_get_core_version(self):
-        pass
+        regex = re.compile("define\('VERSION', '(.*)'\);")
+        self.cms.get_core_version(self.dir_path, regex, "includes/bootstrap.inc")
+
+        self.assertEqual(self.cms.core_details["infos"]["version"], "7.56")
 
     def test_get_addon_version(self):
-        pass
+        regex = re.compile("version = (.*)")
+        dataset = DataSet()
+        addons_path = os.path.join(self.dir_path, "sites", "all", "modules", "xmlsitemap")
+
+        self.cms.get_addon_version(dataset.addon_dpl_stage1, addons_path, regex)
+
+        self.assertEqual(dataset.addon_dpl_stage1["version"], "7.x-2.3")
 
     def test_get_core_last_version(self):
-        pass
+        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.56")
+
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "7.56")
 
     def test_get_addon_last_version(self):
-        pass
+        dataset = DataSet()
+
+        self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
+
+        self.assertEqual(dataset.addon_dpl_stage2["last_version"], "7.x-3.5")
+        self.assertEqual(dataset.addon_dpl_stage2["last_release_date"], "14 August 2017")
+        self.assertEqual(dataset.addon_dpl_stage2["link"], "https://www.drupal.org/project/media_youtube/releases")
 
     def test_check_core_alteration(self):
-        pass
+        download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
+        version_core = "7.56"
+        alterations, err = self.cms.check_core_alteration(self.dir_path, version_core,
+                                                          download_core_url)
+
+        self.assertEqual(alterations[0]["file"], "cron.php")
 
     def test_check_addon_alteration(self):
-        pass
+        dataset = DataSet()
+        temp_directory = uCMS.TempDir.create()
+        addon_path = os.path.join(self.dir_path, "sites", "all", "modules", dataset.addon_dpl_stage2["name"])
+        _, _ = self.cms.check_addon_alteration(dataset.addon_dpl_stage2, addon_path, temp_directory)
+
+        uCMS.TempDir.delete_all()
+
+        self.assertIn(dataset.addon_dpl_stage2["alterations"][0]["file"], "LICENSE.txt")
 
     def test_check_vulns_core(self):
         pass
