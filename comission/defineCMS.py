@@ -243,7 +243,7 @@ class WP (CMS):
         ignored = [".git", "cache", "plugins", "themes", "images", "license.txt", "readme.html",
                    "version.php"]
 
-        temp_directory = uCMS.create_temp_directory()
+        temp_directory = uCMS.TempDir.create()
 
         log.print_cms("info", "[+] Checking core alteration", "", 0)
 
@@ -453,7 +453,7 @@ class WP (CMS):
         return self.core_details
 
     def addon_analysis(self, dir_path, addon_type):
-        temp_directory = uCMS.create_temp_directory()
+        temp_directory = uCMS.TempDir.create()
         addons = []
 
         log.print_cms("info",
@@ -524,7 +524,6 @@ class WP (CMS):
                     continue
 
                 addons.append(addon)
-        shutil.rmtree(temp_directory, ignore_errors=True)
 
         if addon_type == "plugins":
             self.plugins = addons
@@ -664,7 +663,7 @@ class DPL (CMS):
         ignored = ["modules", "CHANGELOG.txt", "COPYRIGHT.txt", "LICENSE.txt", "MAINTAINERS.txt",
                    "INSTALL.txt", "README.txt"]
 
-        temp_directory = uCMS.create_temp_directory()
+        temp_directory = uCMS.TempDir.create()
 
         log.print_cms("info", "[+] Checking core alteration", "", 0)
 
@@ -771,7 +770,7 @@ class DPL (CMS):
         return self.core_details
 
     def addon_analysis(self, dir_path, addon_type):
-        temp_directory = uCMS.create_temp_directory()
+        temp_directory = uCMS.TempDir.create()
         addons = []
 
         log.print_cms("info",
@@ -828,8 +827,6 @@ class DPL (CMS):
                 continue
 
             addons.append(addon)
-
-        shutil.rmtree(temp_directory, ignore_errors=True)
 
         if addon_type == "plugins":
             self.plugins = addons

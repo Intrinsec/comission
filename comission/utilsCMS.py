@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import string
+import shutil
 import requests
 import datetime
 import argparse
@@ -59,15 +60,6 @@ def fetch_addons(input, type):
         plugins_name = [name.split('.php')[0] for name in next(os.walk(input))[2]]
 
     return plugins_name
-
-def create_temp_directory():
-    while True:
-        random_dir_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(5))
-        temp_directory = os.path.join(tempfile.gettempdir(), random_dir_name)
-        if not os.path.exists(temp_directory):
-            os.makedirs(temp_directory)
-            break
-    return temp_directory
 
 def diff_files(dcmp, alterations, target):
     for name in dcmp.diff_files:
@@ -144,3 +136,45 @@ class Log:
                 print(YELLOW + '\t'*level + msg + DEFAULT + msg_default)
             if type == "alert" :
                 print(RED + '\t'*level + msg + DEFAULT + msg_default)
+
+class TempDir:
+
+    tmp_dir_list = []
+
+    @classmethod
+    def create(cls):
+        while True:
+            random_dir_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(5))
+            tmp_dir = os.path.join(tempfile.gettempdir(), random_dir_name)
+            if not os.path.exists(tmp_dir):
+                os.makedirs(tmp_dir)
+                cls.tmp_dir_list.append(tmp_dir)
+                break
+        return tmp_dir
+
+    @classmethod
+    def delete_all(cls):
+        for tmp_dir in cls.tmp_dir_list:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            cls.tmp_dir_list.clear()
+
+    @classmethod
+    def ask_delete_tmp(cls):
+        clear_tmp_dir = input(
+                              "Do you want to keep temp directories containing downloaded core and "
+                              "plugins for further analysis ? (yes/no) "
+                             ).lower()
+
+        if clear_tmp_dir == "no":
+            Log.print_cms("alert", "Deleting tmp directories !", "", 0)
+            cls.delete_all()
+
+        elif clear_tmp_dir == "yes":
+            dir_list_str = ""
+            for tmp_dir in cls.tmp_dir_list:
+                dir_list_str = dir_list_str + "\n" + tmp_dir
+
+            Log.print_cms("info", "Keeping tmp directories ! Here they are :" + dir_list_str, "", 0)
+
+        else:
+            cls.ask_delete_tmp()
