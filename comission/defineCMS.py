@@ -238,7 +238,7 @@ class WP (CMS):
             return "", e
         return addon["last_version"], None
 
-    def check_core_alteration(self, dir_path, version_core, core_url):
+    def check_core_alteration(self, dir_path, core_url):
         alterations = []
         ignored = [".git", "cache", "plugins", "themes", "images", "license.txt", "readme.html",
                    "version.php"]
@@ -441,14 +441,12 @@ class WP (CMS):
         _, err = self.get_core_last_version(self.site_api)
 
         # Check for vuln on the CMS version
-        self.core_details["vulns"] , err = self.check_vulns_core(self.core_details["infos"]["version"])
+        self.core_details["vulns"], err = self.check_vulns_core(self.core_details["infos"]["version"])
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
 
-        self.core_details["alterations"], err = self.check_core_alteration(dir_path,
-                                                                           self.core_details["infos"]["version"],
-                                                                           download_url)
+        self.core_details["alterations"], err = self.check_core_alteration(dir_path, download_url)
 
         return self.core_details
 
@@ -786,7 +784,7 @@ class DPL (CMS):
         elif addon_type == "themes":
             addons_path = self.themes_path
 
-        addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path))
+        addons_name = uCMS.fetch_addons(os.path.join(dir_path, addons_path), "standard")
 
         for addon_name in addons_name:
             addon = {
