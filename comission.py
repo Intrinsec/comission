@@ -12,6 +12,7 @@ from comission.utilsCMS import Log as log
 def main():
     args = uCMS.parse_args()
 
+    # Colored output ?
     log.set_nocolor_policy(args.no_color)
 
     if not args.DIR:
@@ -20,6 +21,7 @@ def main():
 
     dir_path = args.DIR
 
+    # Verify if the CMS is the really the one given by the user
     if args.CMS == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
@@ -72,6 +74,9 @@ def main():
     else:
         log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
+
+    # Keep or clean temp dir
+    uCMS.TempDir.ask_delete_tmp()
 
 if __name__ == "__main__":
     main()
