@@ -236,10 +236,11 @@ class ComissionXLSX:
             worksheet.set_column('D:D', 10)
             worksheet.set_column('E:E', 13)
             worksheet.set_column('F:F', 50)
-            worksheet.set_column('G:G', 8)
-            worksheet.set_column('H:H', 5)
-            worksheet.set_column('I:I', 60)
-            worksheet.set_column('J:J', 3)
+            worksheet.set_column('G:G', 5)
+            worksheet.set_column('H:H', 8)
+            worksheet.set_column('I:I', 5)
+            worksheet.set_column('J:J', 60)
+            worksheet.set_column('K:K', 3)
             worksheet.conditional_format('A1:A300', {'type': 'text',
                                                      'criteria': 'containing',
                                                      'value': 'todo',
@@ -255,31 +256,31 @@ class ComissionXLSX:
                                                      'format': bad})
 
             # Red if some info are missing
-            worksheet.conditional_format('I1:I300', {'type': 'text',
+            worksheet.conditional_format('J1:J300', {'type': 'text',
                                                      'criteria': 'containing',
                                                      'value': 'Search',
                                                      'format': bad})
 
             # Red if the plugin have been modified
-            worksheet.conditional_format('G1:G300', {'type': 'cell',
+            worksheet.conditional_format('H1:H300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"YES"',
                                                      'format': bad})
-            worksheet.conditional_format('G1:G300', {'type': 'cell',
+            worksheet.conditional_format('H1:H300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"NO"',
                                                      'format': good})
             # Red if some CVE exist
-            worksheet.conditional_format('H1:H300', {'type': 'cell',
+            worksheet.conditional_format('I1:I300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"YES"',
                                                      'format': bad})
-            worksheet.conditional_format('H1:H300', {'type': 'cell',
+            worksheet.conditional_format('I1:I300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"NO"',
                                                      'format': good})
             # N/A if we don't know for any reason
-            worksheet.conditional_format('C1:H300', {'type': 'cell',
+            worksheet.conditional_format('C1:I300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"N/A"',
                                                      'format': na})
