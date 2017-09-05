@@ -9,6 +9,7 @@ import requests
 import datetime
 import argparse
 import tempfile
+import configparser
 
 from bs4 import BeautifulSoup
 
@@ -24,10 +25,8 @@ def log_debug(msg):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS and plugins used.")
-    parser.add_argument("-d", "--dir", dest="DIR", help="CMS root directory",
-                        required=True)
-    parser.add_argument("-c", "--cms", dest="CMS", help="CMS type (drupal, wordpress)",
-                        required=True)
+    parser.add_argument("-d", "--dir", dest="dir", help="CMS root directory")
+    parser.add_argument("-c", "--cms", dest="cms", help="CMS type (drupal, wordpress)")
     parser.add_argument("-o", "--output", metavar="FILE", default="output.XLSX",
                         help="Path to output file")
     parser.add_argument("-t", "--type", metavar="TYPE", default="XLSX",
@@ -40,8 +39,28 @@ def parse_args():
                         help="Set this to skip themes analysis")
     parser.add_argument("--no-color", dest="no_color", default=False, action="store_true",
                         help="Do not use colors in the output.")
+    parser.add_argument("-f","--file", dest="conf", help="Configuration file. See example.conf.")
     args = parser.parse_args()
-    return args
+
+    args_dict = {}
+
+    for key, value in vars(args).items():
+        if value is not None:
+            args_dict[key] = value
+
+    return args_dict
+
+def parse_conf(conf_file):
+    config = configparser.ConfigParser()
+    config_dict = {}
+
+    with open(conf_file) as file:
+        config.read_file(file)
+
+    for key, value in config.items("Configuration"):
+        config_dict[key] = value
+
+    return config_dict
 
 def verify_path(dir_path, to_check):
     for directory in to_check:
