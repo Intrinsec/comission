@@ -34,7 +34,8 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip-plugins] [--skip-themes]
+usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip-plugins] 
+                    [--skip-themes] [-f CONF]
 
   -h, --help              show this help message and exit
   -d DIR, --dir DIR       CMS root directory
@@ -44,7 +45,10 @@ usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip
   --skip-core             Set this to skip core analysis
   --skip-plugins          Set this to skip plugins analysis
   --skip-themes           Set this to skip themes analysis
+  -f CONF, --file CONF  Configuration file. See example.conf.
 ```
+
+You can provide a configuration file. See `example.conf` for reference.
 
 ## CMS supported
 
