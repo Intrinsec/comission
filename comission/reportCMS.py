@@ -191,6 +191,10 @@ class ComissionXLSX:
                                                  'format': na})
         worksheet.conditional_format('G1:G300', {'type': 'cell',
                                                  'criteria': '==',
+                                                 'value': '"N/A"',
+                                                 'format': na})
+        worksheet.conditional_format('G1:G300', {'type': 'cell',
+                                                 'criteria': '==',
                                                  'value': '"YES"',
                                                  'format': bad})
         worksheet.conditional_format('G1:G300', {'type': 'cell',
@@ -228,7 +232,7 @@ class ComissionXLSX:
                                                  'format': na})
 
         for worksheet in [self.plugins_worksheet, self.themes_worksheet]:
-            # Format Plugins worksheet
+            # Format Plugins/Themes worksheet
             worksheet.set_row(0, 15, heading_format)
             worksheet.set_column('A:A', 7)
             worksheet.set_column('B:B', 25)
@@ -236,11 +240,10 @@ class ComissionXLSX:
             worksheet.set_column('D:D', 10)
             worksheet.set_column('E:E', 13)
             worksheet.set_column('F:F', 50)
-            worksheet.set_column('G:G', 5)
-            worksheet.set_column('H:H', 8)
-            worksheet.set_column('I:I', 5)
-            worksheet.set_column('J:J', 60)
-            worksheet.set_column('K:K', 3)
+            worksheet.set_column('G:G', 7)
+            worksheet.set_column('H:H', 5)
+            worksheet.set_column('I:I', 60)
+            worksheet.set_column('J:J', 3)
             worksheet.conditional_format('A1:A300', {'type': 'text',
                                                      'criteria': 'containing',
                                                      'value': 'todo',
@@ -286,7 +289,7 @@ class ComissionXLSX:
                                                      'format': na})
 
         for worksheet in [self.plugins_vulns_worksheet, self.themes_vulns_worksheet]:
-            # Format Plugins Vulnerabilities worksheet
+            # Format Plugins/Themes Vulnerabilities worksheet
             worksheet.set_row(0, 15, heading_format)
             worksheet.set_column('A:A', 25)
             worksheet.set_column('B:B', 80)
@@ -294,6 +297,8 @@ class ComissionXLSX:
             worksheet.set_column('D:D', 10)
             worksheet.set_column('E:E', 7)
             worksheet.set_column('F:F', 10)
+            worksheet.set_column('G:G', 60)
+            worksheet.set_column('H:H', 3)
             worksheet.conditional_format('E1:E300', {'type': 'cell',
                                                      'criteria': '==',
                                                      'value': '"CHECK"',
