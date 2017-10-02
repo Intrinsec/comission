@@ -12,7 +12,7 @@ from comission.utilsCMS import Log as log
 def main():
     args = uCMS.parse_args()
 
-    if args["conf"]:
+    if "conf" in args:
         config = uCMS.parse_conf(args["conf"])
         args = {**config,**args}
 
