@@ -400,7 +400,7 @@ class WP (CMS):
 
                             addon["vulns"].append(vuln_details)
 
-                    except TypeError as e:
+                    except (TypeError, AttributeError)  as e:
                         log.print_cms("alert", "Unable to compare version. Please check this " \
                                       "vulnerability :" + vuln["title"], "", 1)
 
@@ -552,24 +552,42 @@ class DPL (CMS):
         self.plugins = []
         self.themes = []
 
-    def get_core_version(self, dir_path, version_core_regexp, cms_path):
-        try:
-            with open(os.path.join(dir_path, cms_path)) as version_file:
-                version_core = ''
-                for line in version_file:
-                    version_core_match = version_core_regexp.search(line)
-                    if version_core_match:
-                        version_core = version_core_match.group(1).strip()
-                        log.print_cms("info", "[+] DRUPAL version used : " +
-                                      version_core, "", 0)
-                        self.core_details["infos"]["version"] = version_core
-                        break
+    def get_core_version(self, dir_path):
 
-        except FileNotFoundError as e:
-            log.print_cms("alert", "[-] DRUPAL version not found. Search "
-                                   "manually !", "", 0)
-            return "", e
-        return version_core, None
+        selector = {
+                    "includes/bootstrap.inc": re.compile("define\('VERSION', '(.*)'\);"),
+                    "core/lib/Drupal.php": re.compile("const VERSION = '(.*)';")
+                   }
+        suspects = []
+
+        for cms_path, version_core_regexp in selector.items():
+            try:
+                with open(os.path.join(dir_path, cms_path)) as version_file:
+                    for line in version_file:
+                        version_core_match = version_core_regexp.search(line)
+                        if version_core_match:
+                            suspects.append(version_core_match.group(1).strip())
+                            break
+            except FileNotFoundError as e:
+                uCMS.log_debug(e)
+                pass
+
+        suspects_length = len(suspects)
+
+        if suspects_length == 0:
+            log.print_cms("alert", "[-] DRUPAL version not found. Search manually !", "", 0)
+            return "", None
+
+        elif suspects_length == 1:
+            log.print_cms("info", "[+] DRUPAL version used : " + suspects[0], "", 0)
+            self.core_details["infos"]["version"] = suspects[0]
+            return "", None
+
+        else:
+            for suspect in suspects:
+                log.print_cms("alert", "[-] Multiple DRUPAL version found." + suspect + " You "
+                              "should probably check by yourself manually !", "", 0)
+            return "", None
 
     def get_addon_version(self, addon, addon_path, version_file_regexp):
         version = ""
@@ -750,8 +768,8 @@ class DPL (CMS):
                       , "", 0)
 
         # Check current CMS version
-        _, err = self.get_core_version(dir_path, re.compile("define\('VERSION', '(.*)'\);"),
-                                       "includes/bootstrap.inc")
+        _, err = self.get_core_version(dir_path)
+
         # Get the last released version
         _, err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/",
                                             self.core_details["infos"]["version"])

@@ -120,7 +120,7 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.1")
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.2")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
@@ -172,13 +172,19 @@ class TestDrupalAnalysis(unittest.TestCase):
     def setUp(self):
         self.cms = dCMS.DPL()
         self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
-                                     "drupal")
+                                     "drupal", "drupal-7.X")
 
-    def test_get_core_version(self):
-        regex = re.compile("define\('VERSION', '(.*)'\);")
-        self.cms.get_core_version(self.dir_path, regex, "includes/bootstrap.inc")
+    def test_get_core_version_DPL7(self):
+        self.cms.get_core_version(self.dir_path)
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "7.56")
+
+    def test_get_core_versionDPL8(self):
+        dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
+                                "drupal", "drupal-8.X")
+        self.cms.get_core_version(dir_path)
+
+        self.assertEqual(self.cms.core_details["infos"]["version"], "8.3.7")
 
     def test_get_addon_version(self):
         regex = re.compile("version = (.*)")
@@ -219,7 +225,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
         uCMS.TempDir.delete_all()
 
-        self.assertIn(dataset.addon_dpl_stage2["alterations"][0]["file"], "LICENSE.txt")
+        self.assertIn("media_youtube.test", dataset.addon_dpl_stage2["alterations"][0]["file"])
 
     def test_check_vulns_core(self):
         pass
