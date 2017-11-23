@@ -25,8 +25,8 @@ def log_debug(msg):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS and plugins used.")
-    parser.add_argument("-d", "--dir", dest="dir", help="CMS root directory")
-    parser.add_argument("-c", "--cms", dest="cms", help="CMS type (drupal, wordpress)")
+    parser.add_argument("-d", "--dir", dest="dir", required=True, help="CMS root directory")
+    parser.add_argument("-c", "--cms", dest="cms", required=True, help="CMS type (drupal, wordpress)")
     parser.add_argument("-o", "--output", metavar="FILE", default="output.XLSX",
                         help="Path to output file")
     parser.add_argument("-t", "--type", metavar="TYPE", default="XLSX",
@@ -40,6 +40,8 @@ def parse_args():
     parser.add_argument("--no-color", dest="no_color", default=False, action="store_true",
                         help="Do not use colors in the output.")
     parser.add_argument("-f","--file", dest="conf", help="Configuration file. See example.conf.")
+    parser.add_argument("--wp-content", dest="wp_content", help="Set this to force the wp-content "
+                        "directory location.")
     args = parser.parse_args()
 
     args_dict = {}
