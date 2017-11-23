@@ -90,14 +90,14 @@ class CMS:
 class WP (CMS):
     """ WordPress object """
 
-    def __init__(self):
+    def __init__(self, wp_content):
         super().__init__()
         self.site_url = "https://wordpress.org/"
         self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_addon_url = "https://downloads.wordpress.org/plugin/"
         self.cve_ref_url = "https://wpvulndb.com/api/v2/"
-        self.wp_content = ""
+        self.wp_content = wp_content
         self.core_details = {
                                 "infos": {
                                             "version":"",
@@ -460,7 +460,8 @@ class WP (CMS):
         , "", 0)
 
         # Get the list of addon to work with
-        self.wp_content = self.get_wp_content(dir_path)[0]
+        if self.wp_content == "":
+            self.wp_content = self.get_wp_content(dir_path)[0]
 
         addons_paths = {
                        "standard": os.path.join(self.wp_content, addon_type)

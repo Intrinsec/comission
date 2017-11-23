@@ -26,11 +26,16 @@ def main():
 
     dir_path = args["dir"]
 
-    # Verify if the CMS is the really the one given by the user
+    wp_content = ""
+
+    if args["wp_content"]:
+        wp_content = args["wp_content"]
+
+    # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.WP()
+        cms = dCMS.WP(wp_content)
 
     elif args["cms"] == "drupal":
         to_check = ["includes", "modules", "scripts", "themes"]
