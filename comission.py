@@ -28,7 +28,7 @@ def main():
 
     wp_content = ""
 
-    if args["wp_content"]:
+    if wp_content in args:
         wp_content = args["wp_content"]
 
     # Verify if the CMS is really the one given by the user
