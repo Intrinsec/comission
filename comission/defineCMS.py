@@ -100,8 +100,7 @@ class WP (CMS):
         self.wp_content = wp_content
         self.core_details = {
                                 "infos": {
-                                            "version":"",
-                                            "last_version":""
+                                            "version":"", "last_version":"", "version_major":""
                                          },
                                 "alterations":[],
                                 "vulns":[]
@@ -152,6 +151,7 @@ class WP (CMS):
                         version_core = version_core_match.group(1).strip()
                         log.print_cms("info", "[+] WordPress version used : " + version_core, "", 0)
                         self.core_details["infos"]["version"] = version_core
+                        self.core_details["infos"]["version_major"] = version_core.split(".")[0]
                         break
 
         except FileNotFoundError as e:
@@ -546,7 +546,7 @@ class DPL (CMS):
         self.plugin_path = ""
         self.core_details = {
                                 "infos": {
-                                            "version":"", "last_version":""
+                                            "version":"", "last_version":"","version_major":""
                                          },
                                 "alterations": [], "vulns":[]
                             }
@@ -582,6 +582,7 @@ class DPL (CMS):
         elif suspects_length == 1:
             log.print_cms("info", "[+] DRUPAL version used : " + suspects[0], "", 0)
             self.core_details["infos"]["version"] = suspects[0]
+            self.core_details["infos"]["version_major"] = suspects[0].split(".")[0]
             return "", None
 
         else:
@@ -612,7 +613,7 @@ class DPL (CMS):
 
     def get_core_last_version(self, url, version_core):
         last_version_core = ""
-        major = version_core.split(".")[0]
+        major = self.core_details["infos"]["version_major"]
         url_release = url + major + ".x"
 
         try:
@@ -794,6 +795,12 @@ class DPL (CMS):
                       + "\n\t\t" + addon_type + " analysis"
                       + "\n#######################################################"
                       , "", 0)
+
+        if self.core_details["infos"]["version_major"] == "7":
+            self.addons_path = "sites/all/"
+
+        elif self.core_details["infos"]["version_major"] == "8":
+            self.addons_path = "/"
 
         # Get the list of addon to work with
         if addon_type == "plugins":
