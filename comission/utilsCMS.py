@@ -42,6 +42,8 @@ def parse_args():
     parser.add_argument("-f","--file", dest="conf", help="Configuration file. See example.conf.")
     parser.add_argument("--wp-content", dest="wp_content", help="Set this to force the wp-content "
                         "directory location.")
+    parser.add_argument("--major", dest="version_major", help="Specify the core major version (eg. "
+                                                                "7, 8) when using --skip-core arg.")
     args = parser.parse_args()
 
     args_dict = {}
