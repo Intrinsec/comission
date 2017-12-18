@@ -26,10 +26,10 @@ class DataSet:
                                 "version":"", "notes":"", "mu":"NO"
                                }
         self.addon_wp_stage2 = {
-                             "type":"plugins","name":"w3-total-cache", "last_version":"",
-                             "last_release_date":"", "link":"", "version":"0.9.4.1",
-                             "notes":"", "mu":"NO", "alterations": []
-                            }
+                                "type":"plugins","name":"w3-total-cache", "last_version":"",
+                                "last_release_date":"", "link":"", "version":"0.9.4.1",
+                                "notes":"", "mu":"NO", "alterations": []
+                               }
 
         # Dataset specific to Drupal analysis
         self.addon_dpl_stage1 = {
@@ -37,21 +37,20 @@ class DataSet:
                                  "notes":""
                                 }
         self.addon_dpl_stage2 = {
-                             "type":"plugins","name":"media_youtube", "last_version":"",
-                             "last_release_date":"", "link":"", "version":"7.x-3.4",
-                             "notes":"", "alterations": []
-                            }
+                                 "type":"plugins","name":"media_youtube", "last_version":"",
+                                 "last_release_date":"", "link":"", "version":"7.x-3.4",
+                                 "notes":"", "alterations": []
+                                }
 
         self.alteration = {
-                        "status":"todo","target":"", "file":"", "type":""
-                    }
+                           "status":"todo","target":"", "file":"", "type":""
+                          }
         self.vuln = {
-                "name": "Vuln name", "link": "", "type": "",
-                "poc": "",  "fixed_in": ""
-                }
+                     "name": "Vuln name", "link": "", "type": "", "poc": "",  "fixed_in": ""
+                    }
         self.core_details = {
                         "infos": {
-                                    "version":"4.5.1", "last_version":"4.8"
+                                    "version":"4.5.1", "last_version":"4.8", "version_major":"4"
                                 },
                         "alterations": [self.alteration, self.alteration, self.alteration],
                         "vulns": [self.vuln, self.vuln, self.vuln]
@@ -196,6 +195,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.assertEqual(dataset.addon_dpl_stage1["version"], "7.x-2.3")
 
     def test_get_core_last_version(self):
+        self.cms.core_details["infos"]["version_major"] = "7"
         self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.56")
 
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "7.56")
