@@ -85,7 +85,7 @@ class DataSet:
 
 class TestWordPressAnalysis(unittest.TestCase):
     def setUp(self):
-        self.cms = dCMS.WP()
+        self.cms = dCMS.WP("")
         self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
                                      "wordpress")
 
@@ -119,15 +119,15 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.8.2")
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.9.1")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.5.4")
-        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2017-04-26")
+        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.6")
+        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2017-12-11")
         self.assertEqual(dataset.addon_wp_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
 
     def test_check_core_alteration(self):
@@ -205,8 +205,8 @@ class TestDrupalAnalysis(unittest.TestCase):
 
         self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
 
-        self.assertEqual(dataset.addon_dpl_stage2["last_version"], "7.x-3.5")
-        self.assertEqual(dataset.addon_dpl_stage2["last_release_date"], "14 August 2017")
+        self.assertEqual(dataset.addon_dpl_stage2["last_version"], "7.x-3.6")
+        self.assertEqual(dataset.addon_dpl_stage2["last_release_date"], "17 December 2017")
         self.assertEqual(dataset.addon_dpl_stage2["link"], "https://www.drupal.org/project/media_youtube/releases")
 
     def test_check_core_alteration(self):
