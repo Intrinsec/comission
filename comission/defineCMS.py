@@ -628,7 +628,7 @@ class DPL (CMS):
                 self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
-            msg = "Unable to retrieve last wordpress version. Search manually !"
+            msg = "Unable to retrieve last drupal version. Search manually !"
             log.print_cms("alert", "[-] " + msg, "", 1)
             return "", e
         return last_version_core, None
