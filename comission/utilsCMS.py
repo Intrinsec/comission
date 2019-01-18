@@ -75,8 +75,8 @@ def verify_path(dir_path, to_check):
 
 def fetch_addons(input, type):
     if not os.path.exists(input):
-        Log.print_cms("alert", "Plugins path does not exist !", "", 0)
-        exit(-1)
+        Log.print_cms("alert", "[+] Plugins path {} does not exist ! (it may be normal)".format(input), "", 0)
+        return []
     if type == "standard":
         plugins_name = next(os.walk(input))[1]
     elif type == "mu":
