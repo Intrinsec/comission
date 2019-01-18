@@ -81,6 +81,10 @@ def main():
         # Generate result file
         result_json.generate_json()
 
+    elif args["type"] == "STDOUT":
+        # Do nothing
+        pass
+
     else:
         log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
