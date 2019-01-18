@@ -1,6 +1,6 @@
-openpyxl==2.4.8
-checksumdir==1.1.4
-lxml==3.8.0
-requests==2.18.1
-beautifulsoup4==4.6.0
-xlsxwriter==1.0.0
+openpyxl==2.5.12
+checksumdir==1.1.5
+lxml==4.3.0
+requests==2.21.0
+beautifulsoup4==4.7.1
+xlsxwriter==1.1.2
