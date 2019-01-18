@@ -267,7 +267,7 @@ class WP (CMS):
 
         if alterations is not None:
             msg = "[+] For further analysis, archive downloaded here : " + clean_core_path
-            log.print_cms("info", msg, "", 1)
+            log.print_cms("info", msg, "", 0)
 
         return alterations, None
 
@@ -335,31 +335,33 @@ class WP (CMS):
                 vulns = page_json[version_core]["vulnerabilities"]
                 log.print_cms("info", "[+] CVE list" , "", 1)
 
-                for vuln in vulns:
+                if len(vulns) > 0:
+                    for vuln in vulns:
 
-                    vuln_details = {
-                                    "name": "", "link": "", "type": "", "poc": "",  "fixed_in": ""
-                                    }
+                        vuln_details = {
+                                        "name": "", "link": "", "type": "", "poc": "",  "fixed_in": ""
+                                        }
 
-                    vuln_url = url_details + str(vuln["id"])
+                        vuln_url = url_details + str(vuln["id"])
 
-                    vuln_details["name"] = vuln["title"]
-                    vuln_details["link"] = vuln_url
-                    vuln_details["type"] = vuln["vuln_type"]
-                    vuln_details["poc"] = "CHECK"
-                    vuln_details["fixed_in"] = vuln["fixed_in"]
+                        vuln_details["name"] = vuln["title"]
+                        vuln_details["link"] = vuln_url
+                        vuln_details["type"] = vuln["vuln_type"]
+                        vuln_details["poc"] = "CHECK"
+                        vuln_details["fixed_in"] = vuln["fixed_in"]
 
-                    if uCMS.get_poc(vuln_url):
-                        vuln_details["poc"] = "YES"
+                        if uCMS.get_poc(vuln_url):
+                            vuln_details["poc"] = "YES"
 
-                    log.print_cms("alert", vuln["title"], "", 1)
-                    log.print_cms("info", "[+] Fixed in version " + str(vuln["fixed_in"]), "", 1)
+                        log.print_cms("alert", vuln["title"], "", 1)
+                        log.print_cms("info", "[+] Fixed in version " + str(vuln["fixed_in"]), "", 1)
 
-                    vulns_details.append(vuln_details)
+                        vulns_details.append(vuln_details)
+                else:
+                    log.print_cms("good", "No CVE were found", "", 1)
 
         except requests.exceptions.HTTPError as e:
-            msg = "No entry on wpvulndb."
-            log.print_cms("info", "[+] " + msg, "", 1)
+            log.print_cms("info", "No entry on wpvulndb.", "", 1)
             return "", e
         return vulns_details, None
 
@@ -454,7 +456,7 @@ class WP (CMS):
         addons = []
 
         log.print_cms("info",
-        "#######################################################" \
+        "\n#######################################################" \
         + "\n\t\t" + addon_type + " analysis" \
         + "\n#######################################################" \
         , "", 0)
