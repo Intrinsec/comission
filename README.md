@@ -76,6 +76,11 @@ docker run -it --rm -v /TARGET_PATH/:/cms_path/ -v /OUTPUT_DIR/:/output/ isec/co
 ```
 Be careful to change the path "TARGET_PATH" and "OUTPUT_DIR" to match your folders.
 
+## Tests
+
+Unit tests are available in `tests` folder.
+
+
 ## Author
 
 **Paul Mars** (Intrinsec)
