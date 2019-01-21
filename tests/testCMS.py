@@ -85,9 +85,9 @@ class DataSet:
 
 class TestWordPressAnalysis(unittest.TestCase):
     def setUp(self):
-        self.cms = dCMS.WP("")
         self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
                                      "wordpress")
+        self.cms = dCMS.WP(self.dir_path, "", "", "")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)
@@ -119,15 +119,15 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "4.9.1")
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.0.3")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.6")
-        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2017-12-11")
+        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.7")
+        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2018-04-25")
         self.assertEqual(dataset.addon_wp_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
 
     def test_check_core_alteration(self):
@@ -146,7 +146,11 @@ class TestWordPressAnalysis(unittest.TestCase):
 
         uCMS.TempDir.delete_all()
 
-        self.assertIn(dataset.addon_wp_stage2["alterations"][0]["file"], "readme.txt")
+        altered_files = []
+        for alteration in dataset.addon_wp_stage2["alterations"]:
+            altered_files.append(alteration["file"])
+
+        self.assertIn("readme.txt", altered_files)
 
     def test_check_vulns_core(self):
         pass
