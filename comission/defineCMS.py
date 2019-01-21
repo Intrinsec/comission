@@ -271,7 +271,7 @@ class WP (CMS):
 
         return alterations, None
 
-    def check_addon_alteration(self, addon, dir_path, temp_directory):
+    def check_addon_alteration(self, addon, addon_path, temp_directory):
         addon_url = "{}{}.{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
 
         if addon["version"] == "trunk":
@@ -288,8 +288,7 @@ class WP (CMS):
                 zip_file.extractall(temp_directory)
                 zip_file.close()
 
-                project_dir = os.path.join(dir_path, self.wp_content, "plugins", addon["name"])
-                project_dir_hash = dirhash(project_dir, 'sha1')
+                project_dir_hash = dirhash(addon_path, 'sha1')
                 ref_dir = os.path.join(temp_directory, addon["name"])
                 ref_dir_hash = dirhash(ref_dir, 'sha1')
 
@@ -302,8 +301,8 @@ class WP (CMS):
 
                     ignored = ["css", "img", "js", "fonts", "images"]
 
-                    dcmp = dircmp(project_dir, ref_dir, ignored)
-                    uCMS.diff_files(dcmp, addon["alterations"], project_dir)
+                    dcmp = dircmp(addon_path, ref_dir, ignored)
+                    uCMS.diff_files(dcmp, addon["alterations"], addon_path)
 
                 addon["edited"] = altered
 
@@ -518,7 +517,7 @@ class WP (CMS):
                     continue
 
                 # Check if the addon have been altered
-                _, err = self.check_addon_alteration(addon, dir_path, temp_directory)
+                _, err = self.check_addon_alteration(addon, addon_path, temp_directory)
                 if err is not None:
                     addons.append(addon)
                     continue
