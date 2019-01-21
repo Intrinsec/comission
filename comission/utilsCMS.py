@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import random
-import string
-import shutil
-import requests
-import datetime
 import argparse
-import tempfile
 import configparser
+import datetime
+import os
+import random
+import shutil
+import string
+import sys
+import tempfile
 
+import requests
 from bs4 import BeautifulSoup
 
 debug = True
@@ -41,6 +41,10 @@ def parse_args():
                         help="Do not use colors in the output.")
     parser.add_argument("-f","--file", dest="conf", help="Configuration file. See example.conf.")
     parser.add_argument("--wp-content", dest="wp_content", help="Set this to force the wp-content "
+                        "directory location.")
+    parser.add_argument("--plugins-dir", dest="plugins_dir", help="Set this to force the plugins "
+                        "directory location.")
+    parser.add_argument("--themes-dir", dest="themes_dir", help="Set this to force the themes "
                         "directory location.")
     parser.add_argument("--major", dest="version_major", help="Specify the core major version (eg. "
                                                                 "7, 8) when using --skip-core arg.")

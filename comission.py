@@ -27,20 +27,28 @@ def main():
     dir_path = args["dir"]
 
     wp_content = ""
+    plugins_dir = ""
+    themes_dir = ""
 
-    if wp_content in args:
+    if "wp_content" in args:
         wp_content = args["wp_content"]
+
+    if "plugins_dir" in args:
+        plugins_dir = args["plugins_dir"]
+
+    if "themes_dir" in args:
+        themes_dir = args["themes_dir"]
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.WP(wp_content)
+        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir)
 
     elif args["cms"] == "drupal":
         to_check = ["includes", "modules", "scripts", "themes"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.DPL()
+        cms = dCMS.DPL(dir_path)
 
     else:
         log.print_cms("alert", "CMS unknown or unsupported !", "", 0)
@@ -48,15 +56,15 @@ def main():
 
     # Analyse the core
     if not args["skip_core"]:
-        cms.core_analysis(dir_path)
+        cms.core_analysis()
 
     # Analyse plugins
     if not args["skip_plugins"]:
-        cms.addon_analysis(dir_path, "plugins")
+        cms.addon_analysis("plugins")
 
     # Analyse themes
     if not args["skip_themes"]:
-        cms.addon_analysis(dir_path, "themes")
+        cms.addon_analysis("themes")
 
     # Save results to a file
     if args["type"] == "CSV" and args["output"]:
