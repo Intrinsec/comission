@@ -7,4 +7,4 @@ before_script:
 
 unittests:
   script:
-  - python3 manage.py test
+  - python3 tests/testCMS.py
