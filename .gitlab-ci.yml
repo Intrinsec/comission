@@ -1,4 +1,4 @@
-image: python:3-alpine
+image: python:3-stretch
 
 before_script:
   - apt-get update -qy
