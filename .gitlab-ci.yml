@@ -1,3 +1,5 @@
+image: python:3-alpine
+
 before_script:
   - apt-get update -qy
   - apt-get install -y python3-dev python3-pip
