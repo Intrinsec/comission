@@ -102,7 +102,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_get_core_version(self):
         regex = re.compile("\$wp_version = '(.*)';")
-        self.cms.get_core_version(self.dir_path, regex, "wp-includes/version.php")
+        self.cms.get_core_version(regex, "wp-includes/version.php")
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "4.5.1")
 
@@ -132,7 +132,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-        alterations, err = self.cms.check_core_alteration(self.dir_path, download_core_url)
+        alterations, err = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
 
@@ -173,9 +173,9 @@ class TestWordPressAnalysis(unittest.TestCase):
 
 class TestDrupalAnalysis(unittest.TestCase):
     def setUp(self):
-        self.cms = dCMS.DPL()
         self.dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-data-set",
                                      "drupal", "drupal-7.X")
+        self.cms = dCMS.DPL(self.dir_path)
 
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version(self.dir_path)
@@ -200,17 +200,17 @@ class TestDrupalAnalysis(unittest.TestCase):
 
     def test_get_core_last_version(self):
         self.cms.core_details["infos"]["version_major"] = "7"
-        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.56")
+        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.63")
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "7.56")
+        self.assertEqual("7.63", self.cms.core_details["infos"]["last_version"])
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
 
-        self.assertEqual(dataset.addon_dpl_stage2["last_version"], "7.x-3.6")
-        self.assertEqual(dataset.addon_dpl_stage2["last_release_date"], "17 December 2017")
+        self.assertEqual("7.x-3.7", dataset.addon_dpl_stage2["last_version"])
+        self.assertEqual("17 February 2018", dataset.addon_dpl_stage2["last_release_date"])
         self.assertEqual(dataset.addon_dpl_stage2["link"], "https://www.drupal.org/project/media_youtube/releases")
 
     def test_check_core_alteration(self):
@@ -229,7 +229,11 @@ class TestDrupalAnalysis(unittest.TestCase):
 
         uCMS.TempDir.delete_all()
 
-        self.assertIn("media_youtube.test", dataset.addon_dpl_stage2["alterations"][0]["file"])
+        altered_files = []
+        for alteration in dataset.addon_dpl_stage2["alterations"]:
+            altered_files.append(alteration["file"])
+
+        self.assertIn("media_youtube.test", altered_files)
 
     def test_check_vulns_core(self):
         pass
