@@ -825,7 +825,7 @@ class DPL(CMS):
             "INSTALL.mysql.txt",
             "INSTALL.pgsql.txt",
             "INSTALL.sqlite.txt",
-            "UPGRADE.txt",
+            "UPGRADE.txt"
         ]
 
         temp_directory = uCMS.TempDir.create()
