@@ -5,6 +5,7 @@ __pycache__
 # Dev stuff
 dev-build.sh
 .idea
+venv
 
 # Tests stuff
 test.*
