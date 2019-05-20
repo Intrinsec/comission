@@ -29,6 +29,7 @@ def main():
     wp_content = ""
     plugins_dir = ""
     themes_dir = ""
+    wpvulndb_token = ""
 
     if "wp_content" in args:
         wp_content = args["wp_content"]
@@ -38,6 +39,9 @@ def main():
 
     if "themes_dir" in args:
         themes_dir = args["themes_dir"]
+
+    if "wpvulndb_token" in args:
+        wpvulndb_token = args["wpvulndb_token"]
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":

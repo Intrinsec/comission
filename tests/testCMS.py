@@ -132,7 +132,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "wordpress"
         )
-        self.cms = dCMS.WP(self.dir_path, "", "", "")
+        self.cms = dCMS.WP(self.dir_path, "", "", "", "")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)

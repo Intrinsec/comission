@@ -52,6 +52,8 @@ usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip
   -f CONF, --file CONF  Configuration file. See example.conf.
 ```
 
+:fire: In order to get vulnerabilities for WordPress, you have to set the `--wpvulndb_token` arg. You can get one with an account on [wpvulndb](https://wpvulndb.com/)
+
 You can provide a configuration file. See `example.conf` for reference.
 
 ## CMS supported

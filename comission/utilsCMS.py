@@ -96,6 +96,11 @@ def parse_args():
         dest="version_major",
         help="Specify the core major version (eg. " "7, 8) when using --skip-core arg.",
     )
+    parser.add_argument(
+        "--wpvulndb_token",
+        dest="wpvulndb_token",
+        help="Set a token to request wpvulndb API.",
+    )
     args = parser.parse_args()
 
     args_dict = {}

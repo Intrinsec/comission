@@ -90,17 +90,18 @@ class CMS:
 class WP(CMS):
     """ WordPress object """
 
-    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir):
+    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token):
         super().__init__()
         self.site_url = "https://wordpress.org/"
         self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_addon_url = "https://downloads.wordpress.org/plugin/"
-        self.cve_ref_url = "https://wpvulndb.com/api/v2/"
+        self.cve_ref_url = "https://wpvulndb.com/api/v3/"
         self.dir_path = dir_path
         self.wp_content = wp_content
         self.plugins_dir = plugins_dir
         self.themes_dir = themes_dir
+        self.wpvulndb_token = wpvulndb_token
         self.core_details = {
             "infos": {"version": "", "last_version": "", "version_major": ""},
             "alterations": [],
@@ -383,9 +384,11 @@ class WP(CMS):
         version = version_core.replace(".", "")
         url = "{}wordpresses/{}".format(self.cve_ref_url, version)
         url_details = "https://wpvulndb.com/vulnerabilities/"
+        token_header = "Token token={}".format(self.wpvulndb_token)
+        headers = {"Authorization": token_header}
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
 
             if response.status_code == 200:
