@@ -232,7 +232,7 @@ class TestDrupalAnalysis(unittest.TestCase):
             "drupal",
             "drupal-7.X",
         )
-        self.cms = dCMS.DPL(self.dir_path)
+        self.cms = dCMS.DPL(self.dir_path, "", "")
 
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version(self.dir_path)

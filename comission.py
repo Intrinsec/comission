@@ -47,12 +47,12 @@ def main():
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir)
+        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
 
     elif args["cms"] == "drupal":
         to_check = ["includes", "modules", "scripts", "themes"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.DPL(dir_path)
+        cms = dCMS.DPL(dir_path, plugins_dir, themes_dir)
 
     else:
         log.print_cms("alert", "CMS unknown or unsupported !", "", 0)
