@@ -119,15 +119,15 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version(self.cms.site_api)
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.0.3")
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.7")
-        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2018-04-25")
+        self.assertEqual(dataset.addon_wp_stage2["last_version"], "0.9.7.4")
+        self.assertEqual(dataset.addon_wp_stage2["last_release_date"], "2019-05-06")
         self.assertEqual(dataset.addon_wp_stage2["link"], "https://wordpress.org/plugins/w3-total-cache/")
 
     def test_check_core_alteration(self):
@@ -202,15 +202,15 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.cms.core_details["infos"]["version_major"] = "7"
         self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.63")
 
-        self.assertEqual("7.63", self.cms.core_details["infos"]["last_version"])
+        self.assertEqual("7.67", self.cms.core_details["infos"]["last_version"])
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
 
-        self.assertEqual("7.x-3.7", dataset.addon_dpl_stage2["last_version"])
-        self.assertEqual("17 February 2018", dataset.addon_dpl_stage2["last_release_date"])
+        self.assertEqual("7.x-3.8", dataset.addon_dpl_stage2["last_version"])
+        self.assertEqual("14 February 2019", dataset.addon_dpl_stage2["last_release_date"])
         self.assertEqual(dataset.addon_dpl_stage2["link"], "https://www.drupal.org/project/media_youtube/releases")
 
     def test_check_core_alteration(self):
