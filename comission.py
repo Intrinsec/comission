@@ -14,7 +14,7 @@ def main():
 
     if "conf" in args:
         config = uCMS.parse_conf(args["conf"])
-        args = {**config,**args}
+        args = {**config, **args}
 
     # Colored output ?
     if args["no_color"]:
@@ -94,11 +94,14 @@ def main():
         pass
 
     else:
-        log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
+        log.print_cms(
+            args.no_color, "alert", "Output type unknown or missing filename !", "", 0
+        )
         sys.exit()
 
     # Keep or clean temp dir
     uCMS.TempDir.ask_delete_tmp()
+
 
 if __name__ == "__main__":
     main()
