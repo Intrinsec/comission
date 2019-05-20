@@ -136,8 +136,8 @@ class WP(CMS):
                 for path in suspects:
                     log.print_cms("info", "[+] " + path, "", 1)
             # If none where found, fallback to default one
-            if len(suspects) == 0:
-                suspects.append("wp-content")
+        if len(suspects) == 0:
+            suspects.append("wp-content")
         return suspects
 
     def get_addon_main_file(self, addon, addon_path):
