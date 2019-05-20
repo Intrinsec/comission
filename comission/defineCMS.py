@@ -6,6 +6,7 @@ import re
 import zipfile
 from distutils.version import LooseVersion
 from filecmp import dircmp
+from typing import List, Tuple, Union, Dict, Pattern
 
 import requests
 from checksumdir import dirhash
@@ -122,7 +123,7 @@ class WP(CMS):
         if self.themes_dir == "":
             self.themes_dir = os.path.join(self.dir_path, self.wp_content, "themes")
 
-    def get_wp_content(self, dir_path):
+    def get_wp_content(self, dir_path: str) -> List:
         tocheck = ["plugins", "themes"]
         suspects = []
         for dirname in next(os.walk(dir_path))[1]:
@@ -143,7 +144,7 @@ class WP(CMS):
             suspects.append("wp-content")
         return suspects
 
-    def get_addon_main_file(self, addon, addon_path):
+    def get_addon_main_file(self, addon, addon_path) -> List:
         if addon["type"] == "themes":
             addon["filename"] = "style.css"
 
@@ -166,9 +167,11 @@ class WP(CMS):
                 # If no file found, put a random name to trigger an error later
                 addon["filename"] = "nofile"
 
-        return addon["filename"], None
+        return addon["filename"]
 
-    def get_core_version(self, version_core_regexp, cms_path):
+    def get_core_version(
+        self, version_core_regexp, cms_path
+    ) -> Tuple[str, Union[None, FileNotFoundError]]:
         try:
             with open(os.path.join(self.dir_path, cms_path)) as version_file:
                 version_core = ""
@@ -195,7 +198,9 @@ class WP(CMS):
             return "", e
         return version_core, None
 
-    def get_addon_version(self, addon, addon_path, version_file_regexp):
+    def get_addon_version(
+        self, addon: Dict, addon_path: str, version_file_regexp: Pattern
+    ) -> Tuple[str, Union[None, FileNotFoundError]]:
         try:
             path = os.path.join(addon_path, addon["filename"])
             with open(path, encoding="utf8") as addon_info:
@@ -214,7 +219,9 @@ class WP(CMS):
             return "", e
         return version, None
 
-    def get_core_last_version(self, url):
+    def get_core_last_version(
+        self, url: str
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         last_version_core = ""
         try:
             response = requests.get(url)
@@ -235,7 +242,9 @@ class WP(CMS):
             return "", e
         return last_version_core, None
 
-    def get_addon_last_version(self, addon):
+    def get_addon_last_version(
+        self, addon: Dict
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         if addon["type"] == "plugins":
             releases_url = "https://wordpress.org/plugins/{}/".format(addon["name"])
             version_web_regexp = re.compile('"softwareVersion": "(.*)"')
@@ -284,7 +293,9 @@ class WP(CMS):
             return "", e
         return addon["last_version"], None
 
-    def check_core_alteration(self, core_url):
+    def check_core_alteration(
+        self, core_url: str
+    ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
         alterations = []
         ignored = [
             ".git",
@@ -328,7 +339,9 @@ class WP(CMS):
 
         return alterations, None
 
-    def check_addon_alteration(self, addon, addon_path, temp_directory):
+    def check_addon_alteration(
+        self, addon: Dict, addon_path: str, temp_directory: str
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         addon_url = "{}{}.{}.zip".format(
             self.download_addon_url, addon["name"], addon["version"]
         )
@@ -337,6 +350,7 @@ class WP(CMS):
             addon_url = "{}{}.zip".format(self.download_addon_url, addon["name"])
 
         log.print_cms("default", "To download the addon: " + addon_url, "", 1)
+        altered = ""
 
         try:
             response = requests.get(addon_url)
@@ -379,7 +393,9 @@ class WP(CMS):
 
         return altered, None
 
-    def check_vulns_core(self, version_core):
+    def check_vulns_core(
+        self, version_core: str
+    ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
         vulns_details = []
         version = version_core.replace(".", "")
         url = "{}wordpresses/{}".format(self.cve_ref_url, version)
@@ -436,8 +452,10 @@ class WP(CMS):
             return "", e
         return vulns_details, None
 
-    def check_vulns_addon(self, addon):
-        vulns = ""
+    def check_vulns_addon(
+        self, addon: Dict
+    ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
+        vulns = []
         url_details = "https://wpvulndb.com/vulnerabilities/"
         token_header = "Token token={}".format(self.wpvulndb_token)
         headers = {"Authorization": token_header}
@@ -482,7 +500,7 @@ class WP(CMS):
 
                             addon["vulns"].append(vuln_details)
 
-                    except (TypeError, AttributeError) as e:
+                    except (TypeError, AttributeError):
                         log.print_cms(
                             "alert",
                             "Unable to compare version. Please check this "
@@ -514,7 +532,7 @@ class WP(CMS):
             return "", e
         return vulns, None
 
-    def core_analysis(self):
+    def core_analysis(self) -> Dict:
         log.print_cms(
             "info",
             "#######################################################"
@@ -544,7 +562,7 @@ class WP(CMS):
 
         return self.core_details
 
-    def addon_analysis(self, addon_type):
+    def addon_analysis(self, addon_type: str) -> List:
         temp_directory = uCMS.TempDir.create()
         addons = []
 
@@ -603,10 +621,7 @@ class WP(CMS):
                 log.print_cms("info", "[+] " + addon_name, "", 0)
 
                 # Check addon main file
-                _, err = self.get_addon_main_file(addon, addon_path)
-                if err is not None:
-                    addons.append(addon)
-                    continue
+                self.get_addon_main_file(addon, addon_path)
 
                 # Get addon version
                 _, err = self.get_addon_version(
