@@ -26,49 +26,49 @@ class CMS:
         self.core_details = {"infos": [], "alterations": [], "vulns": []}
         self.plugins = []
 
-    def get_core_version(self):
+    def get_core_version(self, version_core_regexp, cms_path):
         """
         Get the CMS core version
         """
         raise NotImplemented
 
-    def get_addon_version(self):
+    def get_addon_version(self, addon, addon_path, version_file_regexp):
         """
         Get a plugin version
         """
         raise NotImplemented
 
-    def get_core_last_version(self):
+    def get_core_last_version(self, url):
         """
         Get the last released of the CMS
         """
         raise NotImplemented
 
-    def get_addon_last_version(self):
+    def get_addon_last_version(self, addon):
         """
         Get the last released of the plugin and the date
         """
         raise NotImplemented
 
-    def check_core_alteration(self):
+    def check_core_alteration(self, core_url):
         """
         Check if the core have been altered
         """
         raise NotImplemented
 
-    def check_addon_alteration(self):
+    def check_addon_alteration(self, addon, addon_path, temp_directory):
         """
         Check if the plugin have been altered
         """
         raise NotImplemented
 
-    def check_vulns_core(self):
+    def check_vulns_core(self, version_core):
         """
         Check if there are any vulns on the CMS core used
         """
         raise NotImplemented
 
-    def check_vulns_addon(self):
+    def check_vulns_addon(self, addon):
         """
         Check if there are any vulns on the plugin
         """
@@ -80,7 +80,7 @@ class CMS:
         """
         raise NotImplemented
 
-    def addon_analysis(self):
+    def addon_analysis(self, addon_type):
         """
         CMS plugin analysis, return a list of dict
         """
@@ -90,17 +90,18 @@ class CMS:
 class WP(CMS):
     """ WordPress object """
 
-    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir):
+    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token):
         super().__init__()
         self.site_url = "https://wordpress.org/"
         self.site_api = "https://api.wordpress.org/core/version-check/1.7/"
         self.download_core_url = "https://wordpress.org/wordpress-"
         self.download_addon_url = "https://downloads.wordpress.org/plugin/"
-        self.cve_ref_url = "https://wpvulndb.com/api/v2/"
+        self.cve_ref_url = "https://wpvulndb.com/api/v3/"
         self.dir_path = dir_path
         self.wp_content = wp_content
         self.plugins_dir = plugins_dir
         self.themes_dir = themes_dir
+        self.wpvulndb_token = wpvulndb_token
         self.core_details = {
             "infos": {"version": "", "last_version": "", "version_major": ""},
             "alterations": [],
@@ -197,7 +198,7 @@ class WP(CMS):
     def get_addon_version(self, addon, addon_path, version_file_regexp):
         try:
             path = os.path.join(addon_path, addon["filename"])
-            with open(path) as addon_info:
+            with open(path, encoding="utf8") as addon_info:
                 version = ""
                 for line in addon_info:
                     version = version_file_regexp.search(line)
@@ -383,9 +384,11 @@ class WP(CMS):
         version = version_core.replace(".", "")
         url = "{}wordpresses/{}".format(self.cve_ref_url, version)
         url_details = "https://wpvulndb.com/vulnerabilities/"
+        token_header = "Token token={}".format(self.wpvulndb_token)
+        headers = {"Authorization": token_header}
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
 
             if response.status_code == 200:
@@ -434,12 +437,15 @@ class WP(CMS):
         return vulns_details, None
 
     def check_vulns_addon(self, addon):
-        cve = ""
+        vulns = ""
         url_details = "https://wpvulndb.com/vulnerabilities/"
+        token_header = "Token token={}".format(self.wpvulndb_token)
+        headers = {"Authorization": token_header}
+
         try:
             url = "{}plugins/{}".format(self.cve_ref_url, addon["name"])
 
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
 
             if response.status_code == 200:
@@ -506,7 +512,7 @@ class WP(CMS):
             log.print_cms("info", "[+] " + msg, "", 1)
             addon["cve"] = "NO"
             return "", e
-        return cve, None
+        return vulns, None
 
     def core_analysis(self):
         log.print_cms(
@@ -552,6 +558,8 @@ class WP(CMS):
             "",
             0,
         )
+
+        addons_paths = {}
 
         if addon_type == "plugins":
             addons_paths = {
@@ -639,7 +647,7 @@ class WP(CMS):
 class DPL(CMS):
     """ DRUPAL object """
 
-    def __init__(self, dir_path):
+    def __init__(self, dir_path, plugins_dir, themes_dir):
         super().__init__()
         self.site_url = "https://www.drupal.org"
         self.download_core_url = "https://ftp.drupal.org/files/projects/drupal-"
@@ -647,8 +655,8 @@ class DPL(CMS):
         self.cve_ref_url = ""
         self.dir_path = dir_path
         self.addons_path = "sites/all/"
-        self.plugins_path = os.path.join(self.addons_path + "modules")
-        self.themes_path = os.path.join(self.addons_path + "themes")
+        self.plugins_dir = plugins_dir
+        self.themes_dir = themes_dir
         self.plugin_path = ""
         self.core_details = {
             "infos": {"version": "", "last_version": "", "version_major": ""},
@@ -657,6 +665,14 @@ class DPL(CMS):
         }
         self.plugins = []
         self.themes = []
+
+        # If no custom plugins directory, then it's in default location
+        if self.plugins_dir == "":
+            self.plugins_dir = os.path.join(self.addons_path + "modules")
+
+        # If no custom themes directory, then it's in default location
+        if self.themes_dir == "":
+            self.themes_dir = os.path.join(self.addons_path + "themes")
 
     def get_core_version(self, dir_path):
 
@@ -806,6 +822,10 @@ class DPL(CMS):
             "MAINTAINERS.txt",
             "INSTALL.txt",
             "README.txt",
+            "INSTALL.mysql.txt",
+            "INSTALL.pgsql.txt",
+            "INSTALL.sqlite.txt",
+            "UPGRADE.txt",
         ]
 
         temp_directory = uCMS.TempDir.create()
@@ -951,10 +971,10 @@ class DPL(CMS):
 
         # Get the list of addon to work with
         if addon_type == "plugins":
-            addons_path = self.plugins_path
+            addons_path = self.plugins_dir
 
         elif addon_type == "themes":
-            addons_path = self.themes_path
+            addons_path = self.themes_dir
 
         addons_name = uCMS.fetch_addons(
             os.path.join(self.dir_path, addons_path), "standard"

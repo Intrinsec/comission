@@ -29,6 +29,7 @@ def main():
     wp_content = ""
     plugins_dir = ""
     themes_dir = ""
+    wpvulndb_token = ""
 
     if "wp_content" in args:
         wp_content = args["wp_content"]
@@ -39,16 +40,19 @@ def main():
     if "themes_dir" in args:
         themes_dir = args["themes_dir"]
 
+    if "wpvulndb_token" in args:
+        wpvulndb_token = args["wpvulndb_token"]
+
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir)
+        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
 
     elif args["cms"] == "drupal":
         to_check = ["includes", "modules", "scripts", "themes"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.DPL(dir_path)
+        cms = dCMS.DPL(dir_path, plugins_dir, themes_dir)
 
     else:
         log.print_cms("alert", "CMS unknown or unsupported !", "", 0)

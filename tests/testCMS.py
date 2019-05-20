@@ -42,6 +42,7 @@ class DataSet:
             "version": "0.9.4.1",
             "notes": "",
             "mu": "NO",
+            "vulns": [],
             "alterations": [],
         }
 
@@ -132,7 +133,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "wordpress"
         )
-        self.cms = dCMS.WP(self.dir_path, "", "", "")
+        self.cms = dCMS.WP(self.dir_path, "", "", "", "")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)
@@ -205,10 +206,21 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertIn("readme.txt", altered_files)
 
     def test_check_vulns_core(self):
-        pass
+        version_core = "5.0"
+        config = uCMS.parse_conf("test.conf")
+        self.cms.wpvulndb_token = config["wpvulndb_token"]
+        vulns_details, err = self.cms.check_vulns_core(version_core)
+        self.assertEqual(len(vulns_details), 9)
+        self.assertEqual(vulns_details[0]["name"], "WordPress <= 5.0 - Authenticated File Delete")
+        self.assertEqual(vulns_details[0]["link"], "https://wpvulndb.com/vulnerabilities/9169")
 
     def test_check_vulns_addon(self):
-        pass
+        dataset = DataSet()
+        config = uCMS.parse_conf("test.conf")
+        self.cms.wpvulndb_token = config["wpvulndb_token"]
+        vulns_details, err = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
+        print(vulns_details)
+        self.assertEqual(len(vulns_details), 17)
 
     # Full core analysis test
     @unittest.skip("Skip full core analysis")
@@ -232,7 +244,7 @@ class TestDrupalAnalysis(unittest.TestCase):
             "drupal",
             "drupal-7.X",
         )
-        self.cms = dCMS.DPL(self.dir_path)
+        self.cms = dCMS.DPL(self.dir_path, "", "")
 
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version(self.dir_path)
