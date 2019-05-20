@@ -198,7 +198,7 @@ class WP(CMS):
     def get_addon_version(self, addon, addon_path, version_file_regexp):
         try:
             path = os.path.join(addon_path, addon["filename"])
-            with open(path) as addon_info:
+            with open(path, encoding="utf8") as addon_info:
                 version = ""
                 for line in addon_info:
                     version = version_file_regexp.search(line)
@@ -437,12 +437,15 @@ class WP(CMS):
         return vulns_details, None
 
     def check_vulns_addon(self, addon):
-        cve = ""
+        vulns = ""
         url_details = "https://wpvulndb.com/vulnerabilities/"
+        token_header = "Token token={}".format(self.wpvulndb_token)
+        headers = {"Authorization": token_header}
+
         try:
             url = "{}plugins/{}".format(self.cve_ref_url, addon["name"])
 
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
 
             if response.status_code == 200:
@@ -509,7 +512,7 @@ class WP(CMS):
             log.print_cms("info", "[+] " + msg, "", 1)
             addon["cve"] = "NO"
             return "", e
-        return cve, None
+        return vulns, None
 
     def core_analysis(self):
         log.print_cms(
