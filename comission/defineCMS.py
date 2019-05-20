@@ -27,7 +27,7 @@ class CMS:
         self.core_details = {"infos": [], "alterations": [], "vulns": []}
         self.plugins = []
 
-    def get_core_version(self, version_core_regexp, cms_path):
+    def get_core_version(self, cms_path):
         """
         Get the CMS core version
         """
@@ -169,14 +169,12 @@ class WP(CMS):
 
         return addon["filename"]
 
-    def get_core_version(
-        self, version_core_regexp, cms_path
-    ) -> Tuple[str, Union[None, FileNotFoundError]]:
+    def get_core_version(self, cms_path) -> Tuple[str, Union[None, FileNotFoundError]]:
         try:
             with open(os.path.join(self.dir_path, cms_path)) as version_file:
                 version_core = ""
                 for line in version_file:
-                    version_core_match = version_core_regexp.search(line)
+                    version_core_match = re.compile("\$wp_version = '(.*)';").search(line)
                     if version_core_match:
                         version_core = version_core_match.group(1).strip()
                         log.print_cms("info", "[+] WordPress version used : " + version_core, "", 0)
@@ -512,9 +510,7 @@ class WP(CMS):
             0,
         )
         # Check current CMS version
-        _, err = self.get_core_version(
-            re.compile("\$wp_version = '(.*)';"), "wp-includes/version.php"
-        )
+        _, err = self.get_core_version("wp-includes/version.php")
         # Get the last released version
         _, err = self.get_core_last_version(self.site_api)
 
@@ -655,7 +651,7 @@ class DPL(CMS):
         if self.themes_dir == "":
             self.themes_dir = os.path.join(self.addons_path + "themes")
 
-    def get_core_version(self, dir_path):
+    def get_core_version(self, cms_path: str) -> Tuple[str, Union[None, FileNotFoundError]]:
 
         selector = {
             "includes/bootstrap.inc": re.compile("define\('VERSION', '(.*)'\);"),
@@ -665,7 +661,7 @@ class DPL(CMS):
 
         for cms_path, version_core_regexp in selector.items():
             try:
-                with open(os.path.join(dir_path, cms_path)) as version_file:
+                with open(os.path.join(cms_path, cms_path)) as version_file:
                     for line in version_file:
                         version_core_match = version_core_regexp.search(line)
                         if version_core_match:
@@ -698,7 +694,9 @@ class DPL(CMS):
                 )
             return "", None
 
-    def get_addon_version(self, addon, addon_path, version_file_regexp):
+    def get_addon_version(
+        self, addon: Dict, addon_path: str, version_file_regexp: Pattern
+    ) -> Tuple[str, Union[None, FileNotFoundError]]:
         version = ""
         try:
             path = os.path.join(addon_path, addon["filename"])
@@ -717,7 +715,9 @@ class DPL(CMS):
             return "", e
         return version, None
 
-    def get_core_last_version(self, url, version_core):
+    def get_core_last_version(
+        self, url: str
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         last_version_core = ""
         major = self.core_details["infos"]["version_major"]
         url_release = url + major + ".x"
@@ -738,7 +738,9 @@ class DPL(CMS):
             return "", e
         return last_version_core, None
 
-    def get_addon_last_version(self, addon):
+    def get_addon_last_version(
+        self, addon: Dict
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         version_web_regexp = re.compile('<h2><a href="(.*?)">(.+?) (.+?)</a></h2>')
         date_last_release_regexp = re.compile('<time pubdate datetime="(.*?)">(.+?)</time>')
 
@@ -787,7 +789,9 @@ class DPL(CMS):
             return "", e
         return addon["last_version"], None
 
-    def check_core_alteration(self, dir_path, version_core, core_url):
+    def check_core_alteration(
+        self, core_url
+    ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
         alterations = []
         ignored = [
             "modules",
@@ -821,10 +825,12 @@ class DPL(CMS):
             log.print_cms("alert", msg, "", 0)
             return msg, e
 
-        clean_core_path = os.path.join(temp_directory, "drupal-" + version_core)
+        clean_core_path = os.path.join(
+            temp_directory, "drupal-" + self.core_details["infos"]["version"]
+        )
 
-        dcmp = dircmp(clean_core_path, dir_path, ignored)
-        uCMS.diff_files(dcmp, alterations, dir_path)
+        dcmp = dircmp(clean_core_path, self.dir_path, ignored)
+        uCMS.diff_files(dcmp, alterations, self.dir_path)
 
         return alterations, None
 
@@ -898,10 +904,7 @@ class DPL(CMS):
         _, err = self.get_core_version(self.dir_path)
 
         # Get the last released version
-        _, err = self.get_core_last_version(
-            "https://updates.drupal.org/release-history/drupal/",
-            self.core_details["infos"]["version"],
-        )
+        _, err = self.get_core_last_version("https://updates.drupal.org/release-history/drupal/")
 
         # Check for vuln on the CMS version
         self.core_details["vulns"], err = self.check_vulns_core(
@@ -910,9 +913,7 @@ class DPL(CMS):
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
-        self.core_details["alterations"], err = self.check_core_alteration(
-            self.dir_path, self.core_details["infos"]["version"], download_url
-        )
+        self.core_details["alterations"], err = self.check_core_alteration(download_url)
 
         return self.core_details
 

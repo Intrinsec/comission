@@ -274,10 +274,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
     def test_check_core_alteration(self):
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
-        version_core = "7.56"
-        alterations, err = self.cms.check_core_alteration(
-            self.dir_path, version_core, download_core_url
-        )
+        alterations, err = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0]["file"], "cron.php")
 
