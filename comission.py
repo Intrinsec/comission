@@ -98,9 +98,7 @@ def main():
         pass
 
     else:
-        log.print_cms(
-            args.no_color, "alert", "Output type unknown or missing filename !", "", 0
-        )
+        log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
 
     # Keep or clean temp dir
