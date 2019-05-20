@@ -80,7 +80,7 @@ Be careful to change the path "TARGET_PATH" and "OUTPUT_DIR" to match your folde
 
 ## Tests
 
-Unit tests are available in `tests` folder.
+Unit tests are available in `tests` folder. Before launching test, you should create a `test-data-set`directory containing `drupal` and `wordpress` subdirectories, and a `test.conf` file containing at least a `wpvulndb_token` value.
 
 
 ## Author
