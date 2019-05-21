@@ -220,9 +220,9 @@ class TestWordPressAnalysis(unittest.TestCase):
     @unittest.skip("Skip full addon analysis")
     def test_addon_analysis(self):
         for addon_type in ["plugins", "themes"]:
-            self.cms.addon_analysis(self.dir_path, addon_type)
+            self.cms.addon_analysis(addon_type)
         print(self.cms.plugins[0]["version"] + "|")
-        self.assertEqual(self.cms.plugins[0]["version"], "2.6")
+        self.assertEqual(self.cms.plugins[0]["version"], "0.2")
 
 
 class TestDrupalAnalysis(unittest.TestCase):

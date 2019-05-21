@@ -834,7 +834,9 @@ class DPL(CMS):
 
         return alterations, None
 
-    def check_addon_alteration(self, addon, addon_path, temp_directory):
+    def check_addon_alteration(
+        self, addon, addon_path: str, temp_directory: str
+    ) -> Tuple[Union[str, List, None], Union[None, requests.exceptions.HTTPError]]:
         addon_url = "{}{}-{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
 
         if addon["version"] == "VERSION":
@@ -880,17 +882,17 @@ class DPL(CMS):
             return msg, e
         return altered, None
 
-    def check_vulns_core(self, version_core):
+    def check_vulns_core(self, version_core) -> Tuple[List, None]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
 
-    def check_vulns_addon(self, addon):
+    def check_vulns_addon(self, addon) -> Tuple[List, None]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
 
-    def core_analysis(self):
+    def core_analysis(self) -> Dict:
         log.print_cms(
             "info",
             "#######################################################"
@@ -913,13 +915,11 @@ class DPL(CMS):
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
-        self.core_details["alterations"], err = self.check_core_alteration(
-            self.core_details["infos"]["version"], download_url
-        )
+        self.core_details["alterations"], err = self.check_core_alteration(download_url)
 
         return self.core_details
 
-    def addon_analysis(self, dir_path, addon_type):
+    def addon_analysis(self, addon_type: str) -> List:
         temp_directory = uCMS.TempDir.create()
         addons = []
         addons_path = ""

@@ -25,7 +25,7 @@ class ComissionXLSX:
         self.generate_heading()
         self.generate_formatting(self.workbook)
 
-    def add_data(self, core_details, plugins, themes):
+    def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
         self.add_core_data(
             "A2", [core_details["infos"]["version"], core_details["infos"]["last_version"]]
@@ -110,34 +110,34 @@ class ComissionXLSX:
                     )
                     x += 1
 
-    def add_core_data(self, position, data):
+    def add_core_data(self, position, data) -> None:
         self.core_worksheet.write_row(position, data)
 
-    def add_core_alteration_data(self, position, data):
+    def add_core_alteration_data(self, position, data) -> None:
         self.core_alteration_worksheet.write_row(position, data)
 
-    def add_addon_data(self, position, addon_type, addon=[]):
+    def add_addon_data(self, position, addon_type, addon=[]) -> None:
         if addon_type == "plugins":
             self.plugins_worksheet.write_row(position, addon)
         elif addon_type == "themes":
             self.themes_worksheet.write_row(position, addon)
 
-    def add_addon_vulns_data(self, position, addon_type, vulns=[]):
+    def add_addon_vulns_data(self, position, addon_type, vulns=[]) -> None:
         if addon_type == "plugins":
             self.plugins_vulns_worksheet.write_row(position, vulns)
         elif addon_type == "themes":
             self.themes_vulns_worksheet.write_row(position, vulns)
 
-    def add_addon_alteration_data(self, position, addon_type, data):
+    def add_addon_alteration_data(self, position, addon_type, data) -> None:
         if addon_type == "plugins":
             self.plugins_alteration_worksheet.write_row(position, data)
         elif addon_type == "themes":
             self.themes_alteration_worksheet.write_row(position, data)
 
-    def generate_xlsx(self):
+    def generate_xlsx(self) -> None:
         self.workbook.close()
 
-    def generate_heading(self):
+    def generate_heading(self) -> None:
 
         core_headings = [
             "Version",
@@ -235,7 +235,7 @@ class ComissionXLSX:
                 target_worksheet.write(0, y, heading)
                 y += 1
 
-    def generate_formatting(self, workbook):
+    def generate_formatting(self, workbook) -> None:
         # Bad : Light red fill with dark red text.
         bad = workbook.add_format({"bg_color": "#FFC7CE", "font_color": "#9C0006"})
         # Good : Green fill with dark green text.
@@ -464,7 +464,7 @@ class ComissionCSV:
         ]
         self.themes_alteration_headings = ["Status", "Theme", "File", "Path", "Alteration", "Notes"]
 
-    def prepare_files(self):
+    def prepare_files(self) -> None:
         basename = self.filename.split(".")[0]
         # Core files
         self.core_filename = basename + ".core.csv"
@@ -479,7 +479,7 @@ class ComissionCSV:
         self.themes_vulns_filename = basename + ".themes_vulns.csv"
         self.themes_alteration_filename = basename + ".themes_alterations.csv"
 
-    def add_data(self, core_details, plugins, themes):
+    def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
         self.add_core_data_to_file(
             [core_details["infos"]["version"], core_details["infos"]["last_version"]],
@@ -596,7 +596,7 @@ class ComissionCSV:
                     self.themes_alteration_headings,
                 )
 
-    def add_core_data_to_file(self, data, headers):
+    def add_core_data_to_file(self, data, headers) -> None:
         with open(self.core_filename, "w", newline="") as csvfile:
             core_data_writer = csv.writer(
                 csvfile, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
@@ -604,7 +604,7 @@ class ComissionCSV:
             core_data_writer.writerow(headers)
             core_data_writer.writerow(data)
 
-    def add_data_to_file(self, data, filename, headers):
+    def add_data_to_file(self, data, filename, headers) -> None:
         with open(filename, "w", newline="") as csvfile:
             data_writer = csv.writer(
                 csvfile, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
@@ -618,11 +618,11 @@ class ComissionJSON:
         self.filename = filename
         self.data = {}
 
-    def add_data(self, core_details, plugins, themes):
+    def add_data(self, core_details, plugins, themes) -> None:
         self.data["core"] = core_details
         self.data["plugins"] = plugins
         self.data["themes"] = themes
 
-    def generate_json(self):
+    def generate_json(self) -> None:
         with open(self.filename, "w") as outfile:
             json.dump(self.data, outfile)
