@@ -66,27 +66,16 @@ class DPL(GenericCMS):
         if self.themes_dir == "":
             self.themes_dir = os.path.join(self.addons_path + "themes")
 
-    def get_core_last_version(
-        self, url: str
-    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
-        last_version_core = ""
-        url_release = url + self.core_details["infos"]["version_major"] + ".x"
+    def get_url_release(self) -> str:
+        return self.release_site + self.core_details["infos"]["version_major"] + ".x"
 
-        try:
-            response = requests.get(url_release)
-            response.raise_for_status()
+    def extract_core_last_version(self, response) -> str:
+        tree = etree.fromstring(response.content)
+        last_version_core = tree.xpath("/project/releases/release/tag")[0].text
+        log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
+        self.core_details["infos"]["last_version"] = last_version_core
 
-            if response.status_code == 200:
-                tree = etree.fromstring(response.content)
-                last_version_core = tree.xpath("/project/releases/release/tag")[0].text
-                log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
-                self.core_details["infos"]["last_version"] = last_version_core
-
-        except requests.exceptions.HTTPError as e:
-            msg = "Unable to retrieve last drupal version. Search manually !"
-            log.print_cms("alert", "[-] " + msg, "", 1)
-            return "", e
-        return last_version_core, None
+        return last_version_core
 
     def get_addon_last_version(
         self, addon: Dict

@@ -96,11 +96,37 @@ class GenericCMS:
             return "", e
         return version, None
 
-    def get_core_last_version(self, url):
+    def get_url_release(self):
         """
-        Get the last released of the CMS
+        Get the url to fetch last release data
         """
         raise NotImplemented
+
+    def extract_core_last_version(self, response):
+        """
+        Extract core last version from HTTP response content
+        """
+        raise NotImplemented
+
+    def get_core_last_version(self) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+        """
+        Fetch information on last release
+        """
+        last_version_core = ""
+        url_release = self.get_url_release()
+
+        try:
+            response = requests.get(url_release)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                last_version_core = self.extract_core_last_version(response)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "Unable to retrieve last version. Search manually !"
+            log.print_cms("alert", "[-] " + msg, "", 1)
+            return "", e
+        return last_version_core, None
 
     def get_addon_last_version(self, addon):
         """
@@ -179,7 +205,7 @@ class GenericCMS:
         _, err = self.get_core_version()
 
         # Get the last released version
-        _, err = self.get_core_last_version(self.release_site)
+        _, err = self.get_core_last_version()
 
         # Check for vuln on the CMS version
         self.core_details["vulns"], err = self.check_vulns_core(

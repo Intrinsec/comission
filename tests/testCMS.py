@@ -154,7 +154,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(dataset.addon_wp_stage1["version"], "0.9.4.1")
 
     def test_get_core_last_version(self):
-        self.cms.get_core_last_version(self.cms.release_site)
+        self.cms.get_core_last_version()
 
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2")
 
@@ -254,7 +254,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
     def test_get_core_last_version(self):
         self.cms.core_details["infos"]["version_major"] = "7"
-        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/")
+        self.cms.get_core_last_version()
 
         self.assertEqual("7.67", self.cms.core_details["infos"]["last_version"])
 

@@ -111,26 +111,16 @@ class WP(GenericCMS):
 
         return addon["filename"]
 
-    def get_core_last_version(
-        self, url: str
-    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
-        last_version_core = ""
+    def get_url_release(self) -> str:
+        return self.release_site
 
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
+    def extract_core_last_version(self, response) -> str:
+        page_json = response.json()
+        last_version_core = page_json["offers"][0]["version"]
+        log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
+        self.core_details["infos"]["last_version"] = last_version_core
 
-            if response.status_code == 200:
-                page_json = response.json()
-                last_version_core = page_json["offers"][0]["version"]
-                log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
-                self.core_details["infos"]["last_version"] = last_version_core
-
-        except requests.exceptions.HTTPError as e:
-            msg = "Unable to retrieve last WordPress version. Search manually !"
-            log.print_cms("alert", "[-] " + msg, "", 1)
-            return "", e
-        return last_version_core, None
+        return last_version_core
 
     def get_addon_last_version(
         self, addon: Dict
