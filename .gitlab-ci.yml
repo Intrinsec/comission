@@ -8,5 +8,5 @@ before_script:
 
 black:
   script:
-    - black --check --diff comission.py comission/
+    - black --check -l 100 --diff
 

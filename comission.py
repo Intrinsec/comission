@@ -50,7 +50,7 @@ def main():
         cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
 
     elif args["cms"] == "drupal":
-        to_check = ["includes", "modules", "scripts", "themes"]
+        to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
         uCMS.verify_path(dir_path, to_check)
         cms = dCMS.DPL(dir_path, plugins_dir, themes_dir)
 
@@ -98,9 +98,7 @@ def main():
         pass
 
     else:
-        log.print_cms(
-            args.no_color, "alert", "Output type unknown or missing filename !", "", 0
-        )
+        log.print_cms(args.no_color, "alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
 
     # Keep or clean temp dir
