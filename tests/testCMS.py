@@ -4,13 +4,12 @@ import os
 import re
 import unittest
 
-from context import comission
+from openpyxl import load_workbook
 
-import comission.defineCMS as dCMS
+import comission.CMS.Drupal as Drupal
+import comission.CMS.WordPress as WordPress
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
-
-from openpyxl import load_workbook
 
 
 class DataSet:
@@ -127,7 +126,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "wordpress"
         )
-        self.cms = dCMS.WP(self.dir_path, "", "", "", "")
+        self.cms = WordPress.WP(self.dir_path, "", "", "", "")
 
     def test_get_wp_content(self):
         retrieve_wp_content = self.cms.get_wp_content(self.dir_path)
@@ -230,7 +229,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "drupal", "drupal-7.X"
         )
-        self.cms = dCMS.DPL(self.dir_path, "", "")
+        self.cms = Drupal.DPL(self.dir_path, "", "")
 
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version(self.dir_path)
@@ -262,7 +261,6 @@ class TestDrupalAnalysis(unittest.TestCase):
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
-
         self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
 
         self.assertEqual("7.x-3.8", dataset.addon_dpl_stage2["last_version"])

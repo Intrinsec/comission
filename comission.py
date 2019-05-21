@@ -2,7 +2,8 @@
 
 import sys
 
-import comission.defineCMS as dCMS
+import comission.CMS.WordPress as WordPress
+import comission.CMS.Drupal as Drupal
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
@@ -47,12 +48,12 @@ def main():
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
+        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
 
     elif args["cms"] == "drupal":
         to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
         uCMS.verify_path(dir_path, to_check)
-        cms = dCMS.DPL(dir_path, plugins_dir, themes_dir)
+        cms = Drupal.DPL(dir_path, plugins_dir, themes_dir)
 
     else:
         log.print_cms("alert", "CMS unknown or unsupported !", "", 0)
