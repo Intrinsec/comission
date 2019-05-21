@@ -5,7 +5,7 @@ import os
 import re
 import zipfile
 from filecmp import dircmp
-from typing import List, Tuple, Union, Dict, Pattern
+from typing import List, Tuple, Union, Dict
 
 import requests
 from checksumdir import dirhash
@@ -39,7 +39,7 @@ class DPL(GenericCMS):
         self.regex_version_addon_web = re.compile('<h2><a href="(.*?)">(.+?) (.+?)</a></h2>')
         self.regex_date_last_release = re.compile('<time pubdate datetime="(.*?)">(.+?)</time>')
 
-        self.ignored_files = [
+        self.ignored_files_core = [
             "modules",
             "CHANGELOG.txt",
             "COPYRIGHT.txt",
@@ -52,6 +52,8 @@ class DPL(GenericCMS):
             "INSTALL.sqlite.txt",
             "UPGRADE.txt",
         ]
+
+        self.ignored_files_addon = ["tests"]
 
         self.version_files_selector = {
             "includes/bootstrap.inc": self.regex_version_core_dpl7,
@@ -124,54 +126,8 @@ class DPL(GenericCMS):
             return "", e
         return addon["last_version"], None
 
-    def check_addon_alteration(
-        self, addon: Dict, addon_path: str, temp_directory: str
-    ) -> Tuple[Union[str, List, None], Union[None, requests.exceptions.HTTPError]]:
-        addon_url = "{}{}-{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
-
-        if addon["version"] == "VERSION":
-            # TODO
-            return None, None
-
-        log.print_cms("default", "To download the addon : " + addon_url, "", 1)
-
-        altered = ""
-
-        try:
-            response = requests.get(addon_url)
-            response.raise_for_status()
-
-            if response.status_code == 200:
-                zip_file = zipfile.ZipFile(io.BytesIO(response.content), "r")
-                zip_file.extractall(temp_directory)
-                zip_file.close()
-
-                project_dir_hash = dirhash(addon_path, "sha1")
-                ref_dir = os.path.join(temp_directory, addon["name"])
-                ref_dir_hash = dirhash(ref_dir, "sha1")
-
-                if project_dir_hash == ref_dir_hash:
-                    altered = "NO"
-                    log.print_cms("good", "Different from sources : " + altered, "", 1)
-
-                else:
-                    altered = "YES"
-                    log.print_cms("alert", "Different from sources : " + altered, "", 1)
-
-                    ignored = ["tests"]
-
-                    dcmp = dircmp(addon_path, ref_dir, ignored)
-                    uCMS.diff_files(dcmp, addon["alterations"], addon_path)
-
-                addon["altered"] = altered
-
-        except requests.exceptions.HTTPError as e:
-            msg = "The download link is not standard. Search manually !"
-            log.print_cms("alert", msg, "", 1)
-            addon["notes"] = msg
-            return msg, e
-
-        return altered, None
+    def get_addon_url(self, addon) -> str:
+        return "{}{}-{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
 
     def check_vulns_core(self, version_core: str) -> Tuple[List, None]:
         # TODO

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import io
 import os
 import re
@@ -7,6 +8,7 @@ from filecmp import dircmp
 from typing import List, Tuple, Union, Dict, Pattern
 
 import requests
+from checksumdir import dirhash
 
 import comission.utilsCMS as uCMS
 
@@ -33,7 +35,8 @@ class GenericCMS:
         }
         self.regex_version_core = re.compile("version = '(.*)';")
 
-        self.ignored_files = []
+        self.ignored_files_core = []
+        self.ignored_files_addon = []
 
         self.version_files_selector = {"./": self.regex_version_core}
 
@@ -165,7 +168,7 @@ class GenericCMS:
 
         clean_core_path = os.path.join(temp_directory, self.get_archive_name())
 
-        dcmp = dircmp(clean_core_path, self.dir_path, self.ignored_files)
+        dcmp = dircmp(clean_core_path, self.dir_path, self.ignored_files_core)
         uCMS.diff_files(dcmp, alterations, self.dir_path)
 
         if alterations is not None:
@@ -174,11 +177,58 @@ class GenericCMS:
 
         return alterations, None
 
-    def check_addon_alteration(self, addon, addon_path, temp_directory):
+    def get_addon_url(self, addon):
         """
-        Check if the plugin have been altered
+        Generate the addon's url
         """
         raise NotImplemented
+
+    def check_addon_alteration(
+        self, addon: Dict, addon_path: str, temp_directory: str
+    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+
+        addon_url = self.get_addon_url(addon)
+
+        log.print_cms("default", "To download the addon: " + addon_url, "", 1)
+        altered = ""
+
+        try:
+            response = requests.get(addon_url)
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                zip_file = zipfile.ZipFile(io.BytesIO(response.content), "r")
+                zip_file.extractall(temp_directory)
+                zip_file.close()
+
+                project_dir_hash = dirhash(addon_path, "sha1")
+                ref_dir = os.path.join(temp_directory, addon["name"])
+                ref_dir_hash = dirhash(ref_dir, "sha1")
+
+                if project_dir_hash == ref_dir_hash:
+                    altered = "NO"
+                    log.print_cms("good", "Different from sources : " + altered, "", 1)
+
+                else:
+                    altered = "YES"
+                    log.print_cms("alert", "Different from sources : " + altered, "", 1)
+
+                    dcmp = dircmp(addon_path, ref_dir, self.ignored_files_addon)
+                    uCMS.diff_files(dcmp, addon["alterations"], addon_path)
+
+                addon["altered"] = altered
+
+                if addon["alterations"] is not None:
+                    msg = "[+] For further analysis, archive downloaded here : " + ref_dir
+                    log.print_cms("info", msg, "", 1)
+
+        except requests.exceptions.HTTPError as e:
+            msg = "The download link is not standard. Search manually !"
+            log.print_cms("alert", msg, "", 1)
+            addon["notes"] = msg
+            return msg, e
+
+        return altered, None
 
     def check_vulns_core(self, version_core):
         """
