@@ -17,6 +17,7 @@ class GenericCMS:
     """ Generic CMS object """
 
     site_url = ""
+    release_site = ""
     download_core_url = ""
     download_addon_url = ""
     cve_ref_url = ""
@@ -31,6 +32,9 @@ class GenericCMS:
             "vulns": [],
         }
         self.regex_version_core = re.compile("version = '(.*)';")
+
+        self.ignored_files = []
+
         self.version_files_selector = {"./": self.regex_version_core}
 
     def get_core_version(self) -> Tuple[str, Union[None, FileNotFoundError]]:
@@ -104,9 +108,16 @@ class GenericCMS:
         """
         raise NotImplemented
 
+    def get_archive_name(self):
+        """
+        Get the last released of the plugin and the date
+        """
+        raise NotImplemented
+
     def check_core_alteration(
-        self, core_url: str, ignored_files: List, archive_name: str
+        self, core_url: str
     ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
+        self.get_archive_name()
         alterations = []
         temp_directory = uCMS.TempDir.create()
 
@@ -126,9 +137,9 @@ class GenericCMS:
             log.print_cms("alert", msg, "", 0)
             return msg, e
 
-        clean_core_path = os.path.join(temp_directory, archive_name)
+        clean_core_path = os.path.join(temp_directory, self.get_archive_name())
 
-        dcmp = dircmp(clean_core_path, self.dir_path, ignored_files)
+        dcmp = dircmp(clean_core_path, self.dir_path, self.ignored_files)
         uCMS.diff_files(dcmp, alterations, self.dir_path)
 
         if alterations is not None:
@@ -155,11 +166,32 @@ class GenericCMS:
         """
         raise NotImplemented
 
-    def core_analysis(self):
-        """
-        CMS Core analysis, return a dict {"infos": [], "alterations": [], "vulns":[]}
-        """
-        raise NotImplemented
+    def core_analysis(self) -> Dict:
+        log.print_cms(
+            "info",
+            "#######################################################"
+            + "\n\t\tCore analysis"
+            + "\n#######################################################",
+            "",
+            0,
+        )
+        # Check current CMS version
+        _, err = self.get_core_version()
+
+        # Get the last released version
+        _, err = self.get_core_last_version(self.release_site)
+
+        # Check for vuln on the CMS version
+        self.core_details["vulns"], err = self.check_vulns_core(
+            self.core_details["infos"]["version"]
+        )
+
+        # Check if the core have been altered
+        download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
+
+        self.core_details["alterations"], err = self.check_core_alteration(download_url)
+
+        return self.core_details
 
     def addon_analysis(self, addon_type):
         """

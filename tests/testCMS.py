@@ -171,7 +171,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url, self.cms.ignored_files, "wordpress")
+        alterations, err = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
 
@@ -272,7 +272,7 @@ class TestDrupalAnalysis(unittest.TestCase):
     def test_check_core_alteration(self):
         self.cms.core_details["infos"]["version"] = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url, self.cms.ignored_files, "drupal-" + self.cms.core_details["infos"]["version"])
+        alterations, err = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0]["file"], "cron.php")
 

@@ -115,15 +115,15 @@ class WP(GenericCMS):
         self, url: str
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         last_version_core = ""
+
         try:
             response = requests.get(url)
             response.raise_for_status()
 
             if response.status_code == 200:
                 page_json = response.json()
-
                 last_version_core = page_json["offers"][0]["version"]
-                log.print_cms("info", "[+] Last WordPress version: " + last_version_core, "", 0)
+                log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
                 self.core_details["infos"]["last_version"] = last_version_core
 
         except requests.exceptions.HTTPError as e:
@@ -135,7 +135,8 @@ class WP(GenericCMS):
     def get_addon_last_version(
         self, addon: Dict
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
-        releases_url = "https://wordpress.org/{}/{}/".format(addon["type"], addon["name"])
+        releases_url = "{}{}/{}/".format(self.site_url, addon["type"], addon["name"])
+
         if addon["type"] == "plugins":
             version_web_regexp = self.regex_version_addon_web_plugin
             date_last_release_regexp = self.regex_date_last_release_plugin
@@ -143,7 +144,6 @@ class WP(GenericCMS):
             version_web_regexp = self.regex_version_addon_web_theme
             date_last_release_regexp = self.regex_date_last_release_theme
 
-        addon["last_version"] = "Not found"
         try:
             response = requests.get(releases_url, allow_redirects=False)
             response.raise_for_status()
@@ -174,7 +174,7 @@ class WP(GenericCMS):
                         )
 
         except requests.exceptions.HTTPError as e:
-            msg = "Addon not in WordPress official site. Search manually !"
+            msg = "Addon not on official site. Search manually !"
             log.print_cms("alert", "[-] " + msg, "", 1)
             addon["notes"] = msg
             return "", e
@@ -361,34 +361,8 @@ class WP(GenericCMS):
             return "", e
         return vulns, None
 
-    def core_analysis(self) -> Dict:
-        log.print_cms(
-            "info",
-            "#######################################################"
-            + "\n\t\tCore analysis"
-            + "\n#######################################################",
-            "",
-            0,
-        )
-        # Check current CMS version
-        _, err = self.get_core_version()
-
-        # Get the last released version
-        _, err = self.get_core_last_version(self.release_site)
-
-        # Check for vuln on the CMS version
-        self.core_details["vulns"], err = self.check_vulns_core(
-            self.core_details["infos"]["version"]
-        )
-
-        # Check if the core have been altered
-        download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
-
-        self.core_details["alterations"], err = self.check_core_alteration(
-            download_url, self.ignored_files, "wordpress"
-        )
-
-        return self.core_details
+    def get_archive_name(self):
+        return "wordpress"
 
     def addon_analysis(self, addon_type: str) -> List[Dict]:
         temp_directory = uCMS.TempDir.create()
@@ -425,7 +399,7 @@ class WP(GenericCMS):
                     "status": "todo",
                     "name": addon_name,
                     "version": "",
-                    "last_version": "",
+                    "last_version": "Not found",
                     "last_release_date": "",
                     "link": "",
                     "altered": "",
