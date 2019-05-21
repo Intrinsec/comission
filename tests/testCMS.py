@@ -142,7 +142,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_get_core_version(self):
         regex = re.compile("\$wp_version = '(.*)';")
-        self.cms.get_core_version(regex, "wp-includes/version.php")
+        self.cms.get_core_version("wp-includes/version.php")
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "4.5.1")
 
@@ -256,7 +256,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
     def test_get_core_last_version(self):
         self.cms.core_details["infos"]["version_major"] = "7"
-        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/", "7.63")
+        self.cms.get_core_last_version("https://updates.drupal.org/release-history/drupal/")
 
         self.assertEqual("7.67", self.cms.core_details["infos"]["last_version"])
 
@@ -273,6 +273,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         )
 
     def test_check_core_alteration(self):
+        self.cms.core_details["infos"]["version"] = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
         alterations, err = self.cms.check_core_alteration(download_core_url)
 

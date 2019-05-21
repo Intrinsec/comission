@@ -651,7 +651,7 @@ class DPL(CMS):
         if self.themes_dir == "":
             self.themes_dir = os.path.join(self.addons_path + "themes")
 
-    def get_core_version(self, cms_path: str) -> Tuple[str, Union[None, FileNotFoundError]]:
+    def get_core_version(self, dir_path: str) -> Tuple[str, Union[None, FileNotFoundError]]:
 
         selector = {
             "includes/bootstrap.inc": re.compile("define\('VERSION', '(.*)'\);"),
@@ -661,7 +661,7 @@ class DPL(CMS):
 
         for cms_path, version_core_regexp in selector.items():
             try:
-                with open(os.path.join(cms_path, cms_path)) as version_file:
+                with open(os.path.join(dir_path, cms_path)) as version_file:
                     for line in version_file:
                         version_core_match = version_core_regexp.search(line)
                         if version_core_match:
@@ -913,7 +913,9 @@ class DPL(CMS):
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
-        self.core_details["alterations"], err = self.check_core_alteration(download_url)
+        self.core_details["alterations"], err = self.check_core_alteration(
+            self.core_details["infos"]["version"], download_url
+        )
 
         return self.core_details
 
