@@ -140,8 +140,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertEqual(dataset.addon_wp_stage0["filename"], "w3-total-cache.php")
 
     def test_get_core_version(self):
-        regex = re.compile("\$wp_version = '(.*)';")
-        self.cms.get_core_version("wp-includes/version.php")
+        self.cms.get_core_version()
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "4.5.1")
 
@@ -150,12 +149,12 @@ class TestWordPressAnalysis(unittest.TestCase):
         dataset = DataSet()
 
         addons_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins", "w3-total-cache")
-        self.cms.get_addon_version(dataset.addon_wp_stage1, addons_path, regex)
+        self.cms.get_addon_version(dataset.addon_wp_stage1, addons_path, regex, ' ')
 
         self.assertEqual(dataset.addon_wp_stage1["version"], "0.9.4.1")
 
     def test_get_core_last_version(self):
-        self.cms.get_core_last_version(self.cms.site_api)
+        self.cms.get_core_last_version(self.cms.release_site)
 
         self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2")
 
@@ -172,7 +171,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url)
+        alterations, err = self.cms.check_core_alteration(download_core_url, self.cms.ignored_files, "wordpress")
 
         self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
 
@@ -232,15 +231,15 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.cms = Drupal.DPL(self.dir_path, "", "")
 
     def test_get_core_version_DPL7(self):
-        self.cms.get_core_version(self.dir_path)
+        self.cms.get_core_version()
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "7.56")
 
     def test_get_core_versionDPL8(self):
-        dir_path = os.path.join(
+        self.cms.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "drupal", "drupal-8.X"
         )
-        self.cms.get_core_version(dir_path)
+        self.cms.get_core_version()
 
         self.assertEqual(self.cms.core_details["infos"]["version"], "8.3.7")
 
@@ -249,7 +248,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         dataset = DataSet()
         addons_path = os.path.join(self.dir_path, "sites", "all", "modules", "xmlsitemap")
 
-        self.cms.get_addon_version(dataset.addon_dpl_stage1, addons_path, regex)
+        self.cms.get_addon_version(dataset.addon_dpl_stage1, addons_path, regex, '"')
 
         self.assertEqual(dataset.addon_dpl_stage1["version"], "7.x-2.3")
 
@@ -273,7 +272,7 @@ class TestDrupalAnalysis(unittest.TestCase):
     def test_check_core_alteration(self):
         self.cms.core_details["infos"]["version"] = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url)
+        alterations, err = self.cms.check_core_alteration(download_core_url, self.cms.ignored_files, "drupal-" + self.cms.core_details["infos"]["version"])
 
         self.assertEqual(alterations[0]["file"], "cron.php")
 
