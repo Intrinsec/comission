@@ -4,6 +4,7 @@ import io
 import os
 import re
 import zipfile
+from abc import abstractmethod
 from filecmp import dircmp
 from typing import List, Tuple, Union, Dict, Pattern
 
@@ -99,17 +100,19 @@ class GenericCMS:
             return "", e
         return version, None
 
+    @abstractmethod
     def get_url_release(self):
         """
         Get the url to fetch last release data
         """
-        raise NotImplemented
+        pass
 
+    @abstractmethod
     def extract_core_last_version(self, response):
         """
         Extract core last version from HTTP response content
         """
-        raise NotImplemented
+        pass
 
     def get_core_last_version(self) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         """
@@ -131,17 +134,19 @@ class GenericCMS:
             return "", e
         return last_version_core, None
 
+    @abstractmethod
     def get_addon_last_version(self, addon):
         """
         Get the last released of the plugin and the date
         """
-        raise NotImplemented
+        pass
 
+    @abstractmethod
     def get_archive_name(self):
         """
         Get the last released of the plugin and the date
         """
-        raise NotImplemented
+        pass
 
     def check_core_alteration(
         self, core_url: str
@@ -177,11 +182,12 @@ class GenericCMS:
 
         return alterations, None
 
+    @abstractmethod
     def get_addon_url(self, addon):
         """
         Generate the addon's url
         """
-        raise NotImplemented
+        pass
 
     def check_addon_alteration(
         self, addon: Dict, addon_path: str, temp_directory: str
@@ -230,17 +236,19 @@ class GenericCMS:
 
         return altered, None
 
+    @abstractmethod
     def check_vulns_core(self, version_core):
         """
         Check if there are any vulns on the CMS core used
         """
-        raise NotImplemented
+        pass
 
+    @abstractmethod
     def check_vulns_addon(self, addon):
         """
         Check if there are any vulns on the plugin
         """
-        raise NotImplemented
+        pass
 
     def core_analysis(self) -> Dict:
         log.print_cms(
@@ -269,8 +277,9 @@ class GenericCMS:
 
         return self.core_details
 
+    @abstractmethod
     def addon_analysis(self, addon_type):
         """
         CMS plugin analysis, return a list of dict
         """
-        raise NotImplemented
+        pass
