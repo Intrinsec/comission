@@ -176,13 +176,6 @@ def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
         diff_files(sub_dcmp, alterations, current_target)
 
 
-def get_poc(url: str) -> List[str]:
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, "lxml")
-
-    return [el.get_text() for el in soup.findAll("pre", {"class": "poc"})]
-
-
 class Log:
     NO_COLOR = False
 

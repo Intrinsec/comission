@@ -35,11 +35,11 @@ class ComissionXLSX:
         x = 2
         for core_vuln in core_details["vulns"]:
             core_vuln_list = [
-                core_vuln["name"],
-                core_vuln["link"],
-                core_vuln["type"],
-                core_vuln["poc"],
-                core_vuln["fixed_in"],
+                core_vuln.name,
+                core_vuln.link,
+                core_vuln.type,
+                core_vuln.poc,
+                core_vuln.fixed_in,
             ]
             self.add_core_data("D" + str(x), core_vuln_list)
             x += 1
@@ -85,11 +85,11 @@ class ComissionXLSX:
                 for vuln in addon["vulns"]:
                     vuln_list = [
                         addon["name"],
-                        vuln["name"],
-                        vuln["link"],
-                        vuln["type"],
-                        vuln["poc"],
-                        vuln["fixed_in"],
+                        vuln.name,
+                        vuln.link,
+                        vuln.type,
+                        vuln.poc,
+                        vuln.fixed_in,
                     ]
                     self.add_addon_vulns_data("A" + str(x), addon["type"], vuln_list)
                     x += 1

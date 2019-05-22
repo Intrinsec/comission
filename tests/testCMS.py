@@ -10,6 +10,7 @@ import comission.CMS.Drupal as Drupal
 import comission.CMS.WordPress as WordPress
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
+from comission.CMS.models.VulnDetails import VulnDetails
 
 
 class DataSet:
@@ -64,7 +65,12 @@ class DataSet:
         }
 
         self.alteration = {"status": "todo", "target": "", "file": "", "type": ""}
-        self.vuln = {"name": "Vuln name", "link": "", "type": "", "poc": "", "fixed_in": ""}
+        self.vuln = VulnDetails()
+        self.vuln.name = "Vuln name"
+        self.vuln.link = ""
+        self.vuln.type = ""
+        self.vuln.poc = ""
+        self.vuln.fixed_in = ""
         self.core_details = {
             "infos": {"version": "4.5.1", "last_version": "4.8", "version_major": "4"},
             "alterations": [self.alteration, self.alteration, self.alteration],
@@ -198,8 +204,8 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_core()
         self.assertEqual(len(vulns_details), 9)
-        self.assertEqual(vulns_details[0]["name"], "WordPress <= 5.0 - Authenticated File Delete")
-        self.assertEqual(vulns_details[0]["link"], "https://wpvulndb.com/vulnerabilities/9169")
+        self.assertEqual(vulns_details[0].name, "WordPress <= 5.0 - Authenticated File Delete")
+        self.assertEqual(vulns_details[0].link, "https://wpvulndb.com/vulnerabilities/9169")
 
     def test_check_vulns_addon(self):
         dataset = DataSet()

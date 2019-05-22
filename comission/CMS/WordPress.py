@@ -6,10 +6,12 @@ from distutils.version import LooseVersion
 from typing import List, Tuple, Union, Dict
 
 import requests
+from bs4 import BeautifulSoup
 
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
 from .GenericCMS import GenericCMS
+from .models.VulnDetails import VulnDetails
 
 
 class WP(GenericCMS):
@@ -190,25 +192,17 @@ class WP(GenericCMS):
 
                 if len(vulns) > 0:
                     for vuln in vulns:
-
-                        vuln_details = {
-                            "name": "",
-                            "link": "",
-                            "type": "",
-                            "poc": "",
-                            "fixed_in": "",
-                        }
-
                         vuln_url = url_details + str(vuln["id"])
+                        vuln_details = VulnDetails()
 
-                        vuln_details["name"] = vuln["title"]
-                        vuln_details["link"] = vuln_url
-                        vuln_details["type"] = vuln["vuln_type"]
-                        vuln_details["poc"] = "CHECK"
-                        vuln_details["fixed_in"] = vuln["fixed_in"]
+                        vuln_details.name = vuln["title"]
+                        vuln_details.link = vuln_url
+                        vuln_details.type = vuln["vuln_type"]
+                        vuln_details.poc = "CHECK"
+                        vuln_details.fixed_in = vuln["fixed_in"]
 
-                        if uCMS.get_poc(vuln_url):
-                            vuln_details["poc"] = "YES"
+                        if self.get_poc(vuln_url):
+                            vuln_details.poc = "YES"
 
                         log.print_cms("alert", vuln["title"], "", 1)
                         log.print_cms(
@@ -223,6 +217,12 @@ class WP(GenericCMS):
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
             return [], e
         return self.core_details["vulns"], None
+
+    def get_poc(self, url: str) -> List[str]:
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, "lxml")
+
+        return [el.get_text() for el in soup.findAll("pre", {"class": "poc"})]
 
     def check_vulns_addon(
         self, addon: Dict
@@ -246,53 +246,38 @@ class WP(GenericCMS):
                     addon["cve"] = "YES"
 
                     for vuln in vulns:
-
                         vuln_url = url_details + str(vuln["id"])
-                        vuln_details = {
-                            "name": "",
-                            "link": "",
-                            "type": "",
-                            "poc": "",
-                            "fixed_in": "",
-                        }
+                        vuln_details = VulnDetails()
+
+                        vuln_details.link = vuln_url
+                        vuln_details.type = vuln["vuln_type"]
+                        vuln_details.fixed_in = vuln["fixed_in"]
+                        vuln_details.poc = "TO CHECK"
+
+                        if self.get_poc(vuln_url):
+                            vuln_details.poc = "YES"
 
                         try:
                             if LooseVersion(addon["version"]) < LooseVersion(vuln["fixed_in"]):
                                 log.print_cms("alert", vuln["title"], "", 1)
-
-                                vuln_details["name"] = vuln["title"]
-                                vuln_details["link"] = vuln_url
-                                vuln_details["type"] = vuln["vuln_type"]
-                                vuln_details["fixed_in"] = vuln["fixed_in"]
-                                vuln_details["poc"] = "CHECK"
-
-                                if uCMS.get_poc(vuln_url):
-                                    vuln_details["poc"] = "YES"
-
+                                vuln_details.name = vuln["title"]
                                 addon["vulns"].append(vuln_details)
 
                         except (TypeError, AttributeError):
                             log.print_cms(
                                 "alert",
                                 "Unable to compare version. Please check this "
-                                f"vulnerability :{vuln['title']}",
+                                f"vulnerability : {vuln['title']}",
                                 "",
                                 1,
                             )
 
-                            vuln_details["name"] = f" To check : {vuln['title']}"
-                            vuln_details["link"] = vuln_url
-                            vuln_details["type"] = vuln["vuln_type"]
-                            vuln_details["fixed_in"] = vuln["fixed_in"]
-                            vuln_details["poc"] = "CHECK"
-
-                            if uCMS.get_poc(vuln_url):
-                                vuln_details["poc"] = "YES"
-
+                            vuln_details.name = f" To check : {vuln['title']}"
                             addon["vulns"].append(vuln_details)
-                    else:
-                        log.print_cms("good", "No CVE were found", "", 1)
-                        addon["cve"] = "NO"
+
+                else:
+                    log.print_cms("good", "No CVE were found", "", 1)
+                    addon["cve"] = "NO"
 
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
