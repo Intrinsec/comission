@@ -3,7 +3,7 @@ Details on the CMS core
 """
 
 
-class CoreDetails:
+class Core:
     def __init__(self):
         self.version = None
         self.last_version = None

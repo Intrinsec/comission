@@ -10,8 +10,8 @@ import comission.CMS.Drupal as Drupal
 import comission.CMS.WordPress as WordPress
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
-from comission.CMS.models.VulnDetails import VulnDetails
-from comission.CMS.models.CoreDetails import CoreDetails
+from comission.CMS.models.Vulnerability import Vulnerability
+from comission.CMS.models.Core import Core
 
 
 class DataSet:
@@ -67,19 +67,19 @@ class DataSet:
 
         self.alteration = {"status": "todo", "target": "", "file": "", "type": ""}
 
-        self.vuln = VulnDetails()
+        self.vuln = Vulnerability()
         self.vuln.name = "Vuln name"
         self.vuln.link = ""
         self.vuln.type = ""
         self.vuln.poc = ""
         self.vuln.fixed_in = ""
 
-        self.core_details = CoreDetails()
-        self.core_details.version = "4.5.1"
-        self.core_details.last_version = "4.8"
-        self.core_details.version_major = "4"
-        self.core_details.alterations = [self.alteration, self.alteration, self.alteration]
-        self.core_details.vulns = [self.vuln, self.vuln, self.vuln]
+        self.core = Core()
+        self.core.version = "4.5.1"
+        self.core.last_version = "4.8"
+        self.core.version_major = "4"
+        self.core.alterations = [self.alteration, self.alteration, self.alteration]
+        self.core.vulns = [self.vuln, self.vuln, self.vuln]
 
         self.plugin = {
             "type": "plugins",
@@ -153,7 +153,7 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_version(self):
         self.cms.get_core_version()
 
-        self.assertEqual(self.cms.core_details["infos"]["version"], "4.5.1")
+        self.assertEqual(self.cms.core.version, "4.5.1")
 
     def test_get_addon_version(self):
         regex = re.compile("(?i)Version: (.*)")
@@ -167,7 +167,7 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version()
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2.1")
+        self.assertEqual(self.cms.core.last_version, "5.2.1")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
@@ -204,7 +204,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertIn("readme.txt", altered_files)
 
     def test_check_vulns_core(self):
-        self.cms.core_details["infos"]["version"] = "5.0"
+        self.cms.core.version = "5.0"
         config = uCMS.parse_conf("../test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_core()
@@ -244,7 +244,7 @@ class TestDrupalAnalysis(unittest.TestCase):
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version()
 
-        self.assertEqual(self.cms.core_details.version, "7.56")
+        self.assertEqual(self.cms.core.version, "7.56")
 
     def test_get_core_versionDPL8(self):
         self.cms.dir_path = os.path.join(
@@ -252,7 +252,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         )
         self.cms.get_core_version()
 
-        self.assertEqual(self.cms.core_details.version, "8.3.7")
+        self.assertEqual(self.cms.core.version, "8.3.7")
 
     def test_get_addon_version(self):
         regex = re.compile("version = (.*)")
@@ -264,10 +264,10 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.assertEqual(dataset.addon_dpl_stage1["version"], "7.x-2.3")
 
     def test_get_core_last_version(self):
-        self.cms.core_details.version_major = "7"
+        self.cms.core.version_major = "7"
         self.cms.get_core_last_version()
 
-        self.assertEqual("7.67", self.cms.core_details["infos"]["last_version"])
+        self.assertEqual("7.67", self.cms.core.last_version)
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
@@ -281,7 +281,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         )
 
     def test_check_core_alteration(self):
-        self.cms.core_details.version = "7.56"
+        self.cms.core.version = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
         alterations, err = self.cms.check_core_alteration(download_core_url)
 
@@ -323,7 +323,7 @@ class TestReportXLSX(unittest.TestCase):
 
         dataset = DataSet()
 
-        self.report.add_data(dataset.core_details, dataset.plugins, dataset.themes)
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
         self.report.generate_xlsx()
 
         self.workbook = load_workbook(report_name)
@@ -350,8 +350,8 @@ class TestReportJSON(unittest.TestCase):
     def test_add_data(self):
         dataset = DataSet()
 
-        self.report.add_data(dataset.core_details, dataset.plugins, dataset.themes)
-        self.assertEqual(self.report.data["core"]["infos"]["version"], "4.5.1")
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
+        self.assertEqual(self.report.data["core"].version, "4.5.1")
 
     def test_generate_json(self):
         pass

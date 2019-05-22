@@ -76,13 +76,13 @@ def main():
         # Initialize the output file
         result_csv = rCMS.ComissionCSV(args["output"])
         # Add data and generate result file
-        result_csv.add_data(cms.core_details, cms.plugins, cms.themes)
+        result_csv.add_data(cms.core, cms.plugins, cms.themes)
 
     elif args["type"] == "XLSX" and args["output"]:
         # Initialize the output file
         result_xlsx = rCMS.ComissionXLSX(args["output"])
         # Add data
-        result_xlsx.add_data(cms.core_details, cms.plugins, cms.themes)
+        result_xlsx.add_data(cms.core, cms.plugins, cms.themes)
         # Generate result file
         result_xlsx.generate_xlsx()
 
@@ -90,7 +90,7 @@ def main():
         # Initialize the output file
         result_json = rCMS.ComissionJSON(args["output"])
         # Add data
-        result_json.add_data(cms.core_details, cms.plugins, cms.themes)
+        result_json.add_data(cms.core, cms.plugins, cms.themes)
         # Generate result file
         result_json.generate_json()
 
