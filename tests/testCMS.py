@@ -156,7 +156,7 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version()
 
-        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2")
+        self.assertEqual(self.cms.core_details["infos"]["last_version"], "5.2.1")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
@@ -193,10 +193,10 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.assertIn("readme.txt", altered_files)
 
     def test_check_vulns_core(self):
-        version_core = "5.0"
+        self.cms.core_details["infos"]["version"] = "5.0"
         config = uCMS.parse_conf("../test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
-        vulns_details, err = self.cms.check_vulns_core(version_core)
+        vulns_details, err = self.cms.check_vulns_core()
         self.assertEqual(len(vulns_details), 9)
         self.assertEqual(vulns_details[0]["name"], "WordPress <= 5.0 - Authenticated File Delete")
         self.assertEqual(vulns_details[0]["link"], "https://wpvulndb.com/vulnerabilities/9169")
@@ -207,7 +207,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
         print(vulns_details)
-        self.assertEqual(len(vulns_details), 17)
+        self.assertEqual(len(vulns_details), 11)
 
     # Full core analysis test
     @unittest.skip("Skip full core analysis")

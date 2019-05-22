@@ -65,12 +65,12 @@ class DPL(GenericCMS):
             self.themes_dir = os.path.join(self.addons_path + "themes")
 
     def get_url_release(self) -> str:
-        return self.release_site + self.core_details["infos"]["version_major"] + ".x"
+        return f"{self.release_site}{self.core_details['infos']['version_major']}.x"
 
     def extract_core_last_version(self, response) -> str:
         tree = etree.fromstring(response.content)
         last_version_core = tree.xpath("/project/releases/release/tag")[0].text
-        log.print_cms("info", "[+] Last CMS version: " + last_version_core, "", 0)
+        log.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
         self.core_details["infos"]["last_version"] = last_version_core
 
         return last_version_core
@@ -78,12 +78,11 @@ class DPL(GenericCMS):
     def get_addon_last_version(
         self, addon: Dict
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
-        releases_url = "{}/project/{}/releases".format(self.site_url, addon["name"])
+        releases_url = f"{self.site_url}/project/{addon['name']}/releases"
 
         if addon["version"] == "VERSION":
-            msg = "This is a default addon. Analysis is not yet implemented !"
-            log.print_cms("alert", msg, "", 1)
-            addon["notes"] = msg
+            addon["notes"] = "This is a default addon. Analysis is not yet implemented !"
+            log.print_cms("alert", addon["notes"], "", 1)
             return "", None
 
         try:
@@ -107,25 +106,20 @@ class DPL(GenericCMS):
                         log.print_cms(
                             "alert",
                             "Outdated, last version: ",
-                            addon["last_version"]
-                            + " ( "
-                            + addon["last_release_date"]
-                            + " )\n\tCheck : "
-                            + releases_url,
+                            f"{addon['last_version']} ({addon['last_release_date']} ) \n\tCheck : {releases_url}",
                             1,
                         )
 
         except requests.exceptions.HTTPError as e:
-            msg = "Addon not on official site. Search manually !"
-            log.print_cms("alert", "[-] " + msg, "", 1)
-            addon["notes"] = msg
-            return "", e
+            addon["notes"] = "Addon not on official site. Search manually !"
+            log.print_cms("alert", f"[-] {addon['notes']}", "", 1)
+            return addon["notes"], e
         return addon["last_version"], None
 
     def get_addon_url(self, addon) -> str:
-        return "{}{}-{}.zip".format(self.download_addon_url, addon["name"], addon["version"])
+        return f"{self.download_addon_url}{addon['name']}-{addon['version']}.zip"
 
-    def check_vulns_core(self, version_core: str) -> Tuple[List, None]:
+    def check_vulns_core(self) -> Tuple[List, None]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
@@ -136,7 +130,7 @@ class DPL(GenericCMS):
         return [], None
 
     def get_archive_name(self):
-        return "drupal-" + self.core_details["infos"]["version"]
+        return f"drupal-{self.core_details['infos']['version']}"
 
     def addon_analysis(self, addon_type: str) -> List:
         temp_directory = uCMS.TempDir.create()
