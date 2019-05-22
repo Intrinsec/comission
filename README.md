@@ -28,7 +28,7 @@ The tool has been tested on Linux only. Colored output plus some other things sh
 
 ## Installation
 
-The tool needs at least python3.5.
+The tool needs at least python3.6.
 
 ```
 git clone https://github.com/Intrinsec/comission

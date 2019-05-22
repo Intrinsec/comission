@@ -128,8 +128,7 @@ class GenericCMS:
                 last_version_core = self.extract_core_last_version(response)
 
         except requests.exceptions.HTTPError as e:
-            msg = "Unable to retrieve last version. Search manually !"
-            log.print_cms("alert", "[-] " + msg, "", 1)
+            log.print_cms("alert", "[-] Unable to retrieve last version. Search manually !", "", 1)
             return "", e
         return last_version_core, None
 
@@ -149,7 +148,7 @@ class GenericCMS:
 
     def check_core_alteration(
         self, core_url: str
-    ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
+    ) -> Tuple[List, Union[None, requests.exceptions.HTTPError]]:
         self.get_archive_name()
         alterations = []
         temp_directory = uCMS.TempDir.create()
@@ -166,9 +165,10 @@ class GenericCMS:
                 zip_file.close()
 
         except requests.exceptions.HTTPError as e:
-            msg = "[-] Unable to find the original archive. Search manually ! "
-            log.print_cms("alert", msg, "", 0)
-            return msg, e
+            log.print_cms(
+                "alert", "[-] Unable to find the original archive. Search manually !", "", 0
+            )
+            return alterations, e
 
         clean_core_path = os.path.join(temp_directory, self.get_archive_name())
 
@@ -194,7 +194,7 @@ class GenericCMS:
 
         addon_url = self.get_addon_url(addon)
 
-        log.print_cms("default", "To download the addon: " + addon_url, "", 1)
+        log.print_cms("default", f"To download the addon: {addon_url}", "", 1)
         altered = ""
 
         try:
@@ -212,11 +212,11 @@ class GenericCMS:
 
                 if project_dir_hash == ref_dir_hash:
                     altered = "NO"
-                    log.print_cms("good", "Different from sources : " + altered, "", 1)
+                    log.print_cms("good", f"Different from sources : {altered}", "", 1)
 
                 else:
                     altered = "YES"
-                    log.print_cms("alert", "Different from sources : " + altered, "", 1)
+                    log.print_cms("alert", f"Different from sources : {altered}", "", 1)
 
                     dcmp = dircmp(addon_path, ref_dir, self.ignored_files_addon)
                     uCMS.diff_files(dcmp, addon["alterations"], addon_path)
@@ -224,14 +224,17 @@ class GenericCMS:
                 addon["altered"] = altered
 
                 if addon["alterations"] is not None:
-                    msg = "[+] For further analysis, archive downloaded here : " + ref_dir
-                    log.print_cms("info", msg, "", 1)
+                    log.print_cms(
+                        "info",
+                        f"[+] For further analysis, archive downloaded here : {ref_dir}",
+                        "",
+                        1,
+                    )
 
         except requests.exceptions.HTTPError as e:
-            msg = "The download link is not standard. Search manually !"
-            log.print_cms("alert", msg, "", 1)
-            addon["notes"] = msg
-            return msg, e
+            addon["notes"] = "The download link is not standard. Search manually !"
+            log.print_cms("alert", addon["notes"], "", 1)
+            return addon["notes"], e
 
         return altered, None
 
