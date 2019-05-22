@@ -10,10 +10,10 @@ import string
 import sys
 import tempfile
 
-import requests
-from bs4 import BeautifulSoup
 from filecmp import dircmp
 from typing import Dict, List
+
+from comission.CMS.models.Alteration import Alteration
 
 debug = True
 quiet = False
@@ -142,45 +142,37 @@ def fetch_addons(input: str, type: str) -> List[str]:
 
 def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
     for name in dcmp.diff_files:
-        alteration = {"status": "todo", "target": "", "file": "", "type": ""}
+        alteration = Alteration()
         altered_file = os.path.join(target, name)
         Log.print_cms("alert", altered_file, " was altered !", 1)
-        alteration["target"] = target
-        alteration["file"] = name
-        alteration["type"] = "altered"
+        alteration.target = target
+        alteration.file = name
+        alteration.type = "altered"
 
         alterations.append(alteration)
 
     for name in dcmp.right_only:
-        alteration = {"status": "todo", "target": "", "file": "", "type": ""}
+        alteration = Alteration()
         altered_file = os.path.join(target, name)
         Log.print_cms("warning", altered_file, " has been added !", 1)
-        alteration["target"] = target
-        alteration["file"] = name
-        alteration["type"] = "added"
+        alteration.target = target
+        alteration.file = name
+        alteration.type = "added"
 
         alterations.append(alteration)
 
     for name in dcmp.left_only:
-        alteration = {"status": "todo", "target": "", "file": "", "type": ""}
+        alteration = Alteration()
         altered_file = os.path.join(target, name)
         Log.print_cms("warning", altered_file, " deleted !", 1)
-        alteration["target"] = target
-        alteration["file"] = name
-        alteration["type"] = "deleted"
-
+        alteration.target = target
+        alteration.file = name
+        alteration.type = "deleted"
         alterations.append(alteration)
 
     for current_dir, sub_dcmp in zip(dcmp.subdirs.keys(), dcmp.subdirs.values()):
         current_target = os.path.join(target, current_dir)
         diff_files(sub_dcmp, alterations, current_target)
-
-
-def get_poc(url: str) -> List[str]:
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, "lxml")
-
-    return [el.get_text() for el in soup.findAll("pre", {"class": "poc"})]
 
 
 class Log:
