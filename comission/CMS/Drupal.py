@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 
-import io
 import os
 import re
-import zipfile
-from filecmp import dircmp
 from typing import List, Tuple, Union, Dict
 
 import requests
-from checksumdir import dirhash
 from lxml import etree
 
 import comission.utilsCMS as uCMS

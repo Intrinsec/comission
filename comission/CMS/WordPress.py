@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
-import io
 import os
 import re
-import zipfile
 from distutils.version import LooseVersion
-from filecmp import dircmp
 from typing import List, Tuple, Union, Dict
 
 import requests
-from checksumdir import dirhash
 
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log

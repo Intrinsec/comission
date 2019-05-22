@@ -149,7 +149,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         dataset = DataSet()
 
         addons_path = os.path.join(self.dir_path, "renamed-wp-content", "plugins", "w3-total-cache")
-        self.cms.get_addon_version(dataset.addon_wp_stage1, addons_path, regex, ' ')
+        self.cms.get_addon_version(dataset.addon_wp_stage1, addons_path, regex, " ")
 
         self.assertEqual(dataset.addon_wp_stage1["version"], "0.9.4.1")
 

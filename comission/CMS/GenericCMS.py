@@ -12,7 +12,6 @@ import requests
 from checksumdir import dirhash
 
 import comission.utilsCMS as uCMS
-
 from comission.utilsCMS import Log as log
 
 
