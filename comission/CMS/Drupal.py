@@ -10,6 +10,7 @@ from lxml import etree
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
 from .GenericCMS import GenericCMS
+from .models.Addon import Addon
 
 
 class DPL(GenericCMS):
@@ -76,13 +77,13 @@ class DPL(GenericCMS):
         return last_version_core
 
     def get_addon_last_version(
-        self, addon: Dict
+        self, addon: Addon
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
-        releases_url = f"{self.site_url}/project/{addon['name']}/releases"
+        releases_url = f"{self.site_url}/project/{addon.name}/releases"
 
-        if addon["version"] == "VERSION":
-            addon["notes"] = "This is a default addon. Analysis is not yet implemented !"
-            log.print_cms("alert", addon["notes"], "", 1)
+        if addon.version == "VERSION":
+            addon.notes = "This is a default addon. Analysis is not yet implemented !"
+            log.print_cms("alert", addon.notes, "", 1)
             return "", None
 
         try:
@@ -96,35 +97,35 @@ class DPL(GenericCMS):
                 date_last_release_result = self.regex_date_last_release.search(page)
 
                 if last_version_result and date_last_release_result:
-                    addon["last_version"] = last_version_result.group(3)
-                    addon["last_release_date"] = date_last_release_result.group(2)
-                    addon["link"] = releases_url
+                    addon.last_version = last_version_result.group(3)
+                    addon.last_release_date = date_last_release_result.group(2)
+                    addon.link = releases_url
 
-                    if addon["last_version"] == addon["version"]:
+                    if addon.last_version == addon.version:
                         log.print_cms("good", "Up to date !", "", 1)
                     else:
                         log.print_cms(
                             "alert",
                             "Outdated, last version: ",
-                            f"{addon['last_version']} ({addon['last_release_date']} ) \n\tCheck : {releases_url}",
+                            f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
                             1,
                         )
 
         except requests.exceptions.HTTPError as e:
-            addon["notes"] = "Addon not on official site. Search manually !"
-            log.print_cms("alert", f"[-] {addon['notes']}", "", 1)
-            return addon["notes"], e
-        return addon["last_version"], None
+            addon.notes = "Addon not on official site. Search manually !"
+            log.print_cms("alert", f"[-] {addon.notes}", "", 1)
+            return addon.notes, e
+        return addon.last_version, None
 
-    def get_addon_url(self, addon) -> str:
-        return f"{self.download_addon_url}{addon['name']}-{addon['version']}.zip"
+    def get_addon_url(self, addon: Addon) -> str:
+        return f"{self.download_addon_url}{addon.name}-{addon.version}.zip"
 
     def check_vulns_core(self) -> Tuple[List, None]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
 
-    def check_vulns_addon(self, addon: Dict) -> Tuple[List, None]:
+    def check_vulns_addon(self, addon: Addon) -> Tuple[List, None]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return [], None
@@ -164,21 +165,11 @@ class DPL(GenericCMS):
         addons_name = uCMS.fetch_addons(os.path.join(self.dir_path, addons_path), "standard")
 
         for addon_name in addons_name:
-            addon = {
-                "type": addon_type,
-                "status": "todo",
-                "name": addon_name,
-                "version": "",
-                "last_version": "Not found",
-                "last_release_date": "",
-                "link": "",
-                "altered": "",
-                "cve": "",
-                "vulns_details": "",
-                "notes": "",
-                "alterations": [],
-                "filename": addon_name + ".info",
-            }
+            addon = Addon()
+            addon.type = addon_type
+            addon.name = addon_name
+            addon.filename = addon_name + ".info"
+
             log.print_cms("info", "[+] " + addon_name, "", 0)
 
             addon_path = os.path.join(self.dir_path, addons_path, addon_name)

@@ -1,5 +1,5 @@
 FROM python:3-alpine
-LABEL description "CoMisSion - WhiteBox CMS analysis" version "0.1"
+LABEL description="CoMisSion - WhiteBox CMS analysis" version="0.1"
 
 WORKDIR /opt/app/
 

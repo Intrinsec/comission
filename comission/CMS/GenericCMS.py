@@ -14,6 +14,7 @@ from checksumdir import dirhash
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
 from .models.Core import Core
+from .models.Addon import Addon
 
 
 class GenericCMS:
@@ -76,23 +77,23 @@ class GenericCMS:
             return "", None
 
     def get_addon_version(
-        self, addon: Dict, addon_path: str, version_file_regexp: Pattern, to_strip: str
+        self, addon: Addon, addon_path: str, version_file_regexp: Pattern, to_strip: str
     ) -> Tuple[str, Union[None, FileNotFoundError]]:
         version = ""
         try:
-            path = os.path.join(addon_path, addon["filename"])
+            path = os.path.join(addon_path, addon.filename)
             with open(path, encoding="utf8") as addon_info:
                 for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        addon["version"] = version.group(1).strip(to_strip)
-                        log.print_cms("default", "Version : " + addon["version"], "", 1)
+                        addon.version = version.group(1).strip(to_strip)
+                        log.print_cms("default", "Version : " + addon.version, "", 1)
                         break
 
         except FileNotFoundError as e:
             msg = "No standard extension file. Search manually !"
             log.print_cms("alert", "[-] " + msg, "", 1)
-            addon["notes"] = msg
+            addon.notes = msg
             return "", e
         return version, None
 
@@ -186,7 +187,7 @@ class GenericCMS:
         pass
 
     def check_addon_alteration(
-        self, addon: Dict, addon_path: str, temp_directory: str
+        self, addon: Addon, addon_path: str, temp_directory: str
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
 
         addon_url = self.get_addon_url(addon)
@@ -204,7 +205,7 @@ class GenericCMS:
                 zip_file.close()
 
                 project_dir_hash = dirhash(addon_path, "sha1")
-                ref_dir = os.path.join(temp_directory, addon["name"])
+                ref_dir = os.path.join(temp_directory, addon.name)
                 ref_dir_hash = dirhash(ref_dir, "sha1")
 
                 if project_dir_hash == ref_dir_hash:
@@ -216,11 +217,11 @@ class GenericCMS:
                     log.print_cms("alert", f"Different from sources : {altered}", "", 1)
 
                     dcmp = dircmp(addon_path, ref_dir, self.ignored_files_addon)
-                    uCMS.diff_files(dcmp, addon["alterations"], addon_path)
+                    uCMS.diff_files(dcmp, addon.alterations, addon_path)
 
-                addon["altered"] = altered
+                addon.altered = altered
 
-                if addon["alterations"] is not None:
+                if addon.alterations is not None:
                     log.print_cms(
                         "info",
                         f"[+] For further analysis, archive downloaded here : {ref_dir}",
@@ -229,9 +230,9 @@ class GenericCMS:
                     )
 
         except requests.exceptions.HTTPError as e:
-            addon["notes"] = "The download link is not standard. Search manually !"
-            log.print_cms("alert", addon["notes"], "", 1)
-            return addon["notes"], e
+            addon.notes = "The download link is not standard. Search manually !"
+            log.print_cms("alert", addon.notes, "", 1)
+            return addon.notes, e
 
         return altered, None
 

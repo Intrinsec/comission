@@ -27,9 +27,7 @@ class ComissionXLSX:
 
     def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
-        self.add_core_data(
-            "A2", [core_details.version, core_details.last_version]
-        )
+        self.add_core_data("A2", [core_details.version, core_details.last_version])
 
         # Add core vulns
         x = 2
@@ -60,53 +58,41 @@ class ComissionXLSX:
         for elements in [plugins, themes]:
             # Add elements details
             x = 2
-            fields = (
-                "status",
-                "name",
-                "version",
-                "last_version",
-                "last_release_date",
-                "link",
-                "mu",
-                "edited",
-                "cve",
-                "notes",
-            )
 
             for addon in elements:
                 # Plugins and Themes or similar except for the field "mu"
-                addon_list = [addon[i] for i in fields if addon.get(i) is not None]
-                self.add_addon_data("A" + str(x), addon["type"], addon_list)
+                addon_list = addon.get_report_list()
+                self.add_addon_data("A" + str(x), addon.type, addon_list)
                 x += 1
 
             # Add elements vulns
             x = 2
             for addon in elements:
-                for vuln in addon["vulns"]:
+                for vuln in addon.vulns:
                     vuln_list = [
-                        addon["name"],
+                        addon.name,
                         vuln.name,
                         vuln.link,
                         vuln.type,
                         vuln.poc,
                         vuln.fixed_in,
                     ]
-                    self.add_addon_vulns_data("A" + str(x), addon["type"], vuln_list)
+                    self.add_addon_vulns_data("A" + str(x), addon.type, vuln_list)
                     x += 1
 
             # Add elements alteration details
             x = 2
             for addon in elements:
-                for addon_alteration in addon["alterations"]:
+                for addon_alteration in addon.alterations:
                     addon_alteration_list = [
-                        addon["status"],
-                        addon["name"],
+                        addon.status,
+                        addon.name,
                         addon_alteration.file,
                         addon_alteration.target,
                         addon_alteration.type,
                     ]
                     self.add_addon_alteration_data(
-                        "A" + str(x), addon["type"], addon_alteration_list
+                        "A" + str(x), addon.type, addon_alteration_list
                     )
                     x += 1
 
@@ -482,8 +468,7 @@ class ComissionCSV:
     def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
         self.add_core_data_to_file(
-            [core_details.version, core_details.last_version],
-            self.core_headings,
+            [core_details.version, core_details.last_version], self.core_headings
         )
 
         # Add core vulns
@@ -491,11 +476,11 @@ class ComissionCSV:
         core_vuln_lists = []
         for core_vuln in core_details.vulns:
             core_vuln_list = [
-                core_vuln["name"],
-                core_vuln["link"],
-                core_vuln["type"],
-                core_vuln["poc"],
-                core_vuln["fixed_in"],
+                core_vuln.name,
+                core_vuln.link,
+                core_vuln.type,
+                core_vuln.poc,
+                core_vuln.fixed_in,
             ]
             core_vuln_lists.append(core_vuln_list)
             x += 1
@@ -522,37 +507,26 @@ class ComissionCSV:
             # Add elements details
             x = 2
             addon_lists = []
-            fields = (
-                "status",
-                "name",
-                "version",
-                "last_version",
-                "last_release_date",
-                "link",
-                "edited",
-                "mu",
-                "cve",
-                "notes",
-            )
+
             for addon in elements:
                 # Plugins and Themes or similar except for the field "mu"
-                addon_list = [addon[i] for i in fields if addon.get(i) is not None]
+                addon_list = addon.get_report_list()
                 addon_lists.append(addon_list)
                 x += 1
 
-            if addon["type"] == "plugins":
+            if addon.type == "plugins":
                 self.add_data_to_file(addon_lists, self.plugins_filename, self.plugins_headings)
 
-            elif addon["type"] == "themes":
+            elif addon.type == "themes":
                 self.add_data_to_file(addon_lists, self.themes_filename, self.themes_headings)
 
             # Add elements vulns
             x = 2
             vuln_lists = []
             for addon in elements:
-                for vuln in addon["vulns"]:
+                for vuln in addon.vulns:
                     vuln_list = [
-                        addon["name"],
+                        addon.name,
                         vuln["name"],
                         vuln["link"],
                         vuln["type"],
@@ -561,11 +535,11 @@ class ComissionCSV:
                     ]
                     vuln_lists.append(vuln_list)
                     x += 1
-            if addon["type"] == "plugins":
+            if addon.type == "plugins":
                 self.add_data_to_file(
                     vuln_lists, self.plugins_vulns_filename, self.plugins_vulns_headings
                 )
-            elif addon["type"] == "themes":
+            elif addon.type == "themes":
                 self.add_data_to_file(
                     vuln_lists, self.themes_vulns_filename, self.themes_vulns_headings
                 )
@@ -573,23 +547,23 @@ class ComissionCSV:
             x = 2
             addon_alteration_lists = []
             for addon in elements:
-                for addon_alteration in addon["alterations"]:
+                for addon_alteration in addon.alterations:
                     addon_alteration_list = [
-                        addon["status"],
-                        addon["name"],
+                        addon.status,
+                        addon.name,
                         addon_alteration.file,
                         addon_alteration.target,
                         addon_alteration.type,
                     ]
                     addon_alteration_lists.append(addon_alteration_list)
                     x += 1
-            if addon["type"] == "plugins":
+            if addon.type == "plugins":
                 self.add_data_to_file(
                     addon_alteration_lists,
                     self.plugins_alteration_filename,
                     self.plugins_alteration_headings,
                 )
-            elif addon["type"] == "themes":
+            elif addon.type == "themes":
                 self.add_data_to_file(
                     addon_alteration_lists,
                     self.themes_alteration_filename,
