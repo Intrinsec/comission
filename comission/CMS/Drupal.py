@@ -65,13 +65,13 @@ class DPL(GenericCMS):
             self.themes_dir = os.path.join(self.addons_path + "themes")
 
     def get_url_release(self) -> str:
-        return f"{self.release_site}{self.core_details['infos']['version_major']}.x"
+        return f"{self.release_site}{self.core_details.version_major}.x"
 
     def extract_core_last_version(self, response) -> str:
         tree = etree.fromstring(response.content)
         last_version_core = tree.xpath("/project/releases/release/tag")[0].text
         log.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
-        self.core_details["infos"]["last_version"] = last_version_core
+        self.core_details.last_version = last_version_core
 
         return last_version_core
 
@@ -130,7 +130,7 @@ class DPL(GenericCMS):
         return [], None
 
     def get_archive_name(self):
-        return f"drupal-{self.core_details['infos']['version']}"
+        return f"drupal-{self.core_details.version}"
 
     def addon_analysis(self, addon_type: str) -> List:
         temp_directory = uCMS.TempDir.create()
@@ -148,10 +148,10 @@ class DPL(GenericCMS):
             0,
         )
 
-        if self.core_details["infos"]["version_major"] == "7":
+        if self.core_details.version_major == "7":
             self.addons_path = "sites/all/"
 
-        elif self.core_details["infos"]["version_major"] == "8":
+        elif self.core_details.version_major == "8":
             self.addons_path = "/"
 
         # Get the list of addon to work with

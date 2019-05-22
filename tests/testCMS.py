@@ -11,6 +11,7 @@ import comission.CMS.WordPress as WordPress
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
 from comission.CMS.models.VulnDetails import VulnDetails
+from comission.CMS.models.CoreDetails import CoreDetails
 
 
 class DataSet:
@@ -65,17 +66,21 @@ class DataSet:
         }
 
         self.alteration = {"status": "todo", "target": "", "file": "", "type": ""}
+
         self.vuln = VulnDetails()
         self.vuln.name = "Vuln name"
         self.vuln.link = ""
         self.vuln.type = ""
         self.vuln.poc = ""
         self.vuln.fixed_in = ""
-        self.core_details = {
-            "infos": {"version": "4.5.1", "last_version": "4.8", "version_major": "4"},
-            "alterations": [self.alteration, self.alteration, self.alteration],
-            "vulns": [self.vuln, self.vuln, self.vuln],
-        }
+
+        self.core_details = CoreDetails()
+        self.core_details.version = "4.5.1"
+        self.core_details.last_version = "4.8"
+        self.core_details.version_major = "4"
+        self.core_details.alterations = [self.alteration, self.alteration, self.alteration]
+        self.core_details.vulns = [self.vuln, self.vuln, self.vuln]
+
         self.plugin = {
             "type": "plugins",
             "status": "todo",
@@ -239,7 +244,7 @@ class TestDrupalAnalysis(unittest.TestCase):
     def test_get_core_version_DPL7(self):
         self.cms.get_core_version()
 
-        self.assertEqual(self.cms.core_details["infos"]["version"], "7.56")
+        self.assertEqual(self.cms.core_details.version, "7.56")
 
     def test_get_core_versionDPL8(self):
         self.cms.dir_path = os.path.join(
@@ -247,7 +252,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         )
         self.cms.get_core_version()
 
-        self.assertEqual(self.cms.core_details["infos"]["version"], "8.3.7")
+        self.assertEqual(self.cms.core_details.version, "8.3.7")
 
     def test_get_addon_version(self):
         regex = re.compile("version = (.*)")
@@ -259,7 +264,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         self.assertEqual(dataset.addon_dpl_stage1["version"], "7.x-2.3")
 
     def test_get_core_last_version(self):
-        self.cms.core_details["infos"]["version_major"] = "7"
+        self.cms.core_details.version_major = "7"
         self.cms.get_core_last_version()
 
         self.assertEqual("7.67", self.cms.core_details["infos"]["last_version"])
@@ -276,7 +281,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         )
 
     def test_check_core_alteration(self):
-        self.cms.core_details["infos"]["version"] = "7.56"
+        self.cms.core_details.version = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
         alterations, err = self.cms.check_core_alteration(download_core_url)
 

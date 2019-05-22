@@ -28,12 +28,12 @@ class ComissionXLSX:
     def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
         self.add_core_data(
-            "A2", [core_details["infos"]["version"], core_details["infos"]["last_version"]]
+            "A2", [core_details.version, core_details.last_version]
         )
 
         # Add core vulns
         x = 2
-        for core_vuln in core_details["vulns"]:
+        for core_vuln in core_details.vulns:
             core_vuln_list = [
                 core_vuln.name,
                 core_vuln.link,
@@ -46,7 +46,7 @@ class ComissionXLSX:
 
         # Add core alteration details
         x = 2
-        for core_alteration in core_details["alterations"]:
+        for core_alteration in core_details.alterations:
             core_alterations_list = [
                 core_alteration["status"],
                 core_alteration["file"],
@@ -482,14 +482,14 @@ class ComissionCSV:
     def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
         self.add_core_data_to_file(
-            [core_details["infos"]["version"], core_details["infos"]["last_version"]],
+            [core_details.version, core_details.last_version],
             self.core_headings,
         )
 
         # Add core vulns
         x = 2
         core_vuln_lists = []
-        for core_vuln in core_details["vulns"]:
+        for core_vuln in core_details.vulns:
             core_vuln_list = [
                 core_vuln["name"],
                 core_vuln["link"],
@@ -504,7 +504,7 @@ class ComissionCSV:
         # Add core alteration details
         x = 2
         core_alterations_lists = []
-        for core_alteration in core_details["alterations"]:
+        for core_alteration in core_details.alterations:
             core_alterations_list = [
                 core_alteration["status"],
                 core_alteration["file"],

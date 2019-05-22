@@ -118,7 +118,7 @@ class WP(GenericCMS):
         page_json = response.json()
         last_version_core = page_json["offers"][0]["version"]
         log.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
-        self.core_details["infos"]["last_version"] = last_version_core
+        self.core_details.last_version = last_version_core
 
         return last_version_core
 
@@ -173,7 +173,7 @@ class WP(GenericCMS):
         return url
 
     def check_vulns_core(self) -> Tuple[List, Union[None, requests.exceptions.HTTPError]]:
-        version = self.core_details["infos"]["version"].replace(".", "")
+        version = self.core_details.version.replace(".", "")
 
         url = f"{self.cve_ref_url}wordpresses/{version}"
         url_details = "https://wpvulndb.com/vulnerabilities/"
@@ -187,7 +187,7 @@ class WP(GenericCMS):
             if response.status_code == 200:
                 page_json = response.json()
 
-                vulns = page_json[self.core_details["infos"]["version"]]["vulnerabilities"]
+                vulns = page_json[self.core_details.version]["vulnerabilities"]
                 log.print_cms("info", "[+] CVE list", "", 1)
 
                 if len(vulns) > 0:
@@ -209,14 +209,14 @@ class WP(GenericCMS):
                             "info", f"[+] Fixed in version {str(vuln['fixed_in'])}", "", 1
                         )
 
-                        self.core_details["vulns"].append(vuln_details)
+                        self.core_details.vulns.append(vuln_details)
                 else:
                     log.print_cms("good", "No CVE were found", "", 1)
 
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
             return [], e
-        return self.core_details["vulns"], None
+        return self.core_details.vulns, None
 
     def get_poc(self, url: str) -> List[str]:
         r = requests.get(url)

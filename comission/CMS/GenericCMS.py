@@ -13,6 +13,7 @@ from checksumdir import dirhash
 
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
+from .models.CoreDetails import CoreDetails
 
 
 class GenericCMS:
@@ -28,11 +29,7 @@ class GenericCMS:
         self.dir_path = ""
         self.plugins = []
         self.themes = []
-        self.core_details = {
-            "infos": {"version": "", "last_version": "", "version_major": ""},
-            "alterations": [],
-            "vulns": [],
-        }
+        self.core_details = CoreDetails()
         self.regex_version_core = re.compile("version = '(.*)';")
 
         self.ignored_files_core = []
@@ -63,8 +60,8 @@ class GenericCMS:
 
         elif suspects_length == 1:
             log.print_cms("info", "[+] Version used : " + suspects[0], "", 0)
-            self.core_details["infos"]["version"] = suspects[0]
-            self.core_details["infos"]["version_major"] = suspects[0].split(".")[0]
+            self.core_details.version = suspects[0]
+            self.core_details.version_major = suspects[0].split(".")[0]
             return suspects[0], None
 
         else:
@@ -271,9 +268,9 @@ class GenericCMS:
         _, err = self.check_vulns_core()
 
         # Check if the core have been altered
-        download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
+        download_url = self.download_core_url + self.core_details.version + ".zip"
 
-        self.core_details["alterations"], err = self.check_core_alteration(download_url)
+        self.core_details.alterations, err = self.check_core_alteration(download_url)
 
         return self.core_details
 
