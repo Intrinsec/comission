@@ -220,7 +220,6 @@ class TestWordPressAnalysis(unittest.TestCase):
         config = uCMS.parse_conf("../test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
-        print(vulns_details)
         self.assertEqual(len(vulns_details), 11)
 
     # Full core analysis test
@@ -233,7 +232,6 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_addon_analysis(self):
         for addon_type in ["plugins", "themes"]:
             self.cms.addon_analysis(addon_type)
-        print(self.cms.plugins[0].version + "|")
         self.assertEqual(self.cms.plugins[0].version, "0.2")
 
 
