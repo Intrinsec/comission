@@ -38,7 +38,7 @@ class WP(GenericCMS):
         self.regex_date_last_release_plugin = re.compile('"dateModified": "(.*)"')
         self.regex_date_last_release_theme = re.compile("Last updated: <strong>(.*)</strong>")
 
-        self.ignored_files_core = [
+        self.core.ignored_files = [
             ".git",
             "cache",
             "plugins",

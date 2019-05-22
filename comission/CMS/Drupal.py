@@ -35,7 +35,7 @@ class DPL(GenericCMS):
         self.regex_version_addon_web = re.compile('<h2><a href="(.*?)">(.+?) (.+?)</a></h2>')
         self.regex_date_last_release = re.compile('<time pubdate datetime="(.*?)">(.+?)</time>')
 
-        self.ignored_files_core = [
+        self.core.ignored_files = [
             "modules",
             "CHANGELOG.txt",
             "COPYRIGHT.txt",

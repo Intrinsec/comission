@@ -11,3 +11,4 @@ class Core:
         self.alterations = []
         self.vulns = []
         self.notes = None
+        self.ignored_files = []

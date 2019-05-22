@@ -32,7 +32,7 @@ class GenericCMS:
         self.core = Core()
         self.regex_version_core = re.compile("version = '(.*)';")
 
-        self.ignored_files_core = []
+        self.core.ignored_files = []
         self.ignored_files_addon = []
 
         self.version_files_selector = {"./": self.regex_version_core}
@@ -169,7 +169,7 @@ class GenericCMS:
 
         clean_core_path = os.path.join(temp_directory, self.get_archive_name())
 
-        dcmp = dircmp(clean_core_path, self.dir_path, self.ignored_files_core)
+        dcmp = dircmp(clean_core_path, self.dir_path, self.core.ignored_files)
         uCMS.diff_files(dcmp, alterations, self.dir_path)
 
         if alterations is not None:
