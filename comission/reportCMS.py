@@ -48,10 +48,10 @@ class ComissionXLSX:
         x = 2
         for core_alteration in core_details.alterations:
             core_alterations_list = [
-                core_alteration["status"],
-                core_alteration["file"],
-                core_alteration["target"],
-                core_alteration["type"],
+                core_alteration.status,
+                core_alteration.file,
+                core_alteration.target,
+                core_alteration.type,
             ]
             self.add_core_alteration_data("A" + str(x), core_alterations_list)
             x += 1
@@ -101,9 +101,9 @@ class ComissionXLSX:
                     addon_alteration_list = [
                         addon["status"],
                         addon["name"],
-                        addon_alteration["file"],
-                        addon_alteration["target"],
-                        addon_alteration["type"],
+                        addon_alteration.file,
+                        addon_alteration.target,
+                        addon_alteration.type,
                     ]
                     self.add_addon_alteration_data(
                         "A" + str(x), addon["type"], addon_alteration_list
@@ -506,10 +506,10 @@ class ComissionCSV:
         core_alterations_lists = []
         for core_alteration in core_details.alterations:
             core_alterations_list = [
-                core_alteration["status"],
-                core_alteration["file"],
-                core_alteration["target"],
-                core_alteration["type"],
+                core_alteration.status,
+                core_alteration.file,
+                core_alteration.target,
+                core_alteration.type,
             ]
             core_alterations_lists.append(core_alterations_list)
             x += 1
@@ -577,9 +577,9 @@ class ComissionCSV:
                     addon_alteration_list = [
                         addon["status"],
                         addon["name"],
-                        addon_alteration["file"],
-                        addon_alteration["target"],
-                        addon_alteration["type"],
+                        addon_alteration.file,
+                        addon_alteration.target,
+                        addon_alteration.type,
                     ]
                     addon_alteration_lists.append(addon_alteration_list)
                     x += 1

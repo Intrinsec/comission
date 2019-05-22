@@ -12,6 +12,7 @@ import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
 from comission.CMS.models.Vulnerability import Vulnerability
 from comission.CMS.models.Core import Core
+from comission.CMS.models.Alteration import Alteration
 
 
 class DataSet:
@@ -65,7 +66,11 @@ class DataSet:
             "alterations": [],
         }
 
-        self.alteration = {"status": "todo", "target": "", "file": "", "type": ""}
+        self.alteration = Alteration()
+        self.alteration.type = ""
+        self.alteration.target = ""
+        self.alteration.file = ""
+        self.alteration.type = ""
 
         self.vuln = Vulnerability()
         self.vuln.name = "Vuln name"
@@ -184,7 +189,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
         alterations, err = self.cms.check_core_alteration(download_core_url)
 
-        self.assertEqual(alterations[0]["file"], "wp-config-sample.php")
+        self.assertEqual(alterations[0].file, "wp-config-sample.php")
 
     def test_check_addon_alteration(self):
         dataset = DataSet()
@@ -199,7 +204,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
         altered_files = []
         for alteration in dataset.addon_wp_stage2["alterations"]:
-            altered_files.append(alteration["file"])
+            altered_files.append(alteration.file)
 
         self.assertIn("readme.txt", altered_files)
 
@@ -285,7 +290,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
         alterations, err = self.cms.check_core_alteration(download_core_url)
 
-        self.assertEqual(alterations[0]["file"], "cron.php")
+        self.assertEqual(alterations[0].file, "cron.php")
 
     def test_check_addon_alteration(self):
         dataset = DataSet()
@@ -299,7 +304,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
         altered_files = []
         for alteration in dataset.addon_dpl_stage2["alterations"]:
-            altered_files.append(alteration["file"])
+            altered_files.append(alteration.file)
 
         self.assertIn("media_youtube.test", altered_files)
 
