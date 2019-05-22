@@ -176,14 +176,14 @@ class WP(GenericCMS):
         return url
 
     def check_vulns_core(
-        self, version_core: str
+        self
     ) -> Tuple[Union[str, List], Union[None, requests.exceptions.HTTPError]]:
-        vulns_details = []
-        version = version_core.replace(".", "")
+        version = self.core_details["infos"]["version"].replace(".", "")
+
         url = "{}wordpresses/{}".format(self.cve_ref_url, version)
         url_details = "https://wpvulndb.com/vulnerabilities/"
-        token_header = "Token token={}".format(self.wpvulndb_token)
-        headers = {"Authorization": token_header}
+
+        headers = {"Authorization": "Token token={}".format(self.wpvulndb_token)}
 
         try:
             response = requests.get(url, headers=headers)
@@ -192,7 +192,7 @@ class WP(GenericCMS):
             if response.status_code == 200:
                 page_json = response.json()
 
-                vulns = page_json[version_core]["vulnerabilities"]
+                vulns = page_json[self.core_details["infos"]["version"]]["vulnerabilities"]
                 log.print_cms("info", "[+] CVE list", "", 1)
 
                 if len(vulns) > 0:
@@ -222,26 +222,24 @@ class WP(GenericCMS):
                             "info", "[+] Fixed in version " + str(vuln["fixed_in"]), "", 1
                         )
 
-                        vulns_details.append(vuln_details)
+                        self.core_details["vulns"].append(vuln_details)
                 else:
                     log.print_cms("good", "No CVE were found", "", 1)
 
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
-            return "", e
-        return vulns_details, None
+            return [], e
+        return self.core_details["vulns"], None
 
     def check_vulns_addon(
         self, addon: Dict
     ) -> Tuple[Union[str, List[Dict]], Union[None, requests.exceptions.HTTPError]]:
-        vulns = []
+        url = "{}plugins/{}".format(self.cve_ref_url, addon["name"])
         url_details = "https://wpvulndb.com/vulnerabilities/"
-        token_header = "Token token={}".format(self.wpvulndb_token)
-        headers = {"Authorization": token_header}
+
+        headers = {"Authorization": "Token token={}".format(self.wpvulndb_token)}
 
         try:
-            url = "{}plugins/{}".format(self.cve_ref_url, addon["name"])
-
             response = requests.get(url, headers=headers)
             response.raise_for_status()
 
@@ -251,16 +249,45 @@ class WP(GenericCMS):
                 vulns = page_json[addon["name"]]["vulnerabilities"]
                 log.print_cms("info", "[+] CVE list", "", 1)
 
-                for vuln in vulns:
+                if len(vulns) > 0:
+                    addon["cve"] = "YES"
 
-                    vuln_url = url_details + str(vuln["id"])
-                    vuln_details = {"name": "", "link": "", "type": "", "poc": "", "fixed_in": ""}
+                    for vuln in vulns:
 
-                    try:
-                        if LooseVersion(addon["version"]) < LooseVersion(vuln["fixed_in"]):
-                            log.print_cms("alert", vuln["title"], "", 1)
+                        vuln_url = url_details + str(vuln["id"])
+                        vuln_details = {
+                            "name": "",
+                            "link": "",
+                            "type": "",
+                            "poc": "",
+                            "fixed_in": "",
+                        }
 
-                            vuln_details["name"] = vuln["title"]
+                        try:
+                            if LooseVersion(addon["version"]) < LooseVersion(vuln["fixed_in"]):
+                                log.print_cms("alert", vuln["title"], "", 1)
+
+                                vuln_details["name"] = vuln["title"]
+                                vuln_details["link"] = vuln_url
+                                vuln_details["type"] = vuln["vuln_type"]
+                                vuln_details["fixed_in"] = vuln["fixed_in"]
+                                vuln_details["poc"] = "CHECK"
+
+                                if uCMS.get_poc(vuln_url):
+                                    vuln_details["poc"] = "YES"
+
+                                addon["vulns"].append(vuln_details)
+
+                        except (TypeError, AttributeError):
+                            log.print_cms(
+                                "alert",
+                                "Unable to compare version. Please check this "
+                                "vulnerability :" + vuln["title"],
+                                "",
+                                1,
+                            )
+
+                            vuln_details["name"] = " To check : " + vuln["title"]
                             vuln_details["link"] = vuln_url
                             vuln_details["type"] = vuln["vuln_type"]
                             vuln_details["fixed_in"] = vuln["fixed_in"]
@@ -270,38 +297,15 @@ class WP(GenericCMS):
                                 vuln_details["poc"] = "YES"
 
                             addon["vulns"].append(vuln_details)
-
-                    except (TypeError, AttributeError):
-                        log.print_cms(
-                            "alert",
-                            "Unable to compare version. Please check this "
-                            "vulnerability :" + vuln["title"],
-                            "",
-                            1,
-                        )
-
-                        vuln_details["name"] = " To check : " + vuln["title"]
-                        vuln_details["link"] = vuln_url
-                        vuln_details["type"] = vuln["vuln_type"]
-                        vuln_details["fixed_in"] = vuln["fixed_in"]
-                        vuln_details["poc"] = "CHECK"
-
-                        if uCMS.get_poc(vuln_url):
-                            vuln_details["poc"] = "YES"
-
-                        addon["vulns"].append(vuln_details)
-
-                if addon["vulns"]:
-                    addon["cve"] = "YES"
-                else:
-                    addon["cve"] = "NO"
+                    else:
+                        log.print_cms("good", "No CVE were found", "", 1)
+                        addon["cve"] = "NO"
 
         except requests.exceptions.HTTPError as e:
-            msg = "No entry on wpvulndb."
-            log.print_cms("info", "[+] " + msg, "", 1)
+            log.print_cms("info", "No entry on wpvulndb.", "", 1)
             addon["cve"] = "NO"
             return "", e
-        return vulns, None
+        return addon["vulns"], None
 
     def get_archive_name(self):
         return "wordpress"

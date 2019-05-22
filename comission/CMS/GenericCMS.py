@@ -236,7 +236,7 @@ class GenericCMS:
         return altered, None
 
     @abstractmethod
-    def check_vulns_core(self, version_core):
+    def check_vulns_core(self):
         """
         Check if there are any vulns on the CMS core used
         """
@@ -265,9 +265,7 @@ class GenericCMS:
         _, err = self.get_core_last_version()
 
         # Check for vuln on the CMS version
-        self.core_details["vulns"], err = self.check_vulns_core(
-            self.core_details["infos"]["version"]
-        )
+        _, err = self.check_vulns_core()
 
         # Check if the core have been altered
         download_url = self.download_core_url + self.core_details["infos"]["version"] + ".zip"
