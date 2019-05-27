@@ -11,6 +11,7 @@ import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
 from .GenericCMS import GenericCMS
 from .models.Addon import Addon
+from .models.Vulnerability import Vulnerability
 
 
 class DPL(GenericCMS):
@@ -76,15 +77,13 @@ class DPL(GenericCMS):
 
         return last_version_core
 
-    def get_addon_last_version(
-        self, addon: Addon
-    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+    def get_addon_last_version(self, addon: Addon) -> str:
         releases_url = f"{self.site_url}/project/{addon.name}/releases"
 
         if addon.version == "VERSION":
             addon.notes = "This is a default addon. Analysis is not yet implemented !"
             log.print_cms("alert", addon.notes, "", 1)
-            return "", None
+            return ""
 
         try:
             response = requests.get(releases_url, allow_redirects=False)
@@ -114,23 +113,23 @@ class DPL(GenericCMS):
         except requests.exceptions.HTTPError as e:
             addon.notes = "Addon not on official site. Search manually !"
             log.print_cms("alert", f"[-] {addon.notes}", "", 1)
-            return addon.notes, e
-        return addon.last_version, None
+            raise e
+        return addon.last_version
 
     def get_addon_url(self, addon: Addon) -> str:
         return f"{self.download_addon_url}{addon.name}-{addon.version}.zip"
 
-    def check_vulns_core(self) -> Tuple[List, None]:
+    def check_vulns_core(self) -> List[Vulnerability]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
-        return [], None
+        return []
 
-    def check_vulns_addon(self, addon: Addon) -> Tuple[List, None]:
+    def check_vulns_addon(self, addon: Addon) -> List[Addon]:
         # TODO
         log.print_cms("alert", "CVE check not yet implemented !", "", 1)
-        return [], None
+        return []
 
-    def get_archive_name(self):
+    def get_archive_name(self) -> str:
         return f"drupal-{self.core.version}"
 
     def addon_analysis(self, addon_type: str) -> List[Addon]:
@@ -174,31 +173,24 @@ class DPL(GenericCMS):
 
             addon_path = os.path.join(self.dir_path, addons_path, addon_name)
 
-            # Get addon version
-            _, err = self.get_addon_version(addon, addon_path, self.regex_version_addon, '"')
-            if err is not None:
-                addons.append(addon)
-                continue
+            try:
+                # Get addon version
+                self.get_addon_version(addon, addon_path, self.regex_version_addon, '"')
 
-            # Check addon last version
-            _, err = self.get_addon_last_version(addon)
-            if err is not None:
-                addons.append(addon)
-                continue
+                # Check addon last version
+                self.get_addon_last_version(addon)
 
-            # Check if there are known CVE
-            _, err = self.check_vulns_addon(addon)
-            if err is not None:
-                addons.append(addon)
-                continue
+                # Check if there are known CVE
+                self.check_vulns_addon(addon)
 
-            # Check if the addon have been altered
-            _, err = self.check_addon_alteration(addon, addon_path, temp_directory)
-            if err is not None:
-                addons.append(addon)
-                continue
+                # Check if the addon have been altered
+                self.check_addon_alteration(addon, addon_path, temp_directory)
 
-            addons.append(addon)
+                addons.append(addon)
+            except Exception as e:
+                uCMS.log_debug(str(e))
+                addons.append(addon)
+                pass
 
         if addon_type == "plugins":
             self.plugins = addons

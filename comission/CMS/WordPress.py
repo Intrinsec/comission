@@ -123,9 +123,7 @@ class WP(GenericCMS):
 
         return last_version_core
 
-    def get_addon_last_version(
-        self, addon: Addon
-    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+    def get_addon_last_version(self, addon: Addon) -> str:
         releases_url = f"{self.site_url}{addon.type}/{addon.name}/"
 
         # Default on addon of type plugin
@@ -164,8 +162,8 @@ class WP(GenericCMS):
         except requests.exceptions.HTTPError as e:
             addon.notes = "Addon not on official site. Search manually !"
             log.print_cms("alert", f"[-] {addon.notes}", "", 1)
-            return addon.notes, e
-        return addon.last_version, None
+            raise e
+        return addon.last_version
 
     def get_addon_url(self, addon: Addon) -> str:
         if addon.version == "trunk":
@@ -174,7 +172,7 @@ class WP(GenericCMS):
             url = f"{self.download_addon_url}{addon.name}.{addon.version}.zip"
         return url
 
-    def check_vulns_core(self) -> Tuple[List, Union[None, requests.exceptions.HTTPError]]:
+    def check_vulns_core(self) -> List[Vulnerability]:
         version = self.core.version.replace(".", "")
 
         url = f"{self.cve_ref_url}wordpresses/{version}"
@@ -217,8 +215,10 @@ class WP(GenericCMS):
 
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
-            return [], e
-        return self.core.vulns, None
+            uCMS.log_debug(str(e))
+            pass
+
+        return self.core.vulns
 
     def get_poc(self, url: str) -> List[str]:
         r = requests.get(url)
@@ -226,9 +226,7 @@ class WP(GenericCMS):
 
         return [el.get_text() for el in soup.findAll("pre", {"class": "poc"})]
 
-    def check_vulns_addon(
-        self, addon: Addon
-    ) -> Tuple[List, Union[None, requests.exceptions.HTTPError]]:
+    def check_vulns_addon(self, addon: Addon) -> List[Vulnerability]:
         url = f"{self.cve_ref_url}plugins/{addon.name}"
         url_details = "https://wpvulndb.com/vulnerabilities/"
 
@@ -284,10 +282,10 @@ class WP(GenericCMS):
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
             addon.cve = "NO"
-            return [], e
-        return addon.vulns, None
+            pass
+        return addon.vulns
 
-    def get_archive_name(self):
+    def get_archive_name(self) -> str:
         return "wordpress"
 
     def addon_analysis(self, addon_type: str) -> List[Addon]:
@@ -335,34 +333,27 @@ class WP(GenericCMS):
                     else:
                         addon.subtype = ""
 
-                # Check addon main file
-                self.get_addon_main_file(addon, addon.path)
+                try:
+                    # Check addon main file
+                    self.get_addon_main_file(addon, addon.path)
 
-                # Get addon version
-                _, err = self.get_addon_version(addon, addon.path, self.regex_version_addon, " ")
-                if err is not None:
+                    # Get addon version
+                    self.get_addon_version(addon, addon.path, self.regex_version_addon, " ")
+
+                    # Check addon last version
+                    self.get_addon_last_version(addon)
+
+                    # Check known CVE in wpvulndb
+                    self.check_vulns_addon(addon)
+
+                    # Check if the addon have been altered
+                    self.check_addon_alteration(addon, addon.path, temp_directory)
+
                     addons.append(addon)
-                    continue
-
-                # Check addon last version
-                _, err = self.get_addon_last_version(addon)
-                if err is not None:
+                except Exception as e:
+                    uCMS.log_debug(str(e))
                     addons.append(addon)
-                    continue
-
-                # Check known CVE in wpvulndb
-                _, err = self.check_vulns_addon(addon)
-                if err is not None:
-                    addons.append(addon)
-                    continue
-
-                # Check if the addon have been altered
-                _, err = self.check_addon_alteration(addon, addon.path, temp_directory)
-                if err is not None:
-                    addons.append(addon)
-                    continue
-
-                addons.append(addon)
+                    pass
 
         if addon_type == "plugins":
             self.plugins = addons

@@ -186,7 +186,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_core_alteration(self):
         download_core_url = "https://wordpress.org/wordpress-4.5.1.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url)
+        alterations = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0].file, "wp-config-sample.php")
 
@@ -195,7 +195,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         temp_directory = uCMS.TempDir.create()
         self.cms.wp_content = "renamed-wp-content"
 
-        _, _ = self.cms.check_addon_alteration(
+        self.cms.check_addon_alteration(
             dataset.addon_wp_stage2, self.dir_path, temp_directory
         )
 
@@ -211,7 +211,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         self.cms.core.version = "5.0"
         config = uCMS.parse_conf("test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
-        vulns_details, err = self.cms.check_vulns_core()
+        vulns_details = self.cms.check_vulns_core()
         self.assertEqual(len(vulns_details), 9)
         self.assertEqual(vulns_details[0].name, "WordPress <= 5.0 - Authenticated File Delete")
         self.assertEqual(vulns_details[0].link, "https://wpvulndb.com/vulnerabilities/9169")
@@ -220,7 +220,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         dataset = DataSet()
         config = uCMS.parse_conf("test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
-        vulns_details, err = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
+        vulns_details = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
         self.assertEqual(len(vulns_details), 11)
 
     # Full core analysis test
@@ -284,7 +284,7 @@ class TestDrupalAnalysis(unittest.TestCase):
     def test_check_core_alteration(self):
         self.cms.core.version = "7.56"
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-7.56.zip"
-        alterations, err = self.cms.check_core_alteration(download_core_url)
+        alterations = self.cms.check_core_alteration(download_core_url)
 
         self.assertEqual(alterations[0].file, "cron.php")
 
@@ -294,7 +294,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         addon_path = os.path.join(
             self.dir_path, Path("sites"), Path("all"), Path("modules"), Path(dataset.addon_dpl_stage2.name)
         )
-        _, _ = self.cms.check_addon_alteration(dataset.addon_dpl_stage2, addon_path, temp_directory)
+        self.cms.check_addon_alteration(dataset.addon_dpl_stage2, addon_path, temp_directory)
 
         uCMS.TempDir.delete_all()
 
@@ -319,7 +319,7 @@ class TestDrupalAnalysis(unittest.TestCase):
 
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
-        report_name = "../test-data-set/test.xlsx"
+        report_name = "test-data-set/test.xlsx"
         self.report = rCMS.ComissionXLSX(report_name)
 
         dataset = DataSet()
