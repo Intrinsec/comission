@@ -1,6 +1,5 @@
 {
     "reportUnusedImport": true,
-    "reportMissingImports": true,
     "exclude": [
         "venv",
         "tests/context.py",
