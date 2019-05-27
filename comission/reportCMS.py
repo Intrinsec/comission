@@ -514,11 +514,11 @@ class ComissionCSV:
                 addon_lists.append(addon_list)
                 x += 1
 
-            if addon.type == "plugins":
-                self.add_data_to_file(addon_lists, self.plugins_filename, self.plugins_headings)
+                if addon.type == "plugins":
+                    self.add_data_to_file(addon_lists, self.plugins_filename, self.plugins_headings)
 
-            elif addon.type == "themes":
-                self.add_data_to_file(addon_lists, self.themes_filename, self.themes_headings)
+                elif addon.type == "themes":
+                    self.add_data_to_file(addon_lists, self.themes_filename, self.themes_headings)
 
             # Add elements vulns
             x = 2
@@ -535,14 +535,14 @@ class ComissionCSV:
                     ]
                     vuln_lists.append(vuln_list)
                     x += 1
-            if addon.type == "plugins":
-                self.add_data_to_file(
-                    vuln_lists, self.plugins_vulns_filename, self.plugins_vulns_headings
-                )
-            elif addon.type == "themes":
-                self.add_data_to_file(
-                    vuln_lists, self.themes_vulns_filename, self.themes_vulns_headings
-                )
+                if addon.type == "plugins":
+                    self.add_data_to_file(
+                        vuln_lists, self.plugins_vulns_filename, self.plugins_vulns_headings
+                    )
+                elif addon.type == "themes":
+                    self.add_data_to_file(
+                        vuln_lists, self.themes_vulns_filename, self.themes_vulns_headings
+                    )
             # Add elements alteration details
             x = 2
             addon_alteration_lists = []
@@ -557,18 +557,18 @@ class ComissionCSV:
                     ]
                     addon_alteration_lists.append(addon_alteration_list)
                     x += 1
-            if addon.type == "plugins":
-                self.add_data_to_file(
-                    addon_alteration_lists,
-                    self.plugins_alteration_filename,
-                    self.plugins_alteration_headings,
-                )
-            elif addon.type == "themes":
-                self.add_data_to_file(
-                    addon_alteration_lists,
-                    self.themes_alteration_filename,
-                    self.themes_alteration_headings,
-                )
+                if addon.type == "plugins":
+                    self.add_data_to_file(
+                        addon_alteration_lists,
+                        self.plugins_alteration_filename,
+                        self.plugins_alteration_headings,
+                    )
+                elif addon.type == "themes":
+                    self.add_data_to_file(
+                        addon_alteration_lists,
+                        self.themes_alteration_filename,
+                        self.themes_alteration_headings,
+                    )
 
     def add_core_data_to_file(self, data, headers) -> None:
         with open(self.core_filename, "w", newline="") as csvfile:

@@ -12,6 +12,7 @@ import tempfile
 
 from filecmp import dircmp
 from typing import Dict, List
+from pathlib import Path
 
 from comission.CMS.models.Alteration import Alteration
 
@@ -30,7 +31,7 @@ def parse_args() -> Dict:
     parser = argparse.ArgumentParser(description="CoMisSion analyse a CMS and plugins used.")
     parser.add_argument("-d", "--dir", dest="dir", required=True, help="CMS root directory")
     parser.add_argument(
-        "-c", "--cms", dest="cms", required=True, help="CMS type (drupal, wordpress)"
+        "-c", "--cms", required=True, help="CMS type (drupal, wordpress)"
     )
     parser.add_argument(
         "-o", "--output", metavar="FILE", default="output.XLSX", help="Path to output file"
@@ -40,6 +41,7 @@ def parse_args() -> Dict:
         "--type",
         metavar="TYPE",
         default="XLSX",
+        choices=["CSV", "XLSX", "JSON", "STDOUT"],
         help="Type of output (CSV, XLSX, JSON, STDOUT). Default to XLSX.",
     )
     parser.add_argument(
@@ -83,10 +85,10 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--major",
         dest="version_major",
-        help="Specify the core major version (eg. " "7, 8) when using --skip-core arg.",
+        help="Specify the core major version (eg. 7, 8) when using --skip-core arg.",
     )
     parser.add_argument(
-        "--wpvulndb_token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."
+        "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."
     )
     args = parser.parse_args()
 
@@ -103,8 +105,18 @@ def parse_conf(conf_file: str) -> Dict:
     config = configparser.ConfigParser()
     config_dict = {}
 
-    with open(conf_file) as file:
-        config.read_file(file)
+    try:
+        with open(Path(conf_file)) as file:
+            config.read_file(file)
+    except FileNotFoundError:
+        Log.print_cms(
+            "alert",
+            "[-] The conf file does not exist. "
+            "Please check the path !",
+            "",
+            0,
+        )
+        sys.exit()
 
     for key, value in config.items("Configuration"):
         config_dict[key] = value
@@ -143,7 +155,7 @@ def fetch_addons(input: str, type: str) -> List[str]:
 def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
     for name in dcmp.diff_files:
         alteration = Alteration()
-        altered_file = os.path.join(target, name)
+        altered_file = os.path.join(target, str(name))
         Log.print_cms("alert", altered_file, " was altered !", 1)
         alteration.target = target
         alteration.file = name
@@ -153,7 +165,7 @@ def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
 
     for name in dcmp.right_only:
         alteration = Alteration()
-        altered_file = os.path.join(target, name)
+        altered_file = os.path.join(target, str(name))
         Log.print_cms("warning", altered_file, " has been added !", 1)
         alteration.target = target
         alteration.file = name
@@ -163,7 +175,7 @@ def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
 
     for name in dcmp.left_only:
         alteration = Alteration()
-        altered_file = os.path.join(target, name)
+        altered_file = os.path.join(target, str(name))
         Log.print_cms("warning", altered_file, " deleted !", 1)
         alteration.target = target
         alteration.file = name
@@ -171,7 +183,7 @@ def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
         alterations.append(alteration)
 
     for current_dir, sub_dcmp in zip(dcmp.subdirs.keys(), dcmp.subdirs.values()):
-        current_target = os.path.join(target, current_dir)
+        current_target = os.path.join(target, str(current_dir))
         diff_files(sub_dcmp, alterations, current_target)
 
 
