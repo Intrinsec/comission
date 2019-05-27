@@ -216,6 +216,7 @@ class WP(GenericCMS):
         except requests.exceptions.HTTPError as e:
             log.print_cms("info", "No entry on wpvulndb.", "", 1)
             uCMS.log_debug(str(e))
+            pass
 
         return self.core.vulns
 
