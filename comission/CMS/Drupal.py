@@ -2,7 +2,7 @@
 
 import os
 import re
-from typing import List, Tuple, Union, Dict
+from typing import List, Tuple, Union
 
 import requests
 from lxml import etree
@@ -133,7 +133,7 @@ class DPL(GenericCMS):
     def get_archive_name(self):
         return f"drupal-{self.core.version}"
 
-    def addon_analysis(self, addon_type: str) -> List:
+    def addon_analysis(self, addon_type: str) -> List[Addon]:
         temp_directory = uCMS.TempDir.create()
         addons = []
         addons_path = ""

@@ -5,17 +5,17 @@ A CMS addon (could be a plugin, theme, module, etc.)
 
 class Addon:
     def __init__(self):
-        self.name = None
+        self.name = ""
         self.type = None
         self.subtype = None
         self.status = "todo"
-        self.path = None
-        self.filename = None
-        self.version = None
+        self.path = ""
+        self.filename = ""
+        self.version = ""
         self.last_version = "Not found"
         self.last_release_date = None
         self.link = None
-        self.notes = None
+        self.notes = ""
         self.url = None
         self.altered = None  # TODO replace with a boolean
         self.alterations = []

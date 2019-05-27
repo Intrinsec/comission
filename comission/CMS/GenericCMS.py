@@ -2,14 +2,16 @@
 
 import io
 import os
+import sys
 import re
 import zipfile
 from abc import abstractmethod
 from filecmp import dircmp
-from typing import List, Tuple, Union, Dict, Pattern
+from typing import List, Tuple, Union, Dict, Pattern, Any
 
 import requests
 from checksumdir import dirhash
+from pathlib import Path
 
 import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
@@ -78,7 +80,7 @@ class GenericCMS:
 
     def get_addon_version(
         self, addon: Addon, addon_path: str, version_file_regexp: Pattern, to_strip: str
-    ) -> Tuple[str, Union[None, FileNotFoundError]]:
+    ) -> Tuple[str, Union[Any]]:
         version = ""
         try:
             path = os.path.join(addon_path, addon.filename)
@@ -86,7 +88,7 @@ class GenericCMS:
                 for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        addon.version = version.group(1).strip(to_strip)
+                        addon.version = version.group(1).strip(to_strip.encode())
                         log.print_cms("default", "Version : " + addon.version, "", 1)
                         break
 
@@ -95,7 +97,7 @@ class GenericCMS:
             log.print_cms("alert", "[-] " + msg, "", 1)
             addon.notes = msg
             return "", e
-        return version, None
+        return addon.version, None
 
     @abstractmethod
     def get_url_release(self):
@@ -109,7 +111,7 @@ class GenericCMS:
         """
         Extract core last version from HTTP response content
         """
-        pass
+        return ""
 
     def get_core_last_version(self) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         """
@@ -142,7 +144,7 @@ class GenericCMS:
         """
         Get the last released of the plugin and the date
         """
-        pass
+        return ""
 
     def check_core_alteration(
         self, core_url: str
@@ -168,7 +170,7 @@ class GenericCMS:
             )
             return alterations, e
 
-        clean_core_path = os.path.join(temp_directory, self.get_archive_name())
+        clean_core_path = os.path.join(temp_directory, Path(self.get_archive_name()))
 
         dcmp = dircmp(clean_core_path, self.dir_path, self.core.ignored_files)
         uCMS.diff_files(dcmp, alterations, self.dir_path)

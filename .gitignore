@@ -5,6 +5,7 @@ __pycache__
 # Dev stuff
 dev-build.sh
 .idea
+.vscode
 venv
 output.XLSX
 

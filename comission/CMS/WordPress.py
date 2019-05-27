@@ -2,7 +2,7 @@
 
 import os
 import re
-from distutils.version import LooseVersion
+from distutils.version import LooseVersion # pylint: disable=import-error
 from typing import List, Tuple, Union, Dict
 
 import requests
@@ -87,7 +87,7 @@ class WP(GenericCMS):
             suspects.append("wp-content")
         return suspects
 
-    def get_addon_main_file(self, addon: Addon, addon_path: str) -> List[str]:
+    def get_addon_main_file(self, addon: Addon, addon_path: str) -> str:
         if addon.type == "themes":
             addon.filename = "style.css"
 
@@ -128,10 +128,11 @@ class WP(GenericCMS):
     ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
         releases_url = f"{self.site_url}{addon.type}/{addon.name}/"
 
-        if addon.type == "plugins":
-            version_web_regexp = self.regex_version_addon_web_plugin
-            date_last_release_regexp = self.regex_date_last_release_plugin
-        elif addon.type == "themes":
+        # Default on addon of type plugin
+        version_web_regexp = self.regex_version_addon_web_plugin
+        date_last_release_regexp = self.regex_date_last_release_plugin
+
+        if addon.type == "themes":
             version_web_regexp = self.regex_version_addon_web_theme
             date_last_release_regexp = self.regex_date_last_release_theme
 
@@ -289,7 +290,7 @@ class WP(GenericCMS):
     def get_archive_name(self):
         return "wordpress"
 
-    def addon_analysis(self, addon_type: str) -> List[Dict]:
+    def addon_analysis(self, addon_type: str) -> List[Addon]:
         temp_directory = uCMS.TempDir.create()
         addons = []
 
