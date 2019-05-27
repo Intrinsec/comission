@@ -31,6 +31,7 @@ def main():
     plugins_dir = ""
     themes_dir = ""
     wpvulndb_token = ""
+    version = ""
 
     if "wp_content" in args:
         wp_content = args["wp_content"]
@@ -44,16 +45,19 @@ def main():
     if "wpvulndb_token" in args:
         wpvulndb_token = args["wpvulndb_token"]
 
+    if "version" in args:
+        version = args["version"]
+
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token)
+        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version)
 
     elif args["cms"] == "drupal":
         to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
         uCMS.verify_path(dir_path, to_check)
-        cms = Drupal.DPL(dir_path, plugins_dir, themes_dir)
+        cms = Drupal.DPL(dir_path, plugins_dir, themes_dir, version)
 
     else:
         log.print_cms("alert", "CMS unknown or unsupported !", "", 0)

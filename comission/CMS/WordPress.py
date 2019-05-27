@@ -24,13 +24,15 @@ class WP(GenericCMS):
     download_addon_url = "https://downloads.wordpress.org/plugin/"
     cve_ref_url = "https://wpvulndb.com/api/v3/"
 
-    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token):
+    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version=""):
         super().__init__()
         self.dir_path = dir_path
         self.wp_content = wp_content
         self.plugins_dir = plugins_dir
         self.themes_dir = themes_dir
         self.wpvulndb_token = wpvulndb_token
+        self.core.version = version
+        self.core.version_major = version.split(".")[0]
 
         self.regex_version_core = re.compile("\$wp_version = '(.*)';")
         self.regex_version_addon = re.compile("(?i)Version: (.*)")
