@@ -5,6 +5,7 @@ import re
 import unittest
 
 from openpyxl import load_workbook
+from pathlib import Path
 
 import comission.CMS.Drupal as Drupal
 import comission.CMS.WordPress as WordPress
@@ -208,7 +209,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_vulns_core(self):
         self.cms.core.version = "5.0"
-        config = uCMS.parse_conf("../test-data-set/test.conf")
+        config = uCMS.parse_conf("test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_core()
         self.assertEqual(len(vulns_details), 9)
@@ -217,7 +218,7 @@ class TestWordPressAnalysis(unittest.TestCase):
 
     def test_check_vulns_addon(self):
         dataset = DataSet()
-        config = uCMS.parse_conf("../test-data-set/test.conf")
+        config = uCMS.parse_conf("test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details, err = self.cms.check_vulns_addon(dataset.addon_wp_stage2)
         self.assertEqual(len(vulns_details), 11)
@@ -291,7 +292,7 @@ class TestDrupalAnalysis(unittest.TestCase):
         dataset = DataSet()
         temp_directory = uCMS.TempDir.create()
         addon_path = os.path.join(
-            self.dir_path, "sites", "all", "modules", dataset.addon_dpl_stage2.name
+            self.dir_path, Path("sites"), Path("all"), Path("modules"), Path(dataset.addon_dpl_stage2.name)
         )
         _, _ = self.cms.check_addon_alteration(dataset.addon_dpl_stage2, addon_path, temp_directory)
 
