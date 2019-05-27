@@ -85,7 +85,13 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--major",
         dest="version_major",
-        help="Specify the core major version (eg. 7, 8) when using --skip-core arg. Works on ly for Drupal.",
+        help="Specify the core major version (eg. 7, 8) when using --skip-core arg. Works only for Drupal.",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        dest="version",
+        help="Specify the core full version (eg. 5.5).",
     )
     parser.add_argument(
         "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."

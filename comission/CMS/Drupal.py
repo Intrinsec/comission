@@ -23,13 +23,15 @@ class DPL(GenericCMS):
     download_addon_url = "https://ftp.drupal.org/files/projects/"
     cve_ref_url = ""
 
-    def __init__(self, dir_path, plugins_dir, themes_dir):
+    def __init__(self, dir_path, plugins_dir, themes_dir, version=""):
         super().__init__()
         self.dir_path = dir_path
         self.addons_path = "sites/all/"
         self.plugins_dir = plugins_dir
         self.themes_dir = themes_dir
         self.plugin_path = ""
+        self.core.version = version
+        self.core.version_major = version.split(".")[0]
 
         self.regex_version_core_dpl7 = re.compile("define\('VERSION', '(.*)'\);")
         self.regex_version_core_dpl8 = re.compile("const VERSION = '(.*)';")

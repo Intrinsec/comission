@@ -266,7 +266,8 @@ class GenericCMS:
             0,
         )
         # Check current CMS version
-        self.get_core_version()
+        if self.core.version == "":
+            self.get_core_version()
 
         # Get the last released version
         self.get_core_last_version()
