@@ -9,6 +9,7 @@ import shutil
 import string
 import sys
 import tempfile
+import logging
 
 from filecmp import dircmp
 from typing import Dict, List
@@ -67,6 +68,7 @@ def parse_args() -> Dict:
         help="Do not use colors in the output.",
     )
     parser.add_argument("-f", "--file", dest="conf", help="Configuration file. See example.conf.")
+    parser.add_argument("--log", dest="logfile", help="Log output in given file.")
     parser.add_argument(
         "--wp-content",
         dest="wp_content",
@@ -195,10 +197,16 @@ def diff_files(dcmp: dircmp, alterations: List, target: str) -> None:
 
 class Log:
     NO_COLOR = False
+    LOG_IN_FILE = False
 
     @classmethod
     def set_nocolor_policy(cls, no_color):
         cls.NO_COLOR = no_color
+
+    @classmethod
+    def set_logging_policy(cls, filename):
+        cls.LOG_IN_FILE = True
+        logging.basicConfig(filename=filename)
 
     @classmethod
     def print_cms(cls, type, msg, msg_default, level, no_color=None):
@@ -213,20 +221,32 @@ class Log:
         if no_color is None:
             no_color = cls.NO_COLOR
 
+        formated_msg = ""
+        NEEDED_COLOR = ""
+        
         if no_color:
-            print("\t" * level + msg + msg_default)
+            formated_msg = "\t" * level + msg + msg_default
 
         else:
             if type == "default":
-                print(DEFAULT + "\t" * level + msg)
-            if type == "info":
-                print(BLUE + "\t" * level + msg + DEFAULT + msg_default)
-            if type == "good":
-                print(GREEN + "\t" * level + msg + DEFAULT + msg_default)
-            if type == "warning":
-                print(YELLOW + "\t" * level + msg + DEFAULT + msg_default)
-            if type == "alert":
-                print(RED + "\t" * level + msg + DEFAULT + msg_default)
+                NEEDED_COLOR = DEFAULT
+            elif type == "info":
+                NEEDED_COLOR = BLUE
+            elif type == "good":
+                NEEDED_COLOR = GREEN
+            elif type == "warning":
+                NEEDED_COLOR = YELLOW
+            elif type == "alert":
+                NEEDED_COLOR = RED
+            else:
+                NEEDED_COLOR = DEFAULT
+            
+            formated_msg = NEEDED_COLOR + "\t" * level + msg + DEFAULT + msg_default
+
+        print(formated_msg)
+
+        if cls.LOG_IN_FILE:
+            logging.info(formated_msg)
 
 
 class TempDir:

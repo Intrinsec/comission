@@ -20,6 +20,9 @@ def main():
     # Colored output ?
     if args["no_color"]:
         log.set_nocolor_policy(args["no_color"])
+    
+    if args["logfile"]:
+        log.set_logging_policy(args["logfile"])
 
     if not args["dir"]:
         log.print_cms("alert", "No path received !", "", 0)
