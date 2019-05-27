@@ -8,6 +8,7 @@ dev-build.sh
 .vscode
 venv
 output.XLSX
+launch.json
 
 # Tests stuff
 test.*

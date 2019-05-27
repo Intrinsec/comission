@@ -70,22 +70,22 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--wp-content",
         dest="wp_content",
-        help="Set this to force the wp-content " "directory location.",
+        help="Set this to force the wp-content directory location.",
     )
     parser.add_argument(
         "--plugins-dir",
         dest="plugins_dir",
-        help="Set this to force the plugins " "directory location.",
+        help="Set this to force the plugins directory location.",
     )
     parser.add_argument(
         "--themes-dir",
         dest="themes_dir",
-        help="Set this to force the themes " "directory location.",
+        help="Set this to force the themes directory location.",
     )
     parser.add_argument(
         "--major",
         dest="version_major",
-        help="Specify the core major version (eg. 7, 8) when using --skip-core arg.",
+        help="Specify the core major version (eg. 7, 8) when using --skip-core arg. Works on ly for Drupal.",
     )
     parser.add_argument(
         "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."
@@ -141,7 +141,7 @@ def fetch_addons(input: str, type: str) -> List[str]:
     plugins_name = []
     if not os.path.exists(input):
         Log.print_cms(
-            "alert", "[+] Plugins path {} does not exist ! (it may be normal)".format(input), "", 0
+            "alert", f"[+] Addons path {input} does not exist ! (it may be normal)", "", 0
         )
         return []
     if type == "standard":

@@ -17,6 +17,8 @@ import comission.utilsCMS as uCMS
 from comission.utilsCMS import Log as log
 from .models.Core import Core
 from .models.Addon import Addon
+from .models.Alteration import Alteration
+from .models.Vulnerability import Vulnerability
 
 
 class GenericCMS:
@@ -40,7 +42,7 @@ class GenericCMS:
 
         self.version_files_selector = {"./": self.regex_version_core}
 
-    def get_core_version(self) -> Tuple[str, Union[None, FileNotFoundError]]:
+    def get_core_version(self) -> str:
         suspects = []
 
         for suspect_file_path, version_core_regexp in self.version_files_selector.items():
@@ -59,13 +61,13 @@ class GenericCMS:
 
         if suspects_length == 0:
             log.print_cms("alert", "[-] Version not found. Search manually !", "", 0)
-            return "", None
+            return ""
 
         elif suspects_length == 1:
             log.print_cms("info", "[+] Version used : " + suspects[0], "", 0)
             self.core.version = suspects[0]
             self.core.version_major = suspects[0].split(".")[0]
-            return suspects[0], None
+            return suspects[0]
 
         else:
             for suspect in suspects:
@@ -76,11 +78,11 @@ class GenericCMS:
                     "",
                     0,
                 )
-            return "", None
+            return ""
 
     def get_addon_version(
         self, addon: Addon, addon_path: str, version_file_regexp: Pattern, to_strip: str
-    ) -> Tuple[str, Union[Any]]:
+    ) -> str:
         version = ""
         try:
             path = os.path.join(addon_path, addon.filename)
@@ -88,7 +90,7 @@ class GenericCMS:
                 for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        addon.version = version.group(1).strip(to_strip.encode())
+                        addon.version = version.group(1).strip(to_strip)
                         log.print_cms("default", "Version : " + addon.version, "", 1)
                         break
 
@@ -96,8 +98,8 @@ class GenericCMS:
             msg = "No standard extension file. Search manually !"
             log.print_cms("alert", "[-] " + msg, "", 1)
             addon.notes = msg
-            return "", e
-        return addon.version, None
+            return ""
+        return addon.version
 
     @abstractmethod
     def get_url_release(self):
@@ -113,11 +115,10 @@ class GenericCMS:
         """
         return ""
 
-    def get_core_last_version(self) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+    def get_core_last_version(self) -> str:
         """
         Fetch information on last release
         """
-        last_version_core = ""
         url_release = self.get_url_release()
 
         try:
@@ -125,30 +126,29 @@ class GenericCMS:
             response.raise_for_status()
 
             if response.status_code == 200:
-                last_version_core = self.extract_core_last_version(response)
+                self.last_version = self.extract_core_last_version(response)
 
         except requests.exceptions.HTTPError as e:
             log.print_cms("alert", "[-] Unable to retrieve last version. Search manually !", "", 1)
-            return "", e
-        return last_version_core, None
+            uCMS.log_debug(str(e))
+            pass
+        return self.last_version
 
     @abstractmethod
-    def get_addon_last_version(self, addon):
+    def get_addon_last_version(self, addon) -> str:
         """
         Get the last released of the plugin and the date
         """
         pass
 
     @abstractmethod
-    def get_archive_name(self):
+    def get_archive_name(self) -> str:
         """
         Get the last released of the plugin and the date
         """
         return ""
 
-    def check_core_alteration(
-        self, core_url: str
-    ) -> Tuple[List, Union[None, requests.exceptions.HTTPError]]:
+    def check_core_alteration(self, core_url: str) -> List[Alteration]:
         self.get_archive_name()
         alterations = []
         temp_directory = uCMS.TempDir.create()
@@ -168,18 +168,21 @@ class GenericCMS:
             log.print_cms(
                 "alert", "[-] Unable to find the original archive. Search manually !", "", 0
             )
-            return alterations, e
+            self.core.alterations = alterations
+            uCMS.log_debug(str(e))
+            return self.core.alterations
 
         clean_core_path = os.path.join(temp_directory, Path(self.get_archive_name()))
 
         dcmp = dircmp(clean_core_path, self.dir_path, self.core.ignored_files)
         uCMS.diff_files(dcmp, alterations, self.dir_path)
 
+        self.core.alterations = alterations
         if alterations is not None:
             msg = "[+] For further analysis, archive downloaded here : " + clean_core_path
             log.print_cms("info", msg, "", 0)
 
-        return alterations, None
+        return self.core.alterations
 
     @abstractmethod
     def get_addon_url(self, addon):
@@ -190,7 +193,7 @@ class GenericCMS:
 
     def check_addon_alteration(
         self, addon: Addon, addon_path: str, temp_directory: str
-    ) -> Tuple[str, Union[None, requests.exceptions.HTTPError]]:
+    ) -> str:
 
         addon_url = self.get_addon_url(addon)
 
@@ -234,9 +237,10 @@ class GenericCMS:
         except requests.exceptions.HTTPError as e:
             addon.notes = "The download link is not standard. Search manually !"
             log.print_cms("alert", addon.notes, "", 1)
-            return addon.notes, e
+            uCMS.log_debug(str(e))
+            return addon.notes
 
-        return altered, None
+        return altered
 
     @abstractmethod
     def check_vulns_core(self):
@@ -246,7 +250,7 @@ class GenericCMS:
         pass
 
     @abstractmethod
-    def check_vulns_addon(self, addon):
+    def check_vulns_addon(self, addon) -> List[Vulnerability]:
         """
         Check if there are any vulns on the plugin
         """
@@ -262,23 +266,21 @@ class GenericCMS:
             0,
         )
         # Check current CMS version
-        _, err = self.get_core_version()
+        self.get_core_version()
 
         # Get the last released version
-        _, err = self.get_core_last_version()
+        self.get_core_last_version()
 
         # Check for vuln on the CMS version
-        _, err = self.check_vulns_core()
+        self.check_vulns_core()
 
         # Check if the core have been altered
-        download_url = self.download_core_url + self.core.version + ".zip"
-
-        self.core.alterations, err = self.check_core_alteration(download_url)
+        self.check_core_alteration(self.download_core_url + self.core.version + ".zip")
 
         return self.core
 
     @abstractmethod
-    def addon_analysis(self, addon_type):
+    def addon_analysis(self, addon_type) -> List[Addon]:
         """
         CMS plugin analysis, return a list of dict
         """
