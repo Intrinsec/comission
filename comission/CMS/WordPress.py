@@ -3,13 +3,13 @@
 import os
 import re
 from distutils.version import LooseVersion # pylint: disable=import-error
-from typing import List, Tuple, Union, Dict
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
 
 import comission.utilsCMS as uCMS
-from comission.utilsCMS import Log as log
+from comission.utils.logging import LOGGER
 from .GenericCMS import GenericCMS
 from .models.Vulnerability import Vulnerability
 from .models.Addon import Addon
@@ -75,7 +75,7 @@ class WP(GenericCMS):
             if tocheck.issubset(next(os.walk(os.path.join(dir_path, dirname)))[1]):
                 suspects.append(dirname)
         if len(suspects) > 1:
-            log.print_cms(
+            LOGGER.print_cms(
                 "warning",
                 "[+] Several directories are suspected to be wp-contents. "
                 "Please check and if needed force one with --wp-content.",
@@ -83,7 +83,7 @@ class WP(GenericCMS):
                 0,
             )
             for path in suspects:
-                log.print_cms("info", f"[+] {path}", "", 1)
+                LOGGER.print_cms("info", f"[+] {path}", "", 1)
             # If none where found, fallback to default one
         if len(suspects) == 0:
             suspects.append("wp-content")
@@ -120,7 +120,7 @@ class WP(GenericCMS):
     def extract_core_last_version(self, response) -> str:
         page_json = response.json()
         last_version_core = page_json["offers"][0]["version"]
-        log.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
+        LOGGER.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
         self.core.last_version = last_version_core
 
         return last_version_core
@@ -152,9 +152,9 @@ class WP(GenericCMS):
                     addon.link = releases_url
 
                     if addon.last_version == addon.version:
-                        log.print_cms("good", "Up to date !", "", 1)
+                        LOGGER.print_cms("good", "Up to date !", "", 1)
                     else:
-                        log.print_cms(
+                        LOGGER.print_cms(
                             "alert",
                             "Outdated, last version: ",
                             f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
@@ -163,7 +163,7 @@ class WP(GenericCMS):
 
         except requests.exceptions.HTTPError as e:
             addon.notes = "Addon not on official site. Search manually !"
-            log.print_cms("alert", f"[-] {addon.notes}", "", 1)
+            LOGGER.print_cms("alert", f"[-] {addon.notes}", "", 1)
             raise e
         return addon.last_version
 
@@ -190,7 +190,7 @@ class WP(GenericCMS):
                 page_json = response.json()
 
                 vulns = page_json[self.core.version]["vulnerabilities"]
-                log.print_cms("info", "[+] CVE list", "", 1)
+                LOGGER.print_cms("info", "[+] CVE list", "", 1)
 
                 if len(vulns) > 0:
                     for vuln in vulns:
@@ -206,18 +206,18 @@ class WP(GenericCMS):
                         if self.get_poc(vuln_url):
                             vuln_details.poc = "YES"
 
-                        log.print_cms("alert", vuln["title"], "", 1)
-                        log.print_cms(
+                        LOGGER.print_cms("alert", vuln["title"], "", 1)
+                        LOGGER.print_cms(
                             "info", f"[+] Fixed in version {str(vuln['fixed_in'])}", "", 1
                         )
 
                         self.core.vulns.append(vuln_details)
                 else:
-                    log.print_cms("good", "No CVE were found", "", 1)
+                    LOGGER.print_cms("good", "No CVE were found", "", 1)
 
         except requests.exceptions.HTTPError as e:
-            log.print_cms("info", "No entry on wpvulndb.", "", 1)
-            uCMS.log_debug(str(e))
+            LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+            LOGGER.debug(str(e))
             pass
 
         return self.core.vulns
@@ -242,7 +242,7 @@ class WP(GenericCMS):
                 page_json = response.json()
 
                 vulns = page_json[addon.name]["vulnerabilities"]
-                log.print_cms("info", "[+] CVE list", "", 1)
+                LOGGER.print_cms("info", "[+] CVE list", "", 1)
 
                 if len(vulns) > 0:
                     addon.cve = "YES"
@@ -261,12 +261,12 @@ class WP(GenericCMS):
 
                         try:
                             if LooseVersion(addon.version) < LooseVersion(vuln["fixed_in"]):
-                                log.print_cms("alert", vuln["title"], "", 1)
+                                LOGGER.print_cms("alert", vuln["title"], "", 1)
                                 vuln_details.name = vuln["title"]
                                 addon.vulns.append(vuln_details)
 
                         except (TypeError, AttributeError):
-                            log.print_cms(
+                            LOGGER.print_cms(
                                 "alert",
                                 "Unable to compare version. Please check this "
                                 f"vulnerability : {vuln['title']}",
@@ -278,11 +278,11 @@ class WP(GenericCMS):
                             addon.vulns.append(vuln_details)
 
                 else:
-                    log.print_cms("good", "No CVE were found", "", 1)
+                    LOGGER.print_cms("good", "No CVE were found", "", 1)
                     addon.cve = "NO"
 
         except requests.exceptions.HTTPError as e:
-            log.print_cms("info", "No entry on wpvulndb.", "", 1)
+            LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
             addon.cve = "NO"
             pass
         return addon.vulns
@@ -294,7 +294,7 @@ class WP(GenericCMS):
         temp_directory = uCMS.TempDir.create()
         addons = []
 
-        log.print_cms(
+        LOGGER.print_cms(
             "info",
             "\n#######################################################"
             + "\n\t\t"
@@ -324,7 +324,7 @@ class WP(GenericCMS):
                 addon.type = addon_type
                 addon.name = addon_name
 
-                log.print_cms("info", "[+] " + addon.name, "", 0)
+                LOGGER.print_cms("info", "[+] " + addon.name, "", 0)
 
                 addon.path = os.path.join(addons_path, addon.name)
 
@@ -353,7 +353,7 @@ class WP(GenericCMS):
 
                     addons.append(addon)
                 except Exception as e:
-                    uCMS.log_debug(str(e))
+                    LOGGER.debug(str(e))
                     addons.append(addon)
                     pass
 

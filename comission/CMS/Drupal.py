@@ -2,13 +2,13 @@
 
 import os
 import re
-from typing import List, Tuple, Union
+from typing import List
 
 import requests
 from lxml import etree
 
 import comission.utilsCMS as uCMS
-from comission.utilsCMS import Log as log
+from comission.utils.logging import LOGGER
 from .GenericCMS import GenericCMS
 from .models.Addon import Addon
 from .models.Vulnerability import Vulnerability
@@ -74,7 +74,7 @@ class DPL(GenericCMS):
     def extract_core_last_version(self, response) -> str:
         tree = etree.fromstring(response.content)
         last_version_core = tree.xpath("/project/releases/release/tag")[0].text
-        log.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
+        LOGGER.print_cms("info", f"[+] Last CMS version: {last_version_core}", "", 0)
         self.core.last_version = last_version_core
 
         return last_version_core
@@ -84,7 +84,7 @@ class DPL(GenericCMS):
 
         if addon.version == "VERSION":
             addon.notes = "This is a default addon. Analysis is not yet implemented !"
-            log.print_cms("alert", addon.notes, "", 1)
+            LOGGER.print_cms("alert", addon.notes, "", 1)
             return ""
 
         try:
@@ -103,9 +103,9 @@ class DPL(GenericCMS):
                     addon.link = releases_url
 
                     if addon.last_version == addon.version:
-                        log.print_cms("good", "Up to date !", "", 1)
+                        LOGGER.print_cms("good", "Up to date !", "", 1)
                     else:
-                        log.print_cms(
+                        LOGGER.print_cms(
                             "alert",
                             "Outdated, last version: ",
                             f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
@@ -114,7 +114,7 @@ class DPL(GenericCMS):
 
         except requests.exceptions.HTTPError as e:
             addon.notes = "Addon not on official site. Search manually !"
-            log.print_cms("alert", f"[-] {addon.notes}", "", 1)
+            LOGGER.print_cms("alert", f"[-] {addon.notes}", "", 1)
             raise e
         return addon.last_version
 
@@ -123,12 +123,12 @@ class DPL(GenericCMS):
 
     def check_vulns_core(self) -> List[Vulnerability]:
         # TODO
-        log.print_cms("alert", "CVE check not yet implemented !", "", 1)
+        LOGGER.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return []
 
     def check_vulns_addon(self, addon: Addon) -> List[Addon]:
         # TODO
-        log.print_cms("alert", "CVE check not yet implemented !", "", 1)
+        LOGGER.print_cms("alert", "CVE check not yet implemented !", "", 1)
         return []
 
     def get_archive_name(self) -> str:
@@ -139,7 +139,7 @@ class DPL(GenericCMS):
         addons = []
         addons_path = ""
 
-        log.print_cms(
+        LOGGER.print_cms(
             "info",
             "#######################################################"
             + "\n\t\t"
@@ -171,7 +171,7 @@ class DPL(GenericCMS):
             addon.name = addon_name
             addon.filename = addon_name + ".info"
 
-            log.print_cms("info", "[+] " + addon_name, "", 0)
+            LOGGER.print_cms("info", "[+] " + addon_name, "", 0)
 
             addon_path = os.path.join(self.dir_path, addons_path, addon_name)
 
@@ -190,7 +190,7 @@ class DPL(GenericCMS):
 
                 addons.append(addon)
             except Exception as e:
-                uCMS.log_debug(str(e))
+                LOGGER.debug(str(e))
                 addons.append(addon)
                 pass
 
