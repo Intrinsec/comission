@@ -2,19 +2,18 @@
 
 import io
 import os
-import sys
 import re
 import zipfile
 from abc import abstractmethod
 from filecmp import dircmp
-from typing import List, Tuple, Union, Dict, Pattern, Any
+from typing import List, Pattern
 
 import requests
 from checksumdir import dirhash
 from pathlib import Path
 
 import comission.utilsCMS as uCMS
-from comission.utilsCMS import Log as log
+from comission.utils.logging import LOGGER
 from .models.Core import Core
 from .models.Addon import Addon
 from .models.Alteration import Alteration
@@ -54,24 +53,24 @@ class GenericCMS:
                             suspects.append(version_core_match.group(1).strip())
                             break
             except FileNotFoundError as e:
-                uCMS.log_debug(str(e))
+                LOGGER.debug(str(e))
                 pass
 
         suspects_length = len(suspects)
 
         if suspects_length == 0:
-            log.print_cms("alert", "[-] Version not found. Search manually !", "", 0)
+            LOGGER.print_cms("alert", "[-] Version not found. Search manually !", "", 0)
             return ""
 
         elif suspects_length == 1:
-            log.print_cms("info", "[+] Version used : " + suspects[0], "", 0)
+            LOGGER.print_cms("info", "[+] Version used : " + suspects[0], "", 0)
             self.core.version = suspects[0]
             self.core.version_major = suspects[0].split(".")[0]
             return suspects[0]
 
         else:
             for suspect in suspects:
-                log.print_cms(
+                LOGGER.print_cms(
                     "alert",
                     "[-] Multiple versions found." + suspect + " You "
                     "should probably check by yourself manually.",
@@ -91,12 +90,12 @@ class GenericCMS:
                     version = version_file_regexp.search(line)
                     if version:
                         addon.version = version.group(1).strip(to_strip)
-                        log.print_cms("default", "Version : " + addon.version, "", 1)
+                        LOGGER.print_cms("default", "Version : " + addon.version, "", 1)
                         break
 
         except FileNotFoundError as e:
             msg = "No standard extension file. Search manually !"
-            log.print_cms("alert", "[-] " + msg, "", 1)
+            LOGGER.print_cms("alert", "[-] " + msg, "", 1)
             addon.notes = msg
             return ""
         return addon.version
@@ -129,8 +128,8 @@ class GenericCMS:
                 self.last_version = self.extract_core_last_version(response)
 
         except requests.exceptions.HTTPError as e:
-            log.print_cms("alert", "[-] Unable to retrieve last version. Search manually !", "", 1)
-            uCMS.log_debug(str(e))
+            LOGGER.print_cms("alert", "[-] Unable to retrieve last version. Search manually !", "", 1)
+            LOGGER.debug(str(e))
             pass
         return self.last_version
 
@@ -153,7 +152,7 @@ class GenericCMS:
         alterations = []
         temp_directory = uCMS.TempDir.create()
 
-        log.print_cms("info", "[+] Checking core alteration", "", 0)
+        LOGGER.print_cms("info", "[+] Checking core alteration", "", 0)
 
         try:
             response = requests.get(core_url)
@@ -165,11 +164,11 @@ class GenericCMS:
                 zip_file.close()
 
         except requests.exceptions.HTTPError as e:
-            log.print_cms(
+            LOGGER.print_cms(
                 "alert", "[-] Unable to find the original archive. Search manually !", "", 0
             )
             self.core.alterations = alterations
-            uCMS.log_debug(str(e))
+            LOGGER.debug(str(e))
             return self.core.alterations
 
         clean_core_path = os.path.join(temp_directory, Path(self.get_archive_name()))
@@ -180,7 +179,7 @@ class GenericCMS:
         self.core.alterations = alterations
         if alterations is not None:
             msg = "[+] For further analysis, archive downloaded here : " + clean_core_path
-            log.print_cms("info", msg, "", 0)
+            LOGGER.print_cms("info", msg, "", 0)
 
         return self.core.alterations
 
@@ -197,7 +196,7 @@ class GenericCMS:
 
         addon_url = self.get_addon_url(addon)
 
-        log.print_cms("default", f"To download the addon: {addon_url}", "", 1)
+        LOGGER.print_cms("default", f"To download the addon: {addon_url}", "", 1)
         altered = ""
 
         try:
@@ -215,11 +214,11 @@ class GenericCMS:
 
                 if project_dir_hash == ref_dir_hash:
                     altered = "NO"
-                    log.print_cms("good", f"Different from sources : {altered}", "", 1)
+                    LOGGER.print_cms("good", f"Different from sources : {altered}", "", 1)
 
                 else:
                     altered = "YES"
-                    log.print_cms("alert", f"Different from sources : {altered}", "", 1)
+                    LOGGER.print_cms("alert", f"Different from sources : {altered}", "", 1)
 
                     dcmp = dircmp(addon_path, ref_dir, self.ignored_files_addon)
                     uCMS.diff_files(dcmp, addon.alterations, addon_path)
@@ -227,7 +226,7 @@ class GenericCMS:
                 addon.altered = altered
 
                 if addon.alterations is not None:
-                    log.print_cms(
+                    LOGGER.print_cms(
                         "info",
                         f"[+] For further analysis, archive downloaded here : {ref_dir}",
                         "",
@@ -236,8 +235,8 @@ class GenericCMS:
 
         except requests.exceptions.HTTPError as e:
             addon.notes = "The download link is not standard. Search manually !"
-            log.print_cms("alert", addon.notes, "", 1)
-            uCMS.log_debug(str(e))
+            LOGGER.print_cms("alert", addon.notes, "", 1)
+            LOGGER.debug(str(e))
             return addon.notes
 
         return altered
@@ -257,7 +256,7 @@ class GenericCMS:
         pass
 
     def core_analysis(self) -> Core:
-        log.print_cms(
+        LOGGER.print_cms(
             "info",
             "#######################################################"
             + "\n\t\tCore analysis"

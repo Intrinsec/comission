@@ -7,7 +7,7 @@ import comission.CMS.Drupal as Drupal
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
-from comission.utilsCMS import Log as log
+from comission.utils.logging import LOGGER
 
 
 def main():
@@ -19,13 +19,13 @@ def main():
 
     # Colored output ?
     if args["no_color"]:
-        log.set_nocolor_policy(args["no_color"])
+        LOGGER.set_nocolor_policy(args["no_color"])
     
     if args["logfile"]:
-        log.set_logging_policy(args["logfile"])
+        LOGGER.set_file(args["logfile"])
 
     if not args["dir"]:
-        log.print_cms("alert", "No path received !", "", 0)
+        LOGGER.print_cms("alert", "No path received !", "", 0)
         sys.exit()
 
     dir_path = args["dir"]
@@ -63,7 +63,7 @@ def main():
         cms = Drupal.DPL(dir_path, plugins_dir, themes_dir, version)
 
     else:
-        log.print_cms("alert", "CMS unknown or unsupported !", "", 0)
+        LOGGER.print_cms("alert", "CMS unknown or unsupported !", "", 0)
         sys.exit()
 
     # Analyse the core
@@ -106,7 +106,7 @@ def main():
         pass
 
     else:
-        log.print_cms("alert", "Output type unknown or missing filename !", "", 0)
+        LOGGER.print_cms("alert", "Output type unknown or missing filename !", "", 0)
         sys.exit()
 
     # Keep or clean temp dir
