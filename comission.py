@@ -8,6 +8,7 @@ import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
 from comission.utils.logging import LOGGER
+import comission.utils.logging as logging
 
 
 def main():
@@ -50,6 +51,9 @@ def main():
 
     if "version" in args:
         version = args["version"]
+
+    if "debug" in args:
+        logging.DEBUG = True
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":

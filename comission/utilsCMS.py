@@ -86,6 +86,12 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."
     )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        action="store_true",
+        help="Print debug message to help identify errors.",
+    )
     args = parser.parse_args()
 
     args_dict = {}

@@ -108,7 +108,7 @@ class DPL(GenericCMS):
                         LOGGER.print_cms(
                             "alert",
                             "Outdated, last version: ",
-                            f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
+                            f"{addon.last_version} ({addon.last_release_date}) \n\tCheck : {releases_url}",
                             1,
                         )
 

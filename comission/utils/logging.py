@@ -1,6 +1,6 @@
 import datetime
 
-DEBUG = True
+DEBUG = False
 QUIET = False
 
 
