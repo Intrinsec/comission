@@ -297,10 +297,10 @@ class ComissionXLSX:
             worksheet.set_column("D:D", 10)
             worksheet.set_column("E:E", 13)
             worksheet.set_column("F:F", 50)
-            worksheet.set_column("G:G", 7)
-            worksheet.set_column("H:H", 5)
-            worksheet.set_column("I:I", 60)
-            worksheet.set_column("J:J", 3)
+            worksheet.set_column("G:G", 5)
+            worksheet.set_column("H:H", 10)
+            worksheet.set_column("I:I", 5)
+            worksheet.set_column("J:J", 60)
             worksheet.conditional_format(
                 "A1:A300",
                 {"type": "text", "criteria": "containing", "value": "todo", "format": bad},
@@ -346,7 +346,7 @@ class ComissionXLSX:
             worksheet.set_column("B:B", 80)
             worksheet.set_column("C:C", 40)
             worksheet.set_column("D:D", 10)
-            worksheet.set_column("E:E", 7)
+            worksheet.set_column("E:E", 10)
             worksheet.set_column("F:F", 10)
             worksheet.set_column("G:G", 60)
             worksheet.set_column("H:H", 3)
@@ -366,7 +366,7 @@ class ComissionXLSX:
             worksheet.set_column("A:A", 7)
             worksheet.set_column("B:B", 25)
             worksheet.set_column("C:C", 40)
-            worksheet.set_column("D:D", 70)
+            worksheet.set_column("D:D", 80)
             worksheet.set_column("E:E", 12)
             worksheet.set_column("F:F", 60)
             worksheet.conditional_format(
