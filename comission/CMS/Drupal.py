@@ -20,7 +20,7 @@ class DPL(GenericCMS):
     site_url = "https://www.drupal.org"
     release_site = "https://updates.drupal.org/release-history/drupal/"
     download_core_url = "https://ftp.drupal.org/files/projects/drupal-"
-    download_addon_url = "https://ftp.drupal.org/files/projects/"
+    base_download_addon_url = "https://ftp.drupal.org/files/projects/"
     cve_ref_url = ""
 
     def __init__(self, dir_path, plugins_dir, themes_dir, version=""):
@@ -119,7 +119,7 @@ class DPL(GenericCMS):
         return addon.last_version
 
     def get_addon_url(self, addon: Addon) -> str:
-        return f"{self.download_addon_url}{addon.name}-{addon.version}.zip"
+        return f"{self.base_download_addon_url}{addon.name}-{addon.version}.zip"
 
     def check_vulns_core(self) -> List[Vulnerability]:
         # TODO

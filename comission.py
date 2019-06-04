@@ -21,7 +21,7 @@ def main():
     if args["no_color"]:
         LOGGER.set_nocolor_policy(args["no_color"])
     
-    if args["logfile"]:
+    if "logfile" in args:
         LOGGER.set_file(args["logfile"])
 
     if not args["dir"]:

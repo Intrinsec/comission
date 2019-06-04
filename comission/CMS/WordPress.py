@@ -21,7 +21,7 @@ class WP(GenericCMS):
     site_url = "https://wordpress.org/"
     release_site = "https://api.wordpress.org/core/version-check/1.7/"
     download_core_url = "https://wordpress.org/wordpress-"
-    download_addon_url = "https://downloads.wordpress.org/plugin/"
+    base_download_addon_url = "https://downloads.wordpress.org/plugin/"
     cve_ref_url = "https://wpvulndb.com/api/v3/"
 
     def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version=""):
@@ -34,6 +34,7 @@ class WP(GenericCMS):
         self.core.version = version
         self.core.version_major = version.split(".")[0]
 
+        self.regex_main_file_addon = re.compile(".*Plugin name:", flags=re.IGNORECASE)
         self.regex_version_core = re.compile("\$wp_version = '(.*)';")
         self.regex_version_addon = re.compile("(?i)Version: (.*)")
         self.regex_version_addon_web_plugin = re.compile('"softwareVersion": "(.*)"')
@@ -109,8 +110,20 @@ class WP(GenericCMS):
                 # likely to be the main one
                 addon.filename = main_file[0]
             else:
-                # If no file found, put a random name to trigger an error later
-                addon.filename = "nofile"
+                # Fallback on a slower method by looking for a string in every file at the addon's root
+                for suspect in os.listdir(addon_path):
+                    if suspect.endswith(".php"):
+                        path = os.path.join(addon_path, suspect)
+                        with open(path) as file:
+                            for line in file:
+                                line_match = self.regex_main_file_addon.search(line)
+                                if line_match:
+                                    main_file.append(suspect)
+            
+            if main_file:
+                # If the two files exist, the one named as the plugin is more
+                # likely to be the main one
+                addon.filename = main_file[0]
 
         return addon.filename
 
@@ -169,9 +182,9 @@ class WP(GenericCMS):
 
     def get_addon_url(self, addon: Addon) -> str:
         if addon.version == "trunk":
-            url = f"{self.download_addon_url}{addon.name}.zip"
+            url = f"{self.base_download_addon_url}{addon.name}.zip"
         else:
-            url = f"{self.download_addon_url}{addon.name}.{addon.version}.zip"
+            url = f"{self.base_download_addon_url}{addon.name}.{addon.version}.zip"
         return url
 
     def check_vulns_core(self) -> List[Vulnerability]:
