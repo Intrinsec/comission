@@ -26,7 +26,7 @@ class GenericCMS:
     site_url = ""
     release_site = ""
     download_core_url = ""
-    download_addon_url = ""
+    base_download_addon_url = ""
     cve_ref_url = ""
 
     def __init__(self):
@@ -184,7 +184,7 @@ class GenericCMS:
         return self.core.alterations
 
     @abstractmethod
-    def get_addon_url(self, addon):
+    def get_addon_url(self, addon) -> str:
         """
         Generate the addon's url
         """
