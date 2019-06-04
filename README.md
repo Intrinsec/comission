@@ -17,7 +17,7 @@ A complete report can be generated in following format:
 - CSV
 - JSON (to allow the tool to be used in a CI process)
 
-The tool has been tested on Linux only. Colored output plus some other things should not work. Feel free to provide feedback on this topic if you try :).
+The tool has been tested on Linux and Windows. To avoid output pollution, I recommend setting `--no-color` option on Windows.
 
 
 ## Example
@@ -38,21 +38,46 @@ pip install -r requirements.txt
 ## Usage
 
 ```
-usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core] [--skip-plugins]
-                    [--skip-themes] [-f CONF]
+usage: comission.py [-h] -d DIR -c CMS [-o FILE] [-t TYPE] [--skip-core]
+                    [--skip-plugins] [--skip-themes] [--no-color] [-f CONF]
+                    [--log LOGFILE] [--wp-content WP_CONTENT]
+                    [--plugins-dir PLUGINS_DIR] [--themes-dir THEMES_DIR]
+                    [--major VERSION_MAJOR] [-v VERSION]
+                    [--wpvulndb-token WPVULNDB_TOKEN] [--debug]
 
-  -h, --help              show this help message and exit
-  -d DIR, --dir DIR       CMS root directory
-  -c CMS, --cms CMS       CMS type (drupal, wordpress)
-  -o FILE, --output FILE  Path to output file
-  -t TYPE, --type TYPE    Type of output file (CSV, XLSX, JSON). Default to XLSX.
-  --skip-core             Set this to skip core analysis
-  --skip-plugins          Set this to skip plugins analysis
-  --skip-themes           Set this to skip themes analysis
+CoMisSion analyse a CMS and plugins used.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DIR, --dir DIR     CMS root directory
+  -c CMS, --cms CMS     CMS type (drupal, wordpress)
+  -o FILE, --output FILE
+                        Path to output file
+  -t TYPE, --type TYPE  Type of output (CSV, XLSX, JSON, STDOUT). Default to
+                        XLSX.
+  --skip-core           Set this to skip core analysis
+  --skip-plugins        Set this to skip plugins analysis
+  --skip-themes         Set this to skip themes analysis
+  --no-color            Do not use colors in the output.
   -f CONF, --file CONF  Configuration file. See example.conf.
+  --log LOGFILE         Log output in given file.
+  --wp-content WP_CONTENT
+                        Set this to force the wp-content directory location.
+  --plugins-dir PLUGINS_DIR
+                        Set this to force the plugins directory location.
+  --themes-dir THEMES_DIR
+                        Set this to force the themes directory location.
+  --major VERSION_MAJOR
+                        Specify the core major version (eg. 7, 8) when using
+                        --skip-core arg. Works only for Drupal.
+  -v VERSION, --version VERSION
+                        Specify the core full version (eg. 5.5).
+  --wpvulndb-token WPVULNDB_TOKEN
+                        Set a token to request wpvulndb API.
+  --debug               Print debug message to help identify errors.
 ```
 
-:fire: In order to get vulnerabilities for WordPress, you have to set the `--wpvulndb_token` arg. You can get one with an account on [wpvulndb](https://wpvulndb.com/)
+:fire: In order to get vulnerabilities for WordPress, you have to set the `--wpvulndb_token` arg. You can get one token with an account on [wpvulndb](https://wpvulndb.com/).
 
 You can provide a configuration file. See `example.conf` for reference.
 
@@ -80,7 +105,7 @@ Be careful to change the path "TARGET_PATH" and "OUTPUT_DIR" to match your folde
 
 ## Tests
 
-Unit tests are available in `tests` folder. Before launching test, you should create a `test-data-set`directory containing `drupal` and `wordpress` subdirectories, and a `test.conf` file containing at least a `wpvulndb_token` value.
+Unit tests are available in `tests` folder. Before launching test, you should create a `test-data-set` directory containing `drupal` and `wordpress` subdirectories, and a `test.conf` file containing at least a `wpvulndb_token` value.
 
 
 ## Author
