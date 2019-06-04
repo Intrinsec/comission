@@ -297,6 +297,7 @@ class WP(GenericCMS):
         except requests.exceptions.HTTPError as e:
             LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
             addon.cve = "NO"
+            LOGGER.debug(str(e))
             pass
         return addon.vulns
 
