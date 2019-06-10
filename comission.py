@@ -3,7 +3,8 @@
 import sys
 
 import comission.CMS.WordPress as WordPress
-import comission.CMS.Drupal as Drupal
+import comission.CMS.Drupal.Drupal7 as Drupal7
+import comission.CMS.Drupal.Drupal8 as Drupal8
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
@@ -36,6 +37,7 @@ def main():
     themes_dir = ""
     wpvulndb_token = ""
     version = ""
+    version_major = ""
 
     if "wp_content" in args:
         wp_content = args["wp_content"]
@@ -51,6 +53,9 @@ def main():
 
     if "version" in args:
         version = args["version"]
+    
+    if "version_major" in args:
+        version_major = args["version_major"]
 
     if "debug" in args:
         logging.DEBUG = True
@@ -59,12 +64,18 @@ def main():
     if args["cms"] == "wordpress":
         to_check = ["wp-includes", "wp-admin"]
         uCMS.verify_path(dir_path, to_check)
-        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version)
+        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version, version_major)
 
     elif args["cms"] == "drupal":
         to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
         uCMS.verify_path(dir_path, to_check)
-        cms = Drupal.DPL(dir_path, plugins_dir, themes_dir, version)
+        if version_major == "7":
+            cms = Drupal7.DPL7(dir_path, plugins_dir, themes_dir, version, version_major)
+        elif version_major == "8":
+            cms = Drupal8.DPL8(dir_path, plugins_dir, themes_dir, version, version_major)
+        else:
+            LOGGER.print_cms("alert", "Major Drupal unknown !", "", 0)
+            sys.exit()
 
     else:
         LOGGER.print_cms("alert", "CMS unknown or unsupported !", "", 0)
