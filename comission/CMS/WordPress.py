@@ -24,15 +24,11 @@ class WP(GenericCMS):
     base_download_addon_url = "https://downloads.wordpress.org/plugin/"
     cve_ref_url = "https://wpvulndb.com/api/v3/"
 
-    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version=""):
-        super().__init__()
-        self.dir_path = dir_path
+    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version="", version_major=""):
+        super().__init__(dir_path, plugins_dir, themes_dir, version, version_major)
+
         self.wp_content = wp_content
-        self.plugins_dir = plugins_dir
-        self.themes_dir = themes_dir
         self.wpvulndb_token = wpvulndb_token
-        self.core.version = version
-        self.core.version_major = version.split(".")[0]
 
         self.regex_main_file_addon = re.compile(".*Plugin name:", flags=re.IGNORECASE)
         self.regex_version_core = re.compile("\$wp_version = '(.*)';")
@@ -55,7 +51,7 @@ class WP(GenericCMS):
 
         self.ignored_files_addon = ["css", "img", "js", "fonts", "images"]
 
-        self.version_files_selector = {"wp-includes/version.php": self.regex_version_core}
+        self.core_suspect_file_path = "wp-includes/version.php"
 
         if self.wp_content == "":
             # Take the first directory. Force it with --wp-content if you want another one.
