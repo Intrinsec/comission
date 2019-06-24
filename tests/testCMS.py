@@ -11,7 +11,7 @@ import comission.CMS.Drupal as Drupal
 import comission.CMS.WordPress as WordPress
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
-from .dataset import DataSet
+from tests.dataset import DataSet
 
 
 class TestWordPressAnalysis(unittest.TestCase):
