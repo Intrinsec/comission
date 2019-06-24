@@ -236,8 +236,16 @@ class TestReportXLSX(unittest.TestCase):
         pass
 
 
-# class TestReportCSV(unittest.TestCase):
+class TestReportCSV(unittest.TestCase):
+    def setUp(self):
+        report_name = "test-data-set/test"
+        
+        self.report = ComissionCSV(report_name)
 
+    def test_add_data(self):
+        dataset = DataSet()
+
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
 
 class TestReportJSON(unittest.TestCase):
     def setUp(self):

@@ -82,8 +82,8 @@ class ComissionCSV:
 
     def add_data(self, core_details, plugins, themes) -> None:
         # Add core data
-        self.add_core_data_to_file(
-            [core_details.version, core_details.last_version], self.core_headings
+        self.add_data_to_file(
+            [core_details.version, core_details.last_version], self.core_filename, self.core_headings
         )
 
         # Add core vulns
@@ -142,11 +142,11 @@ class ComissionCSV:
                 for vuln in addon.vulns:
                     vuln_list = [
                         addon.name,
-                        vuln["name"],
-                        vuln["link"],
-                        vuln["type"],
-                        vuln["poc"],
-                        vuln["fixed_in"],
+                        vuln.name,
+                        vuln.link,
+                        vuln.type,
+                        vuln.poc,
+                        vuln.fixed_in,
                     ]
                     vuln_lists.append(vuln_list)
                     x += 1
@@ -184,14 +184,6 @@ class ComissionCSV:
                         self.themes_alteration_filename,
                         self.themes_alteration_headings,
                     )
-
-    def add_core_data_to_file(self, data, headers) -> None:
-        with open(self.core_filename, "w", newline="") as csvfile:
-            core_data_writer = csv.writer(
-                csvfile, delimiter=";", quotechar="|", quoting=csv.QUOTE_MINIMAL
-            )
-            core_data_writer.writerow(headers)
-            core_data_writer.writerow(data)
 
     def add_data_to_file(self, data, filename, headers) -> None:
         with open(filename, "w", newline="") as csvfile:
