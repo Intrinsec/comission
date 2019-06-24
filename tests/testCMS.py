@@ -10,9 +10,11 @@ from pathlib import Path
 import comission.CMS.WordPress as WordPress
 import comission.CMS.Drupal.Drupal7 as Drupal7
 import comission.CMS.Drupal.Drupal8 as Drupal8
-import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
 from tests.dataset import DataSet
+from comission.report.CSV import ComissionCSV
+from comission.report.XLSX import ComissionXLSX
+from comission.report.JSON import ComissionJSON
 
 
 class TestWordPressAnalysis(unittest.TestCase):
@@ -211,7 +213,7 @@ class TestDrupal8Analysis(unittest.TestCase):
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
         report_name = "test-data-set/test.xlsx"
-        self.report = rCMS.ComissionXLSX(report_name)
+        self.report = ComissionXLSX(report_name)
 
         dataset = DataSet()
 
@@ -240,7 +242,7 @@ class TestReportXLSX(unittest.TestCase):
 class TestReportJSON(unittest.TestCase):
     def setUp(self):
         report_name = "test-data-set/test.json"
-        self.report = rCMS.ComissionJSON(report_name)
+        self.report = ComissionJSON(report_name)
 
     def test_add_data(self):
         dataset = DataSet()
