@@ -7,8 +7,9 @@ import unittest
 from openpyxl import load_workbook
 from pathlib import Path
 
-import comission.CMS.Drupal as Drupal
 import comission.CMS.WordPress as WordPress
+import comission.CMS.Drupal.Drupal7 as Drupal7
+import comission.CMS.Drupal.Drupal8 as Drupal8
 import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
 from tests.dataset import DataSet
@@ -49,15 +50,15 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version()
 
-        self.assertEqual(self.cms.core.last_version, "5.2.1")
+        self.assertEqual(self.cms.core.last_version, "5.2.2")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_wp_stage2.last_version, "0.9.7.4")
-        self.assertEqual(dataset.addon_wp_stage2.last_release_date, "2019-05-06")
+        self.assertEqual(dataset.addon_wp_stage2.last_version, "0.9.7.5")
+        self.assertEqual(dataset.addon_wp_stage2.last_release_date, "2019-06-05")
         self.assertEqual(
             dataset.addon_wp_stage2.link, "https://wordpress.org/plugins/w3-total-cache/"
         )
@@ -119,7 +120,7 @@ class TestDrupal7Analysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "drupal", "drupal-7.X"
         )
-        self.cms = Drupal.Drupal7.DPL7(self.dir_path, "", "")
+        self.cms = Drupal7.DPL7(self.dir_path, "", "")
 
     def test_get_core_version(self):
         self.cms.get_core_version()
@@ -179,7 +180,7 @@ class TestDrupal8Analysis(unittest.TestCase):
         self.dir_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), "../test-data-set", "drupal", "drupal-8.X"
         )
-        self.cms = Drupal.Drupal8.DPL8(self.dir_path, "", "")
+        self.cms = Drupal8.DPL8(self.dir_path, "", "")
 
     def test_get_core_version(self):
         self.cms.get_core_version()
@@ -205,7 +206,7 @@ class TestDrupal8Analysis(unittest.TestCase):
         download_core_url = "https://ftp.drupal.org/files/projects/drupal-8.3.7.zip"
         alterations = self.cms.check_core_alteration(download_core_url)
 
-        self.assertEqual(alterations[0].file, "cron.php")
+        self.assertEqual(alterations[0].file, "core.api.php")
 
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
