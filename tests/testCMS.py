@@ -10,9 +10,11 @@ from pathlib import Path
 import comission.CMS.WordPress as WordPress
 import comission.CMS.Drupal.Drupal7 as Drupal7
 import comission.CMS.Drupal.Drupal8 as Drupal8
-import comission.reportCMS as rCMS
 import comission.utilsCMS as uCMS
 from tests.dataset import DataSet
+from comission.report.CSV import ComissionCSV
+from comission.report.XLSX import ComissionXLSX
+from comission.report.JSON import ComissionJSON
 
 
 class TestWordPressAnalysis(unittest.TestCase):
@@ -211,7 +213,7 @@ class TestDrupal8Analysis(unittest.TestCase):
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
         report_name = "test-data-set/test.xlsx"
-        self.report = rCMS.ComissionXLSX(report_name)
+        self.report = ComissionXLSX(report_name)
 
         dataset = DataSet()
 
@@ -234,13 +236,21 @@ class TestReportXLSX(unittest.TestCase):
         pass
 
 
-# class TestReportCSV(unittest.TestCase):
+class TestReportCSV(unittest.TestCase):
+    def setUp(self):
+        report_name = "test-data-set/test"
+        
+        self.report = ComissionCSV(report_name)
 
+    def test_add_data(self):
+        dataset = DataSet()
+
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
 
 class TestReportJSON(unittest.TestCase):
     def setUp(self):
         report_name = "test-data-set/test.json"
-        self.report = rCMS.ComissionJSON(report_name)
+        self.report = ComissionJSON(report_name)
 
     def test_add_data(self):
         dataset = DataSet()
@@ -249,8 +259,10 @@ class TestReportJSON(unittest.TestCase):
         self.assertEqual(self.report.data["core"].version, "4.5.1")
 
     def test_generate_json(self):
-        pass
+        dataset = DataSet()
 
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
+        self.report.generate_json()
 
 if __name__ == "__main__":
     unittest.main()

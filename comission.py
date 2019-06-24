@@ -7,7 +7,9 @@ import comission.CMS.Drupal.Drupal7 as Drupal7
 import comission.CMS.Drupal.Drupal8 as Drupal8
 import comission.CMS.Drupal.GenericDrupal as GenericDrupal
 import comission.utilsCMS as uCMS
-import comission.reportCMS as rCMS
+from comission.report.CSV import ComissionCSV
+from comission.report.XLSX import ComissionXLSX
+from comission.report.JSON import ComissionJSON
 
 from comission.utils.logging import LOGGER
 import comission.utils.logging as logging
@@ -112,13 +114,13 @@ def main():
     # Save results to a file
     if args["type"] == "CSV" and args["output"]:
         # Initialize the output file
-        result_csv = rCMS.ComissionCSV(args["output"])
+        result_csv = ComissionCSV(args["output"])
         # Add data and generate result file
         result_csv.add_data(cms.core, cms.plugins, cms.themes)
 
     elif args["type"] == "XLSX" and args["output"]:
         # Initialize the output file
-        result_xlsx = rCMS.ComissionXLSX(args["output"])
+        result_xlsx = ComissionXLSX(args["output"])
         # Add data
         result_xlsx.add_data(cms.core, cms.plugins, cms.themes)
         # Generate result file
@@ -126,7 +128,7 @@ def main():
 
     elif args["type"] == "JSON" and args["output"]:
         # Initialize the output file
-        result_json = rCMS.ComissionJSON(args["output"])
+        result_json = ComissionJSON(args["output"])
         # Add data
         result_json.add_data(cms.core, cms.plugins, cms.themes)
         # Generate result file
