@@ -35,6 +35,7 @@ def main():
     wp_content = ""
     plugins_dir = ""
     themes_dir = ""
+    no_check = False
     wpvulndb_token = ""
     version = ""
     version_major = ""
@@ -47,6 +48,9 @@ def main():
 
     if "themes_dir" in args:
         themes_dir = args["themes_dir"]
+
+    if "no_check" in args:
+        no_check = args["no_check"]
 
     if "wpvulndb_token" in args:
         wpvulndb_token = args["wpvulndb_token"]
@@ -62,19 +66,21 @@ def main():
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
-        to_check = ["wp-includes", "wp-admin"]
-        uCMS.verify_path(dir_path, to_check)
+        if not no_check:
+            to_check = ["wp-includes", "wp-admin"]
+            uCMS.verify_path(dir_path, to_check)
         cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version, version_major)
 
     elif args["cms"] == "drupal":
-        to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
-        uCMS.verify_path(dir_path, to_check)
+        if not no_check:
+            to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
+            uCMS.verify_path(dir_path, to_check)
         if version_major == "7":
             cms = Drupal7.DPL7(dir_path, plugins_dir, themes_dir, version, version_major)
         elif version_major == "8":
             cms = Drupal8.DPL8(dir_path, plugins_dir, themes_dir, version, version_major)
         else:
-            LOGGER.print_cms("alert", "Major Drupal unknown !", "", 0)
+            LOGGER.print_cms("alert", "Major Drupal version unknown !", "", 0)
             sys.exit()
 
     else:
