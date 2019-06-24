@@ -29,32 +29,41 @@ class GenericCMS:
     base_download_addon_url = ""
     cve_ref_url = ""
 
-    def __init__(self):
-        self.dir_path = ""
+    def __init__(self, dir_path, plugins_dir, themes_dir, version="", version_major=""):
+        self.dir_path = dir_path
+        self.dir_path = dir_path
+        self.plugins_dir = plugins_dir
+        self.themes_dir = themes_dir
         self.plugins = []
         self.themes = []
         self.core = Core()
+        self.core.version = version
+        
+        if version == "" and version_major != "":
+            self.core.version_major = version_major
+        else :
+            self.core.version_major = version.split(".")[0]
+
         self.regex_version_core = re.compile("version = '(.*)';")
 
         self.core.ignored_files = []
         self.ignored_files_addon = []
 
-        self.version_files_selector = {"./": self.regex_version_core}
+        self.core_suspect_file_path = ""
 
     def get_core_version(self) -> str:
         suspects = []
 
-        for suspect_file_path, version_core_regexp in self.version_files_selector.items():
-            try:
-                with open(os.path.join(self.dir_path, suspect_file_path)) as version_file:
-                    for line in version_file:
-                        version_core_match = version_core_regexp.search(line)
-                        if version_core_match:
-                            suspects.append(version_core_match.group(1).strip())
-                            break
-            except FileNotFoundError as e:
-                LOGGER.debug(str(e))
-                pass
+        try:
+            with open(os.path.join(self.dir_path, self.core_suspect_file_path)) as version_file:
+                for line in version_file:
+                    version_core_match = self.regex_version_core.search(line)
+                    if version_core_match:
+                        suspects.append(version_core_match.group(1).strip())
+                        break
+        except FileNotFoundError as e:
+            LOGGER.debug(str(e))
+            pass
 
         suspects_length = len(suspects)
 
@@ -89,9 +98,11 @@ class GenericCMS:
                 for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        addon.version = version.group(1).strip(to_strip)
-                        LOGGER.print_cms("default", "Version : " + addon.version, "", 1)
-                        break
+                        candidate_version = version.group(1).strip(to_strip)
+                        if candidate_version != "VERSION": # Drupal specific
+                            addon.version = candidate_version
+                            LOGGER.print_cms("default", "Version : " + addon.version, "", 1)
+                            break
 
         except FileNotFoundError as e:
             msg = "No standard extension file. Search manually !"

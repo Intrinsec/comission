@@ -49,6 +49,12 @@ def parse_args() -> Dict:
         help="Set this to skip themes analysis",
     )
     parser.add_argument(
+        "--no-check",
+        dest="no_check",
+        action="store_true",
+        help="Do not check if provided directory is containing the right CMS. Use if files used to check the CMS are missing.",
+    )
+    parser.add_argument(
         "--no-color",
         dest="no_color",
         default=False,
@@ -60,7 +66,7 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--wp-content",
         dest="wp_content",
-        help="Set this to force the wp-content directory location.",
+        help="Set this to force the wp-content directory location. (WordPress only)",
     )
     parser.add_argument(
         "--plugins-dir",
@@ -73,9 +79,9 @@ def parse_args() -> Dict:
         help="Set this to force the themes directory location.",
     )
     parser.add_argument(
-        "--major",
+        "--major-version",
         dest="version_major",
-        help="Specify the core major version (eg. 7, 8) when using --skip-core arg. Works only for Drupal.",
+        help="Specify the core major version (eg. 7, 8) when using --skip-core arg. (Drupal only)",
     )
     parser.add_argument(
         "-v",
@@ -84,7 +90,7 @@ def parse_args() -> Dict:
         help="Specify the core full version (eg. 5.5).",
     )
     parser.add_argument(
-        "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API."
+        "--wpvulndb-token", dest="wpvulndb_token", help="Set a token to request wpvulndb API. (WordPress only)"
     )
     parser.add_argument(
         "--debug",

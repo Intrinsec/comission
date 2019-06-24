@@ -9,13 +9,15 @@ from lxml import etree
 
 import comission.utilsCMS as uCMS
 from comission.utils.logging import LOGGER
-from .GenericCMS import GenericCMS
-from .models.Addon import Addon
-from .models.Vulnerability import Vulnerability
+from comission.CMS.GenericCMS import GenericCMS
+from comission.CMS.models.Addon import Addon
+from comission.CMS.models.Vulnerability import Vulnerability
 
 
-class DPL(GenericCMS):
-    """ DRUPAL object """
+class GenericDPL(GenericCMS):
+    """ Generic DRUPAL object
+        This class is not intended to be instanciated as is but to be a parent for major drupal versions.
+    """
 
     site_url = "https://www.drupal.org"
     release_site = "https://updates.drupal.org/release-history/drupal/"
@@ -23,19 +25,12 @@ class DPL(GenericCMS):
     base_download_addon_url = "https://ftp.drupal.org/files/projects/"
     cve_ref_url = ""
 
-    def __init__(self, dir_path, plugins_dir, themes_dir, version=""):
-        super().__init__()
-        self.dir_path = dir_path
-        self.addons_path = "sites/all/"
-        self.plugins_dir = plugins_dir
-        self.themes_dir = themes_dir
-        self.plugin_path = ""
-        self.core.version = version
-        self.core.version_major = version.split(".")[0]
+    def __init__(self, dir_path, plugins_dir, themes_dir, version="", version_major=""):
+        super().__init__(dir_path, plugins_dir, themes_dir, version, version_major)
 
-        self.regex_version_core_dpl7 = re.compile("define\('VERSION', '(.*)'\);")
-        self.regex_version_core_dpl8 = re.compile("const VERSION = '(.*)';")
-        self.regex_version_addon = re.compile("version = (.*)")
+        self.addon_extension = ""
+
+        self.regex_version_core = re.compile("version = (.*)")
         self.regex_version_addon_web = re.compile('<h2><a href="(.*?)">(.+?) (.+?)</a></h2>')
         self.regex_date_last_release = re.compile('<time pubdate datetime="(.*?)">(.+?)</time>')
 
@@ -53,20 +48,24 @@ class DPL(GenericCMS):
             "UPGRADE.txt",
         ]
 
-        self.ignored_files_addon = ["tests"]
+        self.ignored_files_addon = [
+            "LICENSE.txt"
+        ]
 
-        self.version_files_selector = {
-            "includes/bootstrap.inc": self.regex_version_core_dpl7,
-            "core/lib/Drupal.php": self.regex_version_core_dpl8,
+    def detect_core_major_version(self) -> str:
+        version_major = ""
+        dpl_file_paths = {
+            "8": "core/lib/Drupal.php",
+            "7": "includes/bootstrap.inc"
         }
 
-        # If no custom plugins directory, then it's in default location
-        if self.plugins_dir == "":
-            self.plugins_dir = os.path.join(self.addons_path + "modules")
+        for dpl_version, dpl_file_path in dpl_file_paths.items():
+            if os.path.isfile(os.path.join(self.dir_path, dpl_file_path)):
+                version_major = dpl_version
 
-        # If no custom themes directory, then it's in default location
-        if self.themes_dir == "":
-            self.themes_dir = os.path.join(self.addons_path + "themes")
+        LOGGER.debug(version_major)
+
+        return version_major
 
     def get_url_release(self) -> str:
         return f"{self.release_site}{self.core.version_major}.x"
@@ -123,12 +122,12 @@ class DPL(GenericCMS):
 
     def check_vulns_core(self) -> List[Vulnerability]:
         # TODO
-        LOGGER.print_cms("alert", "CVE check not yet implemented !", "", 1)
+        LOGGER.print_cms("alert", "[-] CVE check not yet implemented !", "", 0)
         return []
 
     def check_vulns_addon(self, addon: Addon) -> List[Addon]:
         # TODO
-        LOGGER.print_cms("alert", "CVE check not yet implemented !", "", 1)
+        LOGGER.print_cms("alert", "[-] CVE check not yet implemented !", "", 1)
         return []
 
     def get_archive_name(self) -> str:
@@ -150,12 +149,6 @@ class DPL(GenericCMS):
             0,
         )
 
-        if self.core.version_major == "7":
-            self.addons_path = "sites/all/"
-
-        elif self.core.version_major == "8":
-            self.addons_path = "/"
-
         # Get the list of addon to work with
         if addon_type == "plugins":
             addons_path = self.plugins_dir
@@ -169,7 +162,7 @@ class DPL(GenericCMS):
             addon = Addon()
             addon.type = addon_type
             addon.name = addon_name
-            addon.filename = addon_name + ".info"
+            addon.filename = addon_name + self.addon_extension
 
             LOGGER.print_cms("info", "[+] " + addon_name, "", 0)
 

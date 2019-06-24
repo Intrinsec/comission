@@ -3,7 +3,9 @@
 import sys
 
 import comission.CMS.WordPress as WordPress
-import comission.CMS.Drupal as Drupal
+import comission.CMS.Drupal.Drupal7 as Drupal7
+import comission.CMS.Drupal.Drupal8 as Drupal8
+import comission.CMS.Drupal.GenericDrupal as GenericDrupal
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
@@ -34,8 +36,10 @@ def main():
     wp_content = ""
     plugins_dir = ""
     themes_dir = ""
+    no_check = False
     wpvulndb_token = ""
     version = ""
+    version_major = ""
 
     if "wp_content" in args:
         wp_content = args["wp_content"]
@@ -46,25 +50,48 @@ def main():
     if "themes_dir" in args:
         themes_dir = args["themes_dir"]
 
+    if "no_check" in args:
+        no_check = args["no_check"]
+
     if "wpvulndb_token" in args:
         wpvulndb_token = args["wpvulndb_token"]
 
     if "version" in args:
         version = args["version"]
+    
+    if "version_major" in args:
+        version_major = args["version_major"]
 
     if "debug" in args:
         logging.DEBUG = True
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
-        to_check = ["wp-includes", "wp-admin"]
-        uCMS.verify_path(dir_path, to_check)
-        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version)
+        if not no_check:
+            to_check = ["wp-includes", "wp-admin"]
+            uCMS.verify_path(dir_path, to_check)
+        cms = WordPress.WP(dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version, version_major)
 
     elif args["cms"] == "drupal":
-        to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
-        uCMS.verify_path(dir_path, to_check)
-        cms = Drupal.DPL(dir_path, plugins_dir, themes_dir, version)
+        if not no_check:
+            to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
+            uCMS.verify_path(dir_path, to_check)
+        
+        # Try to detect Drupal major version
+        tmp_cms = GenericDrupal.GenericDPL(dir_path, plugins_dir, themes_dir, version, version_major)
+        version_major_detected = tmp_cms.detect_core_major_version()
+        del tmp_cms
+
+        if version_major_detected != "" and version_major == "":
+            version_major = version_major_detected
+
+        if version_major == "7":
+            cms = Drupal7.DPL7(dir_path, plugins_dir, themes_dir, version, version_major)
+        elif version_major == "8":
+            cms = Drupal8.DPL8(dir_path, plugins_dir, themes_dir, version, version_major)
+        else:
+            LOGGER.print_cms("alert", "Major Drupal version unknown !", "", 0)
+            sys.exit()
 
     else:
         LOGGER.print_cms("alert", "CMS unknown or unsupported !", "", 0)
