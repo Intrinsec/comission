@@ -31,7 +31,6 @@ class GenericDPL(GenericCMS):
         self.addon_extension = ""
 
         self.regex_version_core = re.compile("version = (.*)")
-        self.regex_version_addon = re.compile("version = (.*)")
         self.regex_version_addon_web = re.compile('<h2><a href="(.*?)">(.+?) (.+?)</a></h2>')
         self.regex_date_last_release = re.compile('<time pubdate datetime="(.*?)">(.+?)</time>')
 
@@ -63,7 +62,7 @@ class GenericDPL(GenericCMS):
         for dpl_version, dpl_file_path in dpl_file_paths.items():
             if os.path.isfile(os.path.join(self.dir_path, dpl_file_path)):
                 version_major = dpl_version
-                
+
         LOGGER.debug(version_major)
 
         return version_major

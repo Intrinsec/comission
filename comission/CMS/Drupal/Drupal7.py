@@ -14,6 +14,7 @@ class DPL7(GenericDPL):
         self.addons_path = "sites/all/"
         self.addon_extension = ".info"
         self.regex_version_core = re.compile("define\('VERSION', '(.*)'\);")
+        self.regex_version_addon = re.compile("version = (.*)")
         self.core_suspect_file_path = "includes/bootstrap.inc"
 
         # If no custom plugins directory, then it's in default location
