@@ -251,8 +251,10 @@ class TestReportJSON(unittest.TestCase):
         self.assertEqual(self.report.data["core"].version, "4.5.1")
 
     def test_generate_json(self):
-        pass
+        dataset = DataSet()
 
+        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
+        self.report.generate_json()
 
 if __name__ == "__main__":
     unittest.main()

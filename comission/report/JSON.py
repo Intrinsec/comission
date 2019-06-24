@@ -16,4 +16,4 @@ class ComissionJSON:
 
     def generate_json(self) -> None:
         with open(self.filename, "w") as outfile:
-            json.dump(self.data, outfile)
+            json.dump(self.data, outfile, default=lambda o: o.__dict__)
