@@ -5,6 +5,7 @@ import sys
 import comission.CMS.WordPress as WordPress
 import comission.CMS.Drupal.Drupal7 as Drupal7
 import comission.CMS.Drupal.Drupal8 as Drupal8
+import comission.CMS.Drupal.GenericDrupal as GenericDrupal
 import comission.utilsCMS as uCMS
 import comission.reportCMS as rCMS
 
@@ -75,6 +76,15 @@ def main():
         if not no_check:
             to_check = ["sites", "modules", "profiles", "themes", "web.config", "update.php"]
             uCMS.verify_path(dir_path, to_check)
+        
+        # Try to detect Drupal major version
+        tmp_cms = GenericDrupal.GenericDPL(dir_path, plugins_dir, themes_dir, version, version_major)
+        version_major_detected = tmp_cms.detect_core_major_version()
+        del tmp_cms
+
+        if version_major_detected != "":
+            version_major = version_major_detected
+
         if version_major == "7":
             cms = Drupal7.DPL7(dir_path, plugins_dir, themes_dir, version, version_major)
         elif version_major == "8":

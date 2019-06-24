@@ -53,6 +53,21 @@ class GenericDPL(GenericCMS):
             "LICENSE.txt"
         ]
 
+    def detect_core_major_version(self) -> str:
+        version_major = ""
+        dpl_file_paths = {
+            "8": "core/lib/Drupal.php",
+            "7": "includes/bootstrap.inc"
+        }
+
+        for dpl_version, dpl_file_path in dpl_file_paths.items():
+            if os.path.isfile(os.path.join(self.dir_path, dpl_file_path)):
+                version_major = dpl_version
+                
+        LOGGER.debug(version_major)
+
+        return version_major
+
     def get_url_release(self) -> str:
         return f"{self.release_site}{self.core.version_major}.x"
 
