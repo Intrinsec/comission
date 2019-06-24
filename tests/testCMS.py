@@ -212,28 +212,18 @@ class TestDrupal8Analysis(unittest.TestCase):
 
 class TestReportXLSX(unittest.TestCase):
     def setUp(self):
-        report_name = "test-data-set/test.xlsx"
-        self.report = ComissionXLSX(report_name)
+        self.report_name = "test-data-set/test.xlsx"
+        self.report = ComissionXLSX(self.report_name)
 
-        dataset = DataSet()
-
-        self.report.add_data(dataset.core, dataset.plugins, dataset.themes)
-        self.report.generate_xlsx()
-
-        self.workbook = load_workbook(report_name)
+        self.dataset = DataSet()
 
     def test_add_data(self):
-        #TODO
-        pass
+        self.report.add_data(self.dataset.core, self.dataset.plugins, self.dataset.themes)
 
-    def test_generate_heading(self):
-        #TODO
-        self.workbook.get_sheet_names()
-        pass
+    def test_generate_xlsx(self):
+        self.report.generate_xlsx()
 
-    def test_generate_formatting(self):
-        #TODO
-        pass
+        self.workbook = load_workbook(self.report_name)
 
 
 class TestReportCSV(unittest.TestCase):
