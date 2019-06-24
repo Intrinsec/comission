@@ -82,7 +82,7 @@ def main():
         version_major_detected = tmp_cms.detect_core_major_version()
         del tmp_cms
 
-        if version_major_detected != "":
+        if version_major_detected != "" and version_major == "":
             version_major = version_major_detected
 
         if version_major == "7":
