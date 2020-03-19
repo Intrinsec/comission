@@ -207,7 +207,6 @@ class GenericCMS:
 
         addon_url = self.get_addon_url(addon)
 
-        LOGGER.print_cms("default", f"To download the addon: {addon_url}", "", 1)
         altered = ""
 
         try:
@@ -243,6 +242,8 @@ class GenericCMS:
                         "",
                         1,
                     )
+
+                LOGGER.print_cms("default", f"To download the addon: {addon_url}", "", 1)
 
         except requests.exceptions.HTTPError as e:
             addon.notes = "The download link is not standard. Search manually !"
