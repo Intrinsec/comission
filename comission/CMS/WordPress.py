@@ -166,7 +166,7 @@ class WP(GenericCMS):
                         LOGGER.print_cms(
                             "alert",
                             "Outdated, last version: ",
-                            f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
+                            f"{addon.last_version} ({addon.last_release_date}) \n\tCheck : {releases_url}",
                             1,
                         )
 
@@ -292,9 +292,14 @@ class WP(GenericCMS):
                     addon.cve = "NO"
 
         except requests.exceptions.HTTPError as e:
-            LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+            if e.response.status_code == 403:
+                wpvulndb_reponse = e.response.json()
+                wpvulndb_error = wpvulndb_reponse["error"]
+                LOGGER.print_cms("alert", f"[+] {wpvulndb_error}", "", 1)
+            else:
+                LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+                LOGGER.debug(str(e))
             addon.cve = "NO"
-            LOGGER.debug(str(e))
             pass
         return addon.vulns
 
