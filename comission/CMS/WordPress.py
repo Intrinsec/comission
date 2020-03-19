@@ -31,7 +31,7 @@ class WP(GenericCMS):
         self.wpvulndb_token = wpvulndb_token
 
         self.regex_main_file_addon = re.compile(".*Plugin name:", flags=re.IGNORECASE)
-        self.regex_version_core = re.compile("\$wp_version = '(.*)';")
+        self.regex_version_core = re.compile("\$wp_version = '(.*)';")  # pyright: reportInvalidStringEscapeSequence=false
         self.regex_version_addon = re.compile("(?i)Version: (.*)")
         self.regex_version_addon_web_plugin = re.compile('"softwareVersion": "(.*)"')
         self.regex_version_addon_web_theme = re.compile("Version: <strong>(.*)</strong>")
