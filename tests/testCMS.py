@@ -52,15 +52,15 @@ class TestWordPressAnalysis(unittest.TestCase):
     def test_get_core_last_version(self):
         self.cms.get_core_last_version()
 
-        self.assertEqual(self.cms.core.last_version, "5.2.2")
+        self.assertEqual(self.cms.core.last_version, "5.3.2")
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
 
         self.cms.get_addon_last_version(dataset.addon_wp_stage2)
 
-        self.assertEqual(dataset.addon_wp_stage2.last_version, "0.9.7.5")
-        self.assertEqual(dataset.addon_wp_stage2.last_release_date, "2019-06-05")
+        self.assertEqual(dataset.addon_wp_stage2.last_version, "0.13.1")
+        self.assertEqual(dataset.addon_wp_stage2.last_release_date, "2020-02-10")
         self.assertEqual(
             dataset.addon_wp_stage2.link, "https://wordpress.org/plugins/w3-total-cache/"
         )
@@ -93,7 +93,7 @@ class TestWordPressAnalysis(unittest.TestCase):
         config = uCMS.parse_conf("test-data-set/test.conf")
         self.cms.wpvulndb_token = config["wpvulndb_token"]
         vulns_details = self.cms.check_vulns_core()
-        self.assertEqual(len(vulns_details), 9)
+        self.assertEqual(len(vulns_details), 21)
         self.assertEqual(vulns_details[0].name, "WordPress <= 5.0 - Authenticated File Delete")
         self.assertEqual(vulns_details[0].link, "https://wpvulndb.com/vulnerabilities/9169")
 
@@ -142,14 +142,14 @@ class TestDrupal7Analysis(unittest.TestCase):
         self.cms.core.version_major = "7"
         self.cms.get_core_last_version()
 
-        self.assertEqual("7.67", self.cms.core.last_version)
+        self.assertEqual("7.69", self.cms.core.last_version)
 
     def test_get_addon_last_version(self):
         dataset = DataSet()
         self.cms.get_addon_last_version(dataset.addon_dpl_stage2)
 
-        self.assertEqual("7.x-3.8", dataset.addon_dpl_stage2.last_version)
-        self.assertEqual("14 February 2019", dataset.addon_dpl_stage2.last_release_date)
+        self.assertEqual("7.x-3.9", dataset.addon_dpl_stage2.last_version)
+        self.assertEqual("3 October 2019", dataset.addon_dpl_stage2.last_release_date)
         self.assertEqual(
             dataset.addon_dpl_stage2.link, "https://www.drupal.org/project/media_youtube/releases"
         )
@@ -197,7 +197,7 @@ class TestDrupal8Analysis(unittest.TestCase):
         self.cms.core.version_major = "8"
         self.cms.get_core_last_version()
 
-        self.assertEqual("8.7.3", self.cms.core.last_version)
+        self.assertEqual("8.8.4", self.cms.core.last_version)
 
     def test_get_addon_last_version(self):
         #TODO

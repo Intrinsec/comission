@@ -34,7 +34,7 @@ class GenericCMS:
         self.dir_path = dir_path
         self.plugins_dir = plugins_dir
         self.themes_dir = themes_dir
-        self.plugins = []
+        self.plugins : List[Addon] = []
         self.themes = []
         self.core = Core()
         self.core.version = version
@@ -47,7 +47,7 @@ class GenericCMS:
         self.regex_version_core = re.compile("version = '(.*)';")
 
         self.core.ignored_files = []
-        self.ignored_files_addon = []
+        self.ignored_files_addon: List[str] = []
 
         self.core_suspect_file_path = ""
 
@@ -89,7 +89,7 @@ class GenericCMS:
             return ""
 
     def get_addon_version(
-        self, addon: Addon, addon_path: str, version_file_regexp: Pattern, to_strip: str
+        self, addon: Addon, addon_path: str, version_file_regexp: Pattern[str], to_strip: str
     ) -> str:
         version = ""
         try:
@@ -98,7 +98,7 @@ class GenericCMS:
                 for line in addon_info:
                     version = version_file_regexp.search(line)
                     if version:
-                        candidate_version = version.group(1).strip(to_strip)
+                        candidate_version = str(version.group(1).strip(to_strip))
                         if candidate_version != "VERSION": # Drupal specific
                             addon.version = candidate_version
                             LOGGER.print_cms("default", "Version : " + addon.version, "", 1)
@@ -185,7 +185,7 @@ class GenericCMS:
         clean_core_path = os.path.join(temp_directory, Path(self.get_archive_name()))
 
         dcmp = dircmp(clean_core_path, self.dir_path, self.core.ignored_files)
-        uCMS.diff_files(dcmp, alterations, self.dir_path)
+        uCMS.diff_files(dcmp, alterations, self.dir_path) # type: ignore # ignore for "dcmp" variable
 
         self.core.alterations = alterations
         if alterations is not None:
@@ -207,7 +207,6 @@ class GenericCMS:
 
         addon_url = self.get_addon_url(addon)
 
-        LOGGER.print_cms("default", f"To download the addon: {addon_url}", "", 1)
         altered = ""
 
         try:
@@ -232,7 +231,7 @@ class GenericCMS:
                     LOGGER.print_cms("alert", f"Different from sources : {altered}", "", 1)
 
                     dcmp = dircmp(addon_path, ref_dir, self.ignored_files_addon)
-                    uCMS.diff_files(dcmp, addon.alterations, addon_path)
+                    uCMS.diff_files(dcmp, addon.alterations, addon_path)  # type: ignore # ignore for "dcmp" variable
 
                 addon.altered = altered
 
@@ -243,6 +242,8 @@ class GenericCMS:
                         "",
                         1,
                     )
+
+                LOGGER.print_cms("default", f"To download the addon: {addon_url}", "", 1)
 
         except requests.exceptions.HTTPError as e:
             addon.notes = "The download link is not standard. Search manually !"

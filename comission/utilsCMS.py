@@ -95,6 +95,7 @@ def parse_args() -> Dict:
     parser.add_argument(
         "--debug",
         dest="debug",
+        default=False,
         action="store_true",
         help="Print debug message to help identify errors.",
     )

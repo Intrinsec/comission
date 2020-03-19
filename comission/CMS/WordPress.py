@@ -24,14 +24,14 @@ class WP(GenericCMS):
     base_download_addon_url = "https://downloads.wordpress.org/plugin/"
     cve_ref_url = "https://wpvulndb.com/api/v3/"
 
-    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token, version="", version_major=""):
+    def __init__(self, dir_path, wp_content, plugins_dir, themes_dir, wpvulndb_token="", version="", version_major=""):
         super().__init__(dir_path, plugins_dir, themes_dir, version, version_major)
 
         self.wp_content = wp_content
         self.wpvulndb_token = wpvulndb_token
 
         self.regex_main_file_addon = re.compile(".*Plugin name:", flags=re.IGNORECASE)
-        self.regex_version_core = re.compile("\$wp_version = '(.*)';")
+        self.regex_version_core = re.compile("\$wp_version = '(.*)';")  # pyright: reportInvalidStringEscapeSequence=false
         self.regex_version_addon = re.compile("(?i)Version: (.*)")
         self.regex_version_addon_web_plugin = re.compile('"softwareVersion": "(.*)"')
         self.regex_version_addon_web_theme = re.compile("Version: <strong>(.*)</strong>")
@@ -166,7 +166,7 @@ class WP(GenericCMS):
                         LOGGER.print_cms(
                             "alert",
                             "Outdated, last version: ",
-                            f"{addon.last_version} ({addon.last_release_date} ) \n\tCheck : {releases_url}",
+                            f"{addon.last_version} ({addon.last_release_date}) \n\tCheck : {releases_url}",
                             1,
                         )
 
@@ -191,43 +191,44 @@ class WP(GenericCMS):
 
         headers = {"Authorization": f"Token token={self.wpvulndb_token}"}
 
-        try:
-            response = requests.get(url, headers=headers)
-            response.raise_for_status()
+        if self.wpvulndb_token != "":
+            try:
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
 
-            if response.status_code == 200:
-                page_json = response.json()
+                if response.status_code == 200:
+                    page_json = response.json()
 
-                vulns = page_json[self.core.version]["vulnerabilities"]
-                LOGGER.print_cms("info", "[+] CVE list", "", 1)
+                    vulns = page_json[self.core.version]["vulnerabilities"]
+                    LOGGER.print_cms("info", "[+] CVE list", "", 1)
 
-                if len(vulns) > 0:
-                    for vuln in vulns:
-                        vuln_url = url_details + str(vuln["id"])
-                        vuln_details = Vulnerability()
+                    if len(vulns) > 0:
+                        for vuln in vulns:
+                            vuln_url = url_details + str(vuln["id"])
+                            vuln_details = Vulnerability()
 
-                        vuln_details.name = vuln["title"]
-                        vuln_details.link = vuln_url
-                        vuln_details.type = vuln["vuln_type"]
-                        vuln_details.poc = "CHECK"
-                        vuln_details.fixed_in = vuln["fixed_in"]
+                            vuln_details.name = vuln["title"]
+                            vuln_details.link = vuln_url
+                            vuln_details.type = vuln["vuln_type"]
+                            vuln_details.poc = "CHECK"
+                            vuln_details.fixed_in = vuln["fixed_in"]
 
-                        if self.get_poc(vuln_url):
-                            vuln_details.poc = "YES"
+                            if self.get_poc(vuln_url):
+                                vuln_details.poc = "YES"
 
-                        LOGGER.print_cms("alert", vuln["title"], "", 1)
-                        LOGGER.print_cms(
-                            "info", f"[+] Fixed in version {str(vuln['fixed_in'])}", "", 1
-                        )
+                            LOGGER.print_cms("alert", vuln["title"], "", 1)
+                            LOGGER.print_cms(
+                                "info", f"[+] Fixed in version {str(vuln['fixed_in'])}", "", 1
+                            )
 
-                        self.core.vulns.append(vuln_details)
-                else:
-                    LOGGER.print_cms("good", "No CVE were found", "", 1)
+                            self.core.vulns.append(vuln_details)
+                    else:
+                        LOGGER.print_cms("good", "No CVE were found", "", 1)
 
-        except requests.exceptions.HTTPError as e:
-            LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
-            LOGGER.debug(str(e))
-            pass
+            except requests.exceptions.HTTPError as e:
+                LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+                LOGGER.debug(str(e))
+                pass
 
         return self.core.vulns
 
@@ -291,9 +292,14 @@ class WP(GenericCMS):
                     addon.cve = "NO"
 
         except requests.exceptions.HTTPError as e:
-            LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+            if e.response.status_code == 403:
+                wpvulndb_reponse = e.response.json()
+                wpvulndb_error = wpvulndb_reponse["error"]
+                LOGGER.print_cms("alert", f"[+] {wpvulndb_error}", "", 1)
+            else:
+                LOGGER.print_cms("info", "No entry on wpvulndb.", "", 1)
+                LOGGER.debug(str(e))
             addon.cve = "NO"
-            LOGGER.debug(str(e))
             pass
         return addon.vulns
 

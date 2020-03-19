@@ -1,6 +1,6 @@
 import datetime
 
-DEBUG = False
+
 QUIET = False
 
 
@@ -8,13 +8,19 @@ class Log:
     NO_COLOR = False
     LOG_IN_FILE = False
     FILE = None
+    DEBUG = False
 
     @classmethod
     def set_nocolor_policy(cls, no_color):
         cls.NO_COLOR = no_color
 
-    def debug(self, msg: str) -> None:
-        if DEBUG and not QUIET:
+    @classmethod
+    def set_debug_policy(cls, debug):
+        cls.DEBUG = debug
+
+    @classmethod
+    def debug(cls, msg: str) -> None:
+        if cls.DEBUG and not QUIET:
             time = datetime.datetime.now()
             print("{}: {}".format(time, msg))
 

@@ -26,6 +26,9 @@ def main():
     if args["no_color"]:
         LOGGER.set_nocolor_policy(args["no_color"])
     
+    if args["debug"]:
+        LOGGER.set_debug_policy(args["debug"])
+
     if "logfile" in args:
         LOGGER.set_file(args["logfile"])
 
@@ -64,8 +67,6 @@ def main():
     if "version_major" in args:
         version_major = args["version_major"]
 
-    if "debug" in args:
-        logging.DEBUG = True
 
     # Verify if the CMS is really the one given by the user
     if args["cms"] == "wordpress":
