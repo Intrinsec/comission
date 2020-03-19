@@ -86,7 +86,7 @@ class DataSet:
         self.plugin.last_version = "2.0"
         self.plugin.last_release_date = "2017-08-25"
         self.plugin.link = "https://test.link.addon"
-        self.plugin.edited = "YES"
+        self.plugin.altered = "YES"
         self.plugin.subtype = ""
         self.plugin.cve = "YES"
         self.plugin.vulns = [self.vuln, self.vuln, self.vuln]
@@ -101,7 +101,7 @@ class DataSet:
         self.muplugin.last_version = "2.0"
         self.muplugin.last_release_date = "2017-08-25"
         self.muplugin.link = "https://test.link.addon"
-        self.muplugin.edited = "YES"
+        self.muplugin.altered = "YES"
         self.muplugin.subtype = "mu"
         self.muplugin.cve = "YES"
         self.muplugin.vulns = [self.vuln, self.vuln, self.vuln]
@@ -116,7 +116,7 @@ class DataSet:
         self.theme.last_version = "2.0"
         self.theme.last_release_date = "2017-08-25"
         self.theme.link = "https://test.link.addon"
-        self.theme.edited = "YES"
+        self.theme.altered = "YES"
         self.theme.subtype = ""
         self.theme.cve = "YES"
         self.theme.vulns = [self.vuln, self.vuln, self.vuln]
